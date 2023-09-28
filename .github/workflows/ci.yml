@@ -1,0 +1,44 @@
+name: Continuous Integration
+on: [push, pull_request]
+env:
+  PROJECT_NAME: ${{ vars.PROJECT_NAME }}
+
+jobs:
+  validation:
+    name: Validation
+    if: "!contains(github.event.head_commit.message, '[skip ci]')"
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.10]
+    steps:
+      - uses: actions/checkout@v3
+      - uses: isee/actions/validation@master
+        with:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          python-version: ${{ matrix.python-version }}
+          python_packages: ${{ vars.PYTHON_PKGS }}
+          apt_packages: ${{ vars.APT_GET_PKGS }}
+          npm_packages: ${{ vars.NPM_PKGS }}
+          requirements_file: ${{ vars.REQUIREMENTS_FILE_PATH }}
+          test_requirements_file: ${{ vars.TEST_REQUIREMENTS_FILE_PATH }}
+
+  publish:
+    name: Publish
+    if: "!contains(github.event.head_commit.message, '[skip ci]') && ( github.ref == 'refs/heads/master')"
+    needs: validation
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.10]
+    steps:
+      - uses: actions/checkout@v3
+      - uses: isee/actions/publish@master
+        with:
+          python-version: ${{ matrix.python-version }}
+          python_packages:  ${{ vars.PYTHON_PKGS }}
+          PROJECT_NAME: ${{ vars.PROJECT_NAME }}
+          PYPI_USERNAME: ${{ vars.PYPI_USERNAME }}
+          PYPI_PASSWORD: ${{ vars.PYPI_PASSWORD }}
+          GIT_USER_EMAIL: ${{ vars.GIT_USER_EMAIL }}
+          GIT_USER_NAME: ${{ vars.GIT_USER_NAME }}
