@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>xdol.pystores &mdash; xdol 0.0.1 documentation</title><link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/copybutton.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/graphviz.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/language_data.js"></script>
+        <script src="../../_static/toggleprompt.js"></script>
+        <script src="../../_static/clipboard.min.js"></script>
+        <script src="../../_static/copybutton.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            xdol
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../module_docs/xdol.html">xdol</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../module_docs/xdol/paths.html">xdol.paths</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../module_docs/xdol/pystores.html">xdol.pystores</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../module_docs/xdol/util.html">xdol.util</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">xdol</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">xdol.pystores</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for xdol.pystores</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Stores for python objects &quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">site</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">from</span> <span class="nn">dol</span> <span class="kn">import</span> <span class="n">wrap_kvs</span><span class="p">,</span> <span class="n">filt_iter</span><span class="p">,</span> <span class="n">KvReader</span><span class="p">,</span> <span class="n">cached_keys</span>
+<span class="kn">from</span> <span class="nn">dol.filesys</span> <span class="kn">import</span> <span class="n">mk_relative_path_store</span><span class="p">,</span> <span class="n">DirCollection</span><span class="p">,</span> <span class="n">FileBytesReader</span>
+<span class="kn">from</span> <span class="nn">xdol.util</span> <span class="kn">import</span> <span class="n">resolve_to_folder</span>
+
+
+<div class="viewcode-block" id="PyFilesBytes"><a class="viewcode-back" href="../../module_docs/xdol/pystores.html#xdol.pystores.PyFilesBytes">[docs]</a><span class="nd">@filt_iter</span><span class="p">(</span><span class="n">filt</span><span class="o">=</span><span class="k">lambda</span> <span class="n">k</span><span class="p">:</span> <span class="n">k</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">&#39;.py&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="s1">&#39;__pycache__&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">k</span><span class="p">)</span>
+<span class="nd">@mk_relative_path_store</span><span class="p">(</span><span class="n">prefix_attr</span><span class="o">=</span><span class="s1">&#39;rootdir&#39;</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">PyFilesBytes</span><span class="p">(</span><span class="n">FileBytesReader</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Mapping interface to .py files&#39; bytes&quot;&quot;&quot;</span></div>
+
+<span class="c1"># Note: One could use a more robust bytes decoder (like tec.util.decode_or_default)</span>
+<span class="n">bytes_decoder</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>
+
+<span class="c1"># TODO: Extend PyFilesReader to take more kinds of src arguments.</span>
+<span class="c1">#   for example: single .py filepaths or iterables thereof (use cached_keys for that)</span>
+<div class="viewcode-block" id="PyFilesReader"><a class="viewcode-back" href="../../module_docs/xdol/pystores.html#xdol.pystores.PyFilesReader">[docs]</a><span class="nd">@wrap_kvs</span><span class="p">(</span><span class="n">obj_of_data</span><span class="o">=</span><span class="n">bytes_decoder</span><span class="p">)</span>
+<span class="nd">@filt_iter</span><span class="p">(</span><span class="n">filt</span><span class="o">=</span><span class="k">lambda</span> <span class="n">k</span><span class="p">:</span> <span class="n">k</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">&#39;.py&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="s1">&#39;__pycache__&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">k</span><span class="p">)</span>
+<span class="nd">@mk_relative_path_store</span><span class="p">(</span><span class="n">prefix_attr</span><span class="o">=</span><span class="s1">&#39;rootdir&#39;</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">PyFilesReader</span><span class="p">(</span><span class="n">FileBytesReader</span><span class="p">,</span> <span class="n">KvReader</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Mapping interface to .py files of a folder.</span>
+<span class="sd">    Keys are relative .py paths.</span>
+<span class="sd">    Values are the string contents of the .py file.</span>
+
+<span class="sd">    Important Note: If the byte contents of the .py file can&#39;t be decoded (with a simple bytes.decode()),</span>
+<span class="sd">    an empty string will be returned as it&#39;s value (i.e. contents).</span>
+
+<span class="sd">    &gt;&gt;&gt; import asyncio</span>
+<span class="sd">    &gt;&gt;&gt; s = PyFilesReader(asyncio)</span>
+<span class="sd">    &gt;&gt;&gt; assert len(s) &gt; 10  # to test length (currently asyncio has 29 modules</span>
+<span class="sd">    &gt;&gt;&gt; &#39;locks.py&#39; in s</span>
+<span class="sd">    True</span>
+
+<span class="sd">    But you can also specify an __init__.py filepath or the directory containing it.</span>
+
+<span class="sd">    &gt;&gt;&gt; import os</span>
+<span class="sd">    &gt;&gt;&gt; init_filepath = asyncio.__file__</span>
+<span class="sd">    &gt;&gt;&gt; dirpath_to_asyncio_modules = os.path.dirname(init_filepath)</span>
+<span class="sd">    &gt;&gt;&gt; ss = PyFilesReader(init_filepath)</span>
+<span class="sd">    &gt;&gt;&gt; sss = PyFilesReader(dirpath_to_asyncio_modules)</span>
+<span class="sd">    &gt;&gt;&gt; assert list(s) == list(ss) == list(sss)</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">src</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">max_levels</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">rootdir</span><span class="o">=</span><span class="n">resolve_to_folder</span><span class="p">(</span><span class="n">src</span><span class="p">),</span> <span class="n">max_levels</span><span class="o">=</span><span class="n">max_levels</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">init_file_contents</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns the string of contents of the __init__.py file if it exists, and None if not&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;__init__.py&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">is_pkg</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns True if, and only if, the root is a pkg folder (i.e. has an __init__.py file)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="s1">&#39;__init__.py&#39;</span> <span class="ow">in</span> <span class="bp">self</span></div>
+
+
+<span class="n">PkgFilesReader</span> <span class="o">=</span> <span class="n">PyFilesReader</span>  <span class="c1"># back-compatibility alias</span>
+
+<span class="n">builtins_rootdir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="vm">__file__</span><span class="p">)</span>
+<span class="n">builtins_py_files</span> <span class="o">=</span> <span class="n">cached_keys</span><span class="p">(</span><span class="n">PyFilesReader</span><span class="p">(</span><span class="n">builtins_rootdir</span><span class="p">))</span>
+
+<span class="n">sitepackages_rootdir</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="nb">iter</span><span class="p">(</span><span class="n">site</span><span class="o">.</span><span class="n">getsitepackages</span><span class="p">()))</span>
+<span class="n">sitepackages_py_files</span> <span class="o">=</span> <span class="n">cached_keys</span><span class="p">(</span><span class="n">PyFilesReader</span><span class="p">(</span><span class="n">sitepackages_rootdir</span><span class="p">))</span>
+
+
+<div class="viewcode-block" id="PkgReader"><a class="viewcode-back" href="../../module_docs/xdol/pystores.html#xdol.pystores.PkgReader">[docs]</a><span class="nd">@filt_iter</span><span class="p">(</span><span class="n">filt</span><span class="o">=</span><span class="k">lambda</span> <span class="n">k</span><span class="p">:</span> <span class="ow">not</span> <span class="n">k</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">&#39;__pycache__&#39;</span><span class="p">))</span>
+<span class="nd">@wrap_kvs</span><span class="p">(</span><span class="n">key_of_id</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">id_of_key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span> <span class="o">+</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">sep</span><span class="p">)</span>
+<span class="nd">@mk_relative_path_store</span><span class="p">(</span><span class="n">prefix_attr</span><span class="o">=</span><span class="s1">&#39;rootdir&#39;</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">PkgReader</span><span class="p">(</span><span class="n">DirCollection</span><span class="p">,</span> <span class="n">KvReader</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">PyFilesReader</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rootdir</span><span class="p">,</span> <span class="n">k</span><span class="p">))</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright NO COPYRIGHT.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

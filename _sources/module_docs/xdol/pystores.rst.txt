@@ -1,0 +1,4 @@
+xdol.pystores
+=============
+.. automodule:: xdol.pystores
+   :members:

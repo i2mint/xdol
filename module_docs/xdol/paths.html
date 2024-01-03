@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>xdol.paths &mdash; xdol 0.0.1 documentation</title><link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/copybutton.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/graphviz.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/language_data.js"></script>
+        <script src="../../_static/toggleprompt.js"></script>
+        <script src="../../_static/clipboard.min.js"></script>
+        <script src="../../_static/copybutton.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="xdol.pystores" href="pystores.html" />
+    <link rel="prev" title="xdol" href="../xdol.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            xdol
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../xdol.html">xdol</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">xdol.paths</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pystores.html">xdol.pystores</a></li>
+<li class="toctree-l1"><a class="reference internal" href="util.html">xdol.util</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">xdol</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">xdol.paths</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/module_docs/xdol/paths.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-xdol.paths">
+<span id="xdol-paths"></span><h1>xdol.paths<a class="headerlink" href="#module-xdol.paths" title="Permalink to this headline">¶</a></h1>
+<p>Tools for manipulating paths.</p>
+<p>A path is a sequence of objects that represent a reference or location.
+Often paths are strings that use a special character (e.g. ‘/’) to distinguish the
+separate objects in the sequence.</p>
+<dl class="py function">
+<dt id="xdol.paths.extract_path_segments">
+<code class="sig-prename descclassname">xdol.paths.</code><code class="sig-name descname">extract_path_segments</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">path</span></em>, <em class="sig-param"><span class="o">*</span></em>, <em class="sig-param"><span class="n">sep</span><span class="o">=</span><span class="default_value">'/'</span></em>, <em class="sig-param"><span class="n">depth</span><span class="o">=</span><span class="default_value">1</span></em>, <em class="sig-param"><span class="n">trailing_sep</span><span class="o">=</span><span class="default_value">True</span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/xdol/paths.html#extract_path_segments"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#xdol.paths.extract_path_segments" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extracts the first <cite>depth</cite> segments of a path, delimited by <cite>sep</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>path</strong> – The path to extract the segments from.</p></li>
+<li><p><strong>sep</strong> – The delimiter to use to separate the segments.</p></li>
+<li><p><strong>depth</strong> – The number of segments to extract.</p></li>
+<li><p><strong>trailing_sep</strong> – Whether to add a trailing delimiter to the result.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The first <cite>depth</cite> segments of the path, delimited by <cite>sep</cite>.</p>
+</dd>
+</dl>
+<p>By default, the function will use depth=1 and the system’s path separator as <cite>sep</cite>.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">extract_path_segments</span><span class="p">(</span><span class="s2">&quot;snap/crackle/pop/cereal&quot;</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="s1">&#39;/&#39;</span><span class="p">)</span>
+<span class="go">&#39;snap/&#39;</span>
+</pre></div>
+</div>
+<p>You can specify a different <cite>depth</cite>.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">extract_path_segments</span><span class="p">(</span><span class="s2">&quot;snap/crackle/pop/cereal&quot;</span><span class="p">,</span> <span class="n">depth</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="s1">&#39;/&#39;</span><span class="p">)</span>
+<span class="go">&#39;snap/crackle/&#39;</span>
+</pre></div>
+</div>
+<p>Note that if the path starts with the <cite>sep</cite> delimiter, the result will be different.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">extract_path_segments</span><span class="p">(</span><span class="s2">&quot;/snap/crackle/pop/cereal&quot;</span><span class="p">,</span> <span class="n">depth</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="s1">&#39;/&#39;</span><span class="p">)</span>
+<span class="go">&#39;/snap/&#39;</span>
+</pre></div>
+</div>
+<p>If <cite>path</cite> is not a string, the function will assume it’s an iterable of strings,
+and return an iterable of the results.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="nb">list</span><span class="p">(</span><span class="n">extract_path_segments</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="p">[</span><span class="s1">&#39;a.file&#39;</span><span class="p">,</span> <span class="s1">&#39;a/folder&#39;</span><span class="p">,</span> <span class="s1">&#39;a/folder_with/subfolders/&#39;</span><span class="p">,</span> <span class="s1">&#39;another/folder&#39;</span><span class="p">],</span>
+<span class="gp">... </span>    <span class="n">depth</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="s1">&#39;/&#39;</span>
+<span class="gp">... </span><span class="p">))</span>
+<span class="go">[&#39;a.file&#39;, &#39;a/folder&#39;, &#39;a/folder_with/&#39;, &#39;another/folder&#39;]</span>
+</pre></div>
+</div>
+<p>You can of course specify a different delimiter.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">extract_path_segments</span><span class="p">(</span><span class="s2">&quot;snap.crackle.pop.cereal&quot;</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="s1">&#39;.&#39;</span><span class="p">,</span> <span class="n">depth</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+<span class="go">&#39;snap.crackle.&#39;</span>
+</pre></div>
+</div>
+<p>That last dot doesn’t make sense here? Tell the function to not add the separator
+at the end of the result.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">extract_path_segments</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="s2">&quot;snap.crackle.pop.cereal&quot;</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="s1">&#39;.&#39;</span><span class="p">,</span> <span class="n">depth</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">trailing_sep</span><span class="o">=</span><span class="kc">False</span>
+<span class="gp">... </span><span class="p">)</span>
+<span class="go">&#39;snap.crackle&#39;</span>
+</pre></div>
+</div>
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="../xdol.html" class="btn btn-neutral float-left" title="xdol" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="pystores.html" class="btn btn-neutral float-right" title="xdol.pystores" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright NO COPYRIGHT.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

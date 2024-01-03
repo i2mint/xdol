@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>xdol.paths &mdash; xdol 0.0.1 documentation</title><link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/copybutton.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/graphviz.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/language_data.js"></script>
+        <script src="../../_static/toggleprompt.js"></script>
+        <script src="../../_static/clipboard.min.js"></script>
+        <script src="../../_static/copybutton.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            xdol
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../module_docs/xdol.html">xdol</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../module_docs/xdol/paths.html">xdol.paths</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../module_docs/xdol/pystores.html">xdol.pystores</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../module_docs/xdol/util.html">xdol.util</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">xdol</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">xdol.paths</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for xdol.paths</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Tools for manipulating paths.</span>
+
+<span class="sd">A path is a sequence of objects that represent a reference or location. </span>
+<span class="sd">Often paths are strings that use a special character (e.g. &#39;/&#39;) to distinguish the </span>
+<span class="sd">separate objects in the sequence.</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">os</span>
+
+
+<div class="viewcode-block" id="extract_path_segments"><a class="viewcode-back" href="../../module_docs/xdol/paths.html#xdol.paths.extract_path_segments">[docs]</a><span class="k">def</span> <span class="nf">extract_path_segments</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">sep</span><span class="p">,</span> <span class="n">depth</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">trailing_sep</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Extracts the first `depth` segments of a path, delimited by `sep`.</span>
+
+<span class="sd">    :param path: The path to extract the segments from.</span>
+<span class="sd">    :param sep: The delimiter to use to separate the segments.</span>
+<span class="sd">    :param depth: The number of segments to extract.</span>
+<span class="sd">    :param trailing_sep: Whether to add a trailing delimiter to the result.</span>
+<span class="sd">    :return: The first `depth` segments of the path, delimited by `sep`.</span>
+
+<span class="sd">    By default, the function will use depth=1 and the system&#39;s path separator as `sep`.</span>
+
+<span class="sd">    &gt;&gt;&gt; extract_path_segments(&quot;snap/crackle/pop/cereal&quot;, sep=&#39;/&#39;)</span>
+<span class="sd">    &#39;snap/&#39;</span>
+
+<span class="sd">    You can specify a different `depth`.</span>
+
+<span class="sd">    &gt;&gt;&gt; extract_path_segments(&quot;snap/crackle/pop/cereal&quot;, depth=2, sep=&#39;/&#39;)</span>
+<span class="sd">    &#39;snap/crackle/&#39;</span>
+
+<span class="sd">    Note that if the path starts with the `sep` delimiter, the result will be different.</span>
+
+<span class="sd">    &gt;&gt;&gt; extract_path_segments(&quot;/snap/crackle/pop/cereal&quot;, depth=2, sep=&#39;/&#39;)</span>
+<span class="sd">    &#39;/snap/&#39;</span>
+
+<span class="sd">    If `path` is not a string, the function will assume it&#39;s an iterable of strings,</span>
+<span class="sd">    and return an iterable of the results.</span>
+
+<span class="sd">    &gt;&gt;&gt; list(extract_path_segments(</span>
+<span class="sd">    ...     [&#39;a.file&#39;, &#39;a/folder&#39;, &#39;a/folder_with/subfolders/&#39;, &#39;another/folder&#39;],</span>
+<span class="sd">    ...     depth=2, sep=&#39;/&#39;</span>
+<span class="sd">    ... ))</span>
+<span class="sd">    [&#39;a.file&#39;, &#39;a/folder&#39;, &#39;a/folder_with/&#39;, &#39;another/folder&#39;]</span>
+
+<span class="sd">    You can of course specify a different delimiter.</span>
+
+<span class="sd">    &gt;&gt;&gt; extract_path_segments(&quot;snap.crackle.pop.cereal&quot;, sep=&#39;.&#39;, depth=2)</span>
+<span class="sd">    &#39;snap.crackle.&#39;</span>
+
+<span class="sd">    That last dot doesn&#39;t make sense here? Tell the function to not add the separator</span>
+<span class="sd">    at the end of the result.</span>
+
+<span class="sd">    &gt;&gt;&gt; extract_path_segments(</span>
+<span class="sd">    ...     &quot;snap.crackle.pop.cereal&quot;, sep=&#39;.&#39;, depth=2, trailing_sep=False</span>
+<span class="sd">    ... )</span>
+<span class="sd">    &#39;snap.crackle&#39;</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">partial</span>
+
+        <span class="n">paths</span> <span class="o">=</span> <span class="n">path</span>  <span class="c1"># path is actually an iterable of paths</span>
+        <span class="k">return</span> <span class="nb">map</span><span class="p">(</span><span class="n">partial</span><span class="p">(</span><span class="n">extract_path_segments</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="n">sep</span><span class="p">,</span> <span class="n">depth</span><span class="o">=</span><span class="n">depth</span><span class="p">),</span> <span class="n">paths</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">depth</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;depth must be a positive integer&quot;</span><span class="p">)</span>
+
+        <span class="n">segments</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">sep</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">depth</span> <span class="o">&gt;=</span> <span class="nb">len</span><span class="p">(</span><span class="n">segments</span><span class="p">):</span>
+            <span class="c1"># If the depth specified exceeds the actual number of segments in the path,</span>
+            <span class="c1"># return the entire path as is</span>
+            <span class="k">return</span> <span class="n">path</span>
+
+        <span class="c1"># Join the segments up to the specified depth with the delimiter</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">sep</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">segments</span><span class="p">[:</span><span class="n">depth</span><span class="p">])</span>
+
+        <span class="c1"># Append a trailing delimiter to indicate the last segment</span>
+        <span class="k">if</span> <span class="n">trailing_sep</span><span class="p">:</span>
+            <span class="n">result</span> <span class="o">+=</span> <span class="n">sep</span>
+
+        <span class="k">return</span> <span class="n">result</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright NO COPYRIGHT.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
