@@ -11,6 +11,7 @@ from xdol.util import resolve_to_folder
 class PyFilesBytes(FileBytesReader):
     """Mapping interface to .py files' bytes"""
 
+
 # Note: One could use a more robust bytes decoder (like tec.util.decode_or_default)
 bytes_decoder = lambda x: x.decode()
 

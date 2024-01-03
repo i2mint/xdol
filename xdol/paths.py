@@ -63,7 +63,7 @@ def extract_path_segments(path, *, sep=os.path.sep, depth=1, trailing_sep=True):
         return map(partial(extract_path_segments, sep=sep, depth=depth), paths)
     else:
         if depth < 1:
-            raise ValueError("depth must be a positive integer")
+            raise ValueError('depth must be a positive integer')
 
         segments = path.split(sep)
 
