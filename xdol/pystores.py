@@ -1,7 +1,8 @@
 """Stores for python objects """
+
 import site
 import os
-from dol import wrap_kvs, filt_iter, KvReader, cached_keys
+from dol import wrap_kvs, filt_iter, KvReader, cached_keys, Pipe, Files
 from dol.filesys import mk_relative_path_store, DirCollection, FileBytesReader
 from xdol.util import resolve_to_folder
 
@@ -15,11 +16,19 @@ class PyFilesBytes(FileBytesReader):
 # Note: One could use a more robust bytes decoder (like tec.util.decode_or_default)
 bytes_decoder = lambda x: x.decode()
 
+py_files_wrap = Pipe(
+    wrap_kvs(obj_of_data=bytes_decoder),
+    filt_iter(filt=lambda k: k.endswith('.py') and '__pycache__' not in k),
+    mk_relative_path_store(prefix_attr='rootdir'),
+)
+
+
 # TODO: Extend PyFilesReader to take more kinds of src arguments.
 #   for example: single .py filepaths or iterables thereof (use cached_keys for that)
-@wrap_kvs(obj_of_data=bytes_decoder)
-@filt_iter(filt=lambda k: k.endswith('.py') and '__pycache__' not in k)
-@mk_relative_path_store(prefix_attr='rootdir')
+# @wrap_kvs(obj_of_data=bytes_decoder)
+# @filt_iter(filt=lambda k: k.endswith('.py') and '__pycache__' not in k)
+# @mk_relative_path_store(prefix_attr='rootdir')
+@py_files_wrap
 class PyFilesReader(FileBytesReader, KvReader):
     """Mapping interface to .py files of a folder.
     Keys are relative .py paths.
@@ -53,9 +62,15 @@ class PyFilesReader(FileBytesReader, KvReader):
         return self.get('__init__.py', None)
 
     def is_pkg(self):
-        """Returns True if, and only if, the root is a pkg folder (i.e. has an __init__.py file)
-        """
+        """Returns True if, and only if, the root is a pkg folder (i.e. has an __init__.py file)"""
         return '__init__.py' in self
+
+
+# TODO: Make it work
+# @py_files_wrap
+# class PyFilesText(Files):
+#     def __init__(self, src, *, max_levels=None):
+#         super().__init__(rootdir=resolve_to_folder(src), max_levels=max_levels)
 
 
 PkgFilesReader = PyFilesReader  # back-compatibility alias
