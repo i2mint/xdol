@@ -1,4 +1,4 @@
-"""Stores for python objects """
+"""Stores for python objects"""
 
 import site
 import os
@@ -7,8 +7,8 @@ from dol.filesys import mk_relative_path_store, DirCollection, FileBytesReader
 from xdol.util import resolve_to_folder
 
 
-@filt_iter(filt=lambda k: k.endswith('.py') and '__pycache__' not in k)
-@mk_relative_path_store(prefix_attr='rootdir')
+@filt_iter(filt=lambda k: k.endswith(".py") and "__pycache__" not in k)
+@mk_relative_path_store(prefix_attr="rootdir")
 class PyFilesBytes(FileBytesReader):
     """Mapping interface to .py files' bytes"""
 
@@ -18,8 +18,8 @@ bytes_decoder = lambda x: x.decode()
 
 py_files_wrap = Pipe(
     wrap_kvs(obj_of_data=bytes_decoder),
-    filt_iter(filt=lambda k: k.endswith('.py') and '__pycache__' not in k),
-    mk_relative_path_store(prefix_attr='rootdir'),
+    filt_iter(filt=lambda k: k.endswith(".py") and "__pycache__" not in k),
+    mk_relative_path_store(prefix_attr="rootdir"),
 )
 
 
@@ -59,11 +59,11 @@ class PyFilesReader(FileBytesReader, KvReader):
 
     def init_file_contents(self):
         """Returns the string of contents of the __init__.py file if it exists, and None if not"""
-        return self.get('__init__.py', None)
+        return self.get("__init__.py", None)
 
     def is_pkg(self):
         """Returns True if, and only if, the root is a pkg folder (i.e. has an __init__.py file)"""
-        return '__init__.py' in self
+        return "__init__.py" in self
 
 
 # TODO: Make it work
@@ -82,9 +82,9 @@ sitepackages_rootdir = next(iter(site.getsitepackages()))
 sitepackages_py_files = cached_keys(PyFilesReader(sitepackages_rootdir))
 
 
-@filt_iter(filt=lambda k: not k.endswith('__pycache__'))
+@filt_iter(filt=lambda k: not k.endswith("__pycache__"))
 @wrap_kvs(key_of_id=lambda x: x[:-1], id_of_key=lambda x: x + os.path.sep)
-@mk_relative_path_store(prefix_attr='rootdir')
+@mk_relative_path_store(prefix_attr="rootdir")
 class PkgReader(DirCollection, KvReader):
     def __getitem__(self, k):
         return PyFilesReader(os.path.join(self.rootdir, k))
