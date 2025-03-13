@@ -303,7 +303,7 @@ def update_with_policy(
 # Common update policies as convenience functions
 
 
-@add_as_attribute_of(update_with_policy, name='if_different')
+@add_as_attribute_of(update_with_policy, name="if_different")
 def update_if_different(
     target: MutableMapping[K, V],
     source: Mapping[K, V],
@@ -332,7 +332,7 @@ def update_if_different(
     )
 
 
-@add_as_attribute_of(update_with_policy, name='all')
+@add_as_attribute_of(update_with_policy, name="all")
 def update_all(
     target: MutableMapping[K, V],
     source: Mapping[K, V],
@@ -358,7 +358,7 @@ def update_all(
     )
 
 
-@add_as_attribute_of(update_with_policy, name='missing_only')
+@add_as_attribute_of(update_with_policy, name="missing_only")
 def update_missing_only(
     target: MutableMapping[K, V],
     source: Mapping[K, V],
@@ -384,7 +384,7 @@ def update_missing_only(
     )
 
 
-@add_as_attribute_of(update_with_policy, name='by_content_hash')
+@add_as_attribute_of(update_with_policy, name="by_content_hash")
 def update_by_content_hash(
     target: MutableMapping[K, V],
     source: Mapping[K, V],
@@ -448,7 +448,7 @@ def local_file_timestamp(store, key) -> float:
     return os.stat(full_path).st_mtime
 
 
-@add_as_attribute_of(update_with_policy, name='newer')
+@add_as_attribute_of(update_with_policy, name="newer")
 def update_newer(
     target: MutableMapping[K, V],
     source: Mapping[K, V],
@@ -536,7 +536,7 @@ def update_newer(
 
 
 # Convenience function for file-based stores
-@add_as_attribute_of(update_newer, name='files_by_timestamp')
+@add_as_attribute_of(update_newer, name="files_by_timestamp")
 def update_files_by_timestamp(
     target: MutableMapping[K, V],
     source: Mapping[K, V],
