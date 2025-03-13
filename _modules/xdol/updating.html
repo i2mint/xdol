@@ -5,7 +5,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>xdol.updating &mdash; xdol 0.1.4 documentation</title>
+  <title>xdol.updating &mdash; xdol 0.1.5 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
       <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
@@ -14,7 +14,7 @@
   
       <script src="../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../_static/documentation_options.js?v=fd825880"></script>
+      <script src="../../_static/documentation_options.js?v=59fadc99"></script>
       <script src="../../_static/doctools.js?v=9bcbadda"></script>
       <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
       <script src="../../_static/toggleprompt.js?v=d7ede5d2"></script>
@@ -79,15 +79,43 @@
              
   <h1>Source code for xdol.updating</h1><div class="highlight"><pre>
 <span></span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">Function to replace the update_newer function in update_policy.py.</span>
-<span class="sd">&quot;&quot;&quot;</span>
 
-<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">mapping using customizable policies to determine which items to update. It offers</span>
+<span class="sd">a fine-grained approach to dictionary updates beyond the standard dict.update()</span>
+<span class="sd">method.</span>
+
+<span class="sd">Key Features:</span>
+<span class="sd">- Multiple built-in update policies (always update, update if different, prefer target, prefer source)</span>
+<span class="sd">- Support for custom update decision functions</span>
+<span class="sd">- Lazy value retrieval for performance optimization</span>
+<span class="sd">- Detailed statistics about update operations</span>
+<span class="sd">- Specialized update strategies (content hash comparison, timestamp-based updates)</span>
+<span class="sd">- File system-specific convenience functions</span>
+
+
+<span class="sd">Custom update logic with a hash function:</span>
+
+<span class="sd">&gt;&gt;&gt; target = {&quot;a&quot;: &quot;hello&quot;, &quot;b&quot;: &quot;world&quot;}</span>
+<span class="sd">&gt;&gt;&gt; source = {&quot;a&quot;: &quot;hello!&quot;, &quot;c&quot;: &quot;python&quot;}</span>
+<span class="sd">&gt;&gt;&gt; update_by_content_hash(target, source, hash_function=lambda x: len(x))</span>
+<span class="sd">{&#39;examined&#39;: 3, &#39;updated&#39;: 1, &#39;added&#39;: 1, &#39;unchanged&#39;: 1, &#39;deleted&#39;: 0}</span>
+<span class="sd">&gt;&gt;&gt; target</span>
+<span class="sd">{&#39;a&#39;: &#39;hello!&#39;, &#39;b&#39;: &#39;world&#39;, &#39;c&#39;: &#39;python&#39;}</span>
+
+<span class="sd">Using convenience methods:</span>
+
+<span class="sd">&gt;&gt;&gt; update_with_policy.missing_only(target, source)</span>
+<span class="sd">{&#39;examined&#39;: 3, &#39;updated&#39;: 0, &#39;added&#39;: 0, &#39;unchanged&#39;: 3, &#39;deleted&#39;: 0}</span>
+<span class="sd">&gt;&gt;&gt; target</span>
+<span class="sd">{&#39;a&#39;: &#39;hello!&#39;, &#39;b&#39;: &#39;world&#39;, &#39;c&#39;: &#39;python&#39;}</span>
+
 <span class="sd">Functions for controlled mapping updates with customizable policies.</span>
 
 <span class="sd">This module provides flexible functions to update a target mapping from a source</span>
 <span class="sd">mapping using customizable policies to determine which items to update.</span>
+
 <span class="sd">&quot;&quot;&quot;</span>
+
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">Mapping</span><span class="p">,</span>
     <span class="n">MutableMapping</span><span class="p">,</span>
@@ -151,26 +179,36 @@
 
 
 
+<div class="viewcode-block" id="StringEnum">
+<a class="viewcode-back" href="../../module_docs/xdol/updating.html#xdol.updating.StringEnum">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">StringEnum</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">Enum</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Enum where members are also (and must be) strings.&quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">value</span></div>
+
+
+
 <div class="viewcode-block" id="DefaultPolicy">
 <a class="viewcode-back" href="../../module_docs/xdol/updating.html#xdol.updating.DefaultPolicy">[docs]</a>
-<span class="k">class</span><span class="w"> </span><span class="nc">DefaultPolicy</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">DefaultPolicy</span><span class="p">(</span><span class="n">StringEnum</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Standard policies for updating mappings.&quot;&quot;&quot;</span>
 
-    <span class="n">ALWAYS_UPDATE</span> <span class="o">=</span> <span class="n">auto</span><span class="p">()</span>  <span class="c1"># Always update target with source values</span>
-    <span class="n">UPDATE_IF_DIFFERENT</span> <span class="o">=</span> <span class="n">auto</span><span class="p">()</span>  <span class="c1"># Update only if values differ</span>
-    <span class="n">PREFER_TARGET</span> <span class="o">=</span> <span class="n">auto</span><span class="p">()</span>  <span class="c1"># Keep target values if they exist</span>
-    <span class="n">PREFER_SOURCE</span> <span class="o">=</span> <span class="n">auto</span><span class="p">()</span>  <span class="c1"># Always use source values when available</span></div>
+    <span class="n">ALWAYS_UPDATE</span> <span class="o">=</span> <span class="s2">&quot;ALWAYS_UPDATE&quot;</span>  <span class="c1"># Always update target with source values</span>
+    <span class="n">UPDATE_IF_DIFFERENT</span> <span class="o">=</span> <span class="s2">&quot;UPDATE_IF_DIFFERENT&quot;</span>  <span class="c1"># Update only if values differ</span>
+    <span class="n">PREFER_TARGET</span> <span class="o">=</span> <span class="s2">&quot;PREFER_TARGET&quot;</span>  <span class="c1"># Keep target values if they exist</span>
+    <span class="n">PREFER_SOURCE</span> <span class="o">=</span> <span class="s2">&quot;PREFER_SOURCE&quot;</span>  <span class="c1"># Always use source values when available</span></div>
 
 
 
 <div class="viewcode-block" id="KeyDecision">
 <a class="viewcode-back" href="../../module_docs/xdol/updating.html#xdol.updating.KeyDecision">[docs]</a>
-<span class="k">class</span><span class="w"> </span><span class="nc">KeyDecision</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">KeyDecision</span><span class="p">(</span><span class="n">StringEnum</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Decisions for individual keys during update.&quot;&quot;&quot;</span>
 
-    <span class="n">COPY</span> <span class="o">=</span> <span class="n">auto</span><span class="p">()</span>  <span class="c1"># Copy from source to target</span>
-    <span class="n">SKIP</span> <span class="o">=</span> <span class="n">auto</span><span class="p">()</span>  <span class="c1"># Don&#39;t copy, keep target as is</span>
-    <span class="n">DELETE</span> <span class="o">=</span> <span class="n">auto</span><span class="p">()</span>  <span class="c1"># Delete from target</span></div>
+    <span class="n">COPY</span> <span class="o">=</span> <span class="s2">&quot;COPY&quot;</span>  <span class="c1"># Copy from source to target</span>
+    <span class="n">SKIP</span> <span class="o">=</span> <span class="s2">&quot;SKIP&quot;</span>  <span class="c1"># Don&#39;t copy, keep target as is</span>
+    <span class="n">DELETE</span> <span class="o">=</span> <span class="s2">&quot;DELETE&quot;</span>  <span class="c1"># Delete from target</span></div>
 
 
 
@@ -179,8 +217,8 @@
 <span class="k">class</span><span class="w"> </span><span class="nc">KeyInfoExtractor</span><span class="p">(</span><span class="n">Protocol</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Protocol for functions that extract comparison information from values.&quot;&quot;&quot;</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="n">K</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">V</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Extract comparison information from a value.&quot;&quot;&quot;</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="n">K</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Extract comparison information for a key.&quot;&quot;&quot;</span>
         <span class="o">...</span></div>
 
 
@@ -191,15 +229,18 @@
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Protocol for functions that decide whether to update a key.&quot;&quot;&quot;</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__call__</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="n">K</span><span class="p">,</span> <span class="n">target_info</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="n">source_info</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">key</span><span class="p">:</span> <span class="n">K</span><span class="p">,</span>
+        <span class="n">target_info</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
+        <span class="n">source_info</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">KeyDecision</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Decide whether to update a key based on comparison info.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            key: The key being considered</span>
-<span class="sd">            target_info: Comparison info for target value, None if key not in target</span>
-<span class="sd">            source_info: Comparison info for source value, None if key not in source</span>
+<span class="sd">            target_info: Comparison info for target, None if key not in target</span>
+<span class="sd">            source_info: Comparison info for source, None if key not in source</span>
 
 <span class="sd">        Returns:</span>
 <span class="sd">            KeyDecision indicating what to do with this key</span>
@@ -235,39 +276,110 @@
 
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">_key_info_identity</span><span class="p">(</span><span class="n">key</span><span class="p">:</span> <span class="n">K</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">V</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">V</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Default key info extractor that returns the value itself.&quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="n">value</span>
+<span class="c1"># Define a sentinel object to indicate values that haven&#39;t been retrieved yet</span>
+<div class="viewcode-block" id="NotRetrieved">
+<a class="viewcode-back" href="../../module_docs/xdol/updating.html#xdol.updating.NotRetrieved">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">NotRetrieved</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Sentinel object indicating a value that hasn&#39;t been retrieved yet.&quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">&quot;&lt;NotRetrieved&gt;&quot;</span></div>
 
 
+
+<span class="n">VALUE_NOT_RETRIEVED</span> <span class="o">=</span> <span class="n">NotRetrieved</span><span class="p">()</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_key_info_from_mapping</span><span class="p">(</span><span class="n">mapping</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="n">K</span><span class="p">,</span> <span class="n">V</span><span class="p">],</span> <span class="n">key</span><span class="p">:</span> <span class="n">K</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Default key info extractor that retrieves and returns the value from a mapping.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">mapping</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_get_key_decisions</span><span class="p">(</span>
+    <span class="n">keys</span><span class="p">:</span> <span class="n">Set</span><span class="p">[</span><span class="n">K</span><span class="p">],</span>
+    <span class="n">target</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">,</span>
+    <span class="n">source</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">,</span>
+    <span class="n">decider</span><span class="p">:</span> <span class="n">UpdateDecider</span><span class="p">,</span>
+    <span class="n">target_key_info</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">KeyInfoExtractor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">source_key_info</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">KeyInfoExtractor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">K</span><span class="p">,</span> <span class="n">KeyDecision</span><span class="p">]]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Get decisions for each key regarding update action.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        keys: Set of keys to consider</span>
+<span class="sd">        target: Target mapping</span>
+<span class="sd">        source: Source mapping</span>
+<span class="sd">        decider: Function to decide what to do with each key</span>
+<span class="sd">        target_key_info: Function to extract comparison info from target (optional)</span>
+<span class="sd">        source_key_info: Function to extract comparison info from source (optional)</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Iterator of (key, decision) pairs</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Use default extractors if none provided</span>
+    <span class="n">target_info_func</span> <span class="o">=</span> <span class="n">target_key_info</span> <span class="ow">or</span> <span class="p">(</span><span class="k">lambda</span> <span class="n">k</span><span class="p">:</span> <span class="n">_key_info_from_mapping</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="n">k</span><span class="p">))</span>
+    <span class="n">source_info_func</span> <span class="o">=</span> <span class="n">source_key_info</span> <span class="ow">or</span> <span class="p">(</span><span class="k">lambda</span> <span class="n">k</span><span class="p">:</span> <span class="n">_key_info_from_mapping</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="n">k</span><span class="p">))</span>
+
+    <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">keys</span><span class="p">:</span>
+        <span class="n">target_in</span> <span class="o">=</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">target</span>
+        <span class="n">source_in</span> <span class="o">=</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">source</span>
+
+        <span class="c1"># Get info or None if key doesn&#39;t exist</span>
+        <span class="n">target_info</span> <span class="o">=</span> <span class="kc">None</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">target_in</span> <span class="k">else</span> <span class="n">target_info_func</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+        <span class="n">source_info</span> <span class="o">=</span> <span class="kc">None</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">source_in</span> <span class="k">else</span> <span class="n">source_info_func</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+
+        <span class="c1"># Get decision</span>
+        <span class="n">decision</span> <span class="o">=</span> <span class="n">decider</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">target_info</span><span class="p">,</span> <span class="n">source_info</span><span class="p">)</span>
+        <span class="k">yield</span> <span class="n">key</span><span class="p">,</span> <span class="n">decision</span>
+
+
+<span class="c1"># Update the standard decider functions</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">_update_if_different_decider</span><span class="p">(</span>
-    <span class="n">key</span><span class="p">:</span> <span class="n">K</span><span class="p">,</span> <span class="n">target_info</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">source_info</span><span class="p">:</span> <span class="n">Any</span>
+    <span class="n">key</span><span class="p">:</span> <span class="n">K</span><span class="p">,</span>
+    <span class="n">target_info</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
+    <span class="n">source_info</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">KeyDecision</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Default decision function that updates if values differ.&quot;&quot;&quot;</span>
+    <span class="c1"># Handle case where key is missing from one mapping</span>
     <span class="k">if</span> <span class="n">target_info</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">source_info</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">KeyDecision</span><span class="o">.</span><span class="n">COPY</span>
     <span class="k">if</span> <span class="n">target_info</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">source_info</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">KeyDecision</span><span class="o">.</span><span class="n">SKIP</span>
+
+    <span class="c1"># Compare and decide</span>
     <span class="k">if</span> <span class="n">target_info</span> <span class="o">!=</span> <span class="n">source_info</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">KeyDecision</span><span class="o">.</span><span class="n">COPY</span>
     <span class="k">return</span> <span class="n">KeyDecision</span><span class="o">.</span><span class="n">SKIP</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">_always_update_decider</span><span class="p">(</span><span class="n">key</span><span class="p">:</span> <span class="n">K</span><span class="p">,</span> <span class="n">target_info</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">source_info</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">KeyDecision</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_always_update_decider</span><span class="p">(</span>
+    <span class="n">key</span><span class="p">:</span> <span class="n">K</span><span class="p">,</span>
+    <span class="n">target_info</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
+    <span class="n">source_info</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">KeyDecision</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Decision function that always updates from source.&quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="n">source_info</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">KeyDecision</span><span class="o">.</span><span class="n">SKIP</span>
     <span class="k">return</span> <span class="n">KeyDecision</span><span class="o">.</span><span class="n">COPY</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">_prefer_target_decider</span><span class="p">(</span><span class="n">key</span><span class="p">:</span> <span class="n">K</span><span class="p">,</span> <span class="n">target_info</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">source_info</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">KeyDecision</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_prefer_target_decider</span><span class="p">(</span>
+    <span class="n">key</span><span class="p">:</span> <span class="n">K</span><span class="p">,</span>
+    <span class="n">target_info</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
+    <span class="n">source_info</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">KeyDecision</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Decision function that keeps target values if they exist.&quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="n">target_info</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">source_info</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">KeyDecision</span><span class="o">.</span><span class="n">COPY</span>
     <span class="k">return</span> <span class="n">KeyDecision</span><span class="o">.</span><span class="n">SKIP</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">_prefer_source_decider</span><span class="p">(</span><span class="n">key</span><span class="p">:</span> <span class="n">K</span><span class="p">,</span> <span class="n">target_info</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">source_info</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">KeyDecision</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_prefer_source_decider</span><span class="p">(</span>
+    <span class="n">key</span><span class="p">:</span> <span class="n">K</span><span class="p">,</span>
+    <span class="n">target_info</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
+    <span class="n">source_info</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">KeyDecision</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Decision function that always uses source values when available.&quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="n">source_info</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">KeyDecision</span><span class="o">.</span><span class="n">SKIP</span>
@@ -296,35 +408,13 @@
     <span class="k">return</span> <span class="n">keys</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">_get_key_decisions</span><span class="p">(</span>
-    <span class="n">keys</span><span class="p">:</span> <span class="n">Set</span><span class="p">[</span><span class="n">K</span><span class="p">],</span>
-    <span class="n">target</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">,</span>
-    <span class="n">source</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">,</span>
-    <span class="n">decider</span><span class="p">:</span> <span class="n">UpdateDecider</span><span class="p">,</span>
-    <span class="n">key_info</span><span class="p">:</span> <span class="n">KeyInfoExtractor</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">K</span><span class="p">,</span> <span class="n">KeyDecision</span><span class="p">]]:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Get decisions for each key regarding update action.</span>
+<div class="viewcode-block" id="print_all_but_skips">
+<a class="viewcode-back" href="../../module_docs/xdol/updating.html#xdol.updating.print_all_but_skips">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">print_all_but_skips</span><span class="p">(</span><span class="n">key</span><span class="p">:</span> <span class="n">K</span><span class="p">,</span> <span class="n">decision</span><span class="p">:</span> <span class="n">KeyDecision</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">print_func</span><span class="o">=</span><span class="nb">print</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Print all decisions except SKIP.&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">decision</span> <span class="o">!=</span> <span class="n">KeyDecision</span><span class="o">.</span><span class="n">SKIP</span><span class="p">:</span>
+        <span class="n">print_func</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">decision</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div>
 
-<span class="sd">    Args:</span>
-<span class="sd">        keys: Set of keys to consider</span>
-<span class="sd">        target: Target mapping</span>
-<span class="sd">        source: Source mapping</span>
-<span class="sd">        decider: Function to decide what to do with each key</span>
-<span class="sd">        key_info: Function to extract comparison info from values</span>
-
-<span class="sd">    Returns:</span>
-<span class="sd">        Iterator of (key, decision) pairs</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">keys</span><span class="p">:</span>
-        <span class="n">target_value</span> <span class="o">=</span> <span class="n">target</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
-        <span class="n">source_value</span> <span class="o">=</span> <span class="n">source</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
-
-        <span class="n">target_info</span> <span class="o">=</span> <span class="kc">None</span> <span class="k">if</span> <span class="n">target_value</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">key_info</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">target_value</span><span class="p">)</span>
-        <span class="n">source_info</span> <span class="o">=</span> <span class="kc">None</span> <span class="k">if</span> <span class="n">source_value</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">key_info</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">source_value</span><span class="p">)</span>
-
-        <span class="n">decision</span> <span class="o">=</span> <span class="n">decider</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">target_info</span><span class="p">,</span> <span class="n">source_info</span><span class="p">)</span>
-        <span class="k">yield</span> <span class="n">key</span><span class="p">,</span> <span class="n">decision</span>
 
 
 <div class="viewcode-block" id="update_with_policy">
@@ -334,7 +424,8 @@
     <span class="n">source</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="n">K</span><span class="p">,</span> <span class="n">V</span><span class="p">],</span>
     <span class="o">*</span><span class="p">,</span>
     <span class="n">policy</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">DefaultPolicy</span><span class="p">,</span> <span class="n">UpdateDecider</span><span class="p">]</span> <span class="o">=</span> <span class="n">DefaultPolicy</span><span class="o">.</span><span class="n">UPDATE_IF_DIFFERENT</span><span class="p">,</span>
-    <span class="n">key_info</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">KeyInfoExtractor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">target_key_info</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">KeyInfoExtractor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">source_key_info</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">KeyInfoExtractor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">keys_to_consider</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Set</span><span class="p">[</span><span class="n">K</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">verbose</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">bool</span><span class="p">,</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">K</span><span class="p">,</span> <span class="n">KeyDecision</span><span class="p">],</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
@@ -345,9 +436,10 @@
 <span class="sd">        target: The mapping to be updated (modified in-place)</span>
 <span class="sd">        source: The mapping containing items to potentially copy to target</span>
 <span class="sd">        policy: Either a DefaultPolicy enum value or a custom decision function</span>
-<span class="sd">        key_info: Function to extract comparison info from values for decision-making</span>
+<span class="sd">        target_key_info: Function to extract comparison info from target keys</span>
+<span class="sd">        source_key_info: Function to extract comparison info from source keys</span>
 <span class="sd">        keys_to_consider: Specific set of keys to consider, if None, uses union of all keys</span>
-<span class="sd">        verbose: If True, print debug information, if callable, call with</span>
+<span class="sd">        verbose: If True, will print debug information, if callable, call with</span>
 <span class="sd">            (key, decision) on each key that is looped over</span>
 
 <span class="sd">    Returns:</span>
@@ -369,12 +461,10 @@
 <span class="sd">        &gt;&gt;&gt; target</span>
 <span class="sd">        {&#39;a&#39;: 1, &#39;b&#39;: 2, &#39;c&#39;: 30}</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">key_info_func</span> <span class="o">=</span> <span class="n">key_info</span> <span class="ow">or</span> <span class="n">_key_info_identity</span>
-
     <span class="k">if</span> <span class="n">verbose</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">:</span>
         <span class="n">verbose</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">k</span><span class="p">,</span> <span class="n">d</span><span class="p">:</span> <span class="kc">None</span>
     <span class="k">elif</span> <span class="n">verbose</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
-        <span class="n">verbose</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">k</span><span class="p">,</span> <span class="n">d</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">d</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">verbose</span> <span class="o">=</span> <span class="n">print_all_but_skips</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="k">assert</span> <span class="nb">callable</span><span class="p">(</span><span class="n">verbose</span><span class="p">),</span> <span class="s2">&quot;Verbose must be a callable or boolean&quot;</span>
 
@@ -392,7 +482,12 @@
 
     <span class="c1"># Process each key according to the decided action</span>
     <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">decision</span> <span class="ow">in</span> <span class="n">_get_key_decisions</span><span class="p">(</span>
-        <span class="n">keys_to_consider</span><span class="p">,</span> <span class="n">target</span><span class="p">,</span> <span class="n">source</span><span class="p">,</span> <span class="n">decider</span><span class="p">,</span> <span class="n">key_info_func</span>
+        <span class="n">keys_to_consider</span><span class="p">,</span>
+        <span class="n">target</span><span class="p">,</span>
+        <span class="n">source</span><span class="p">,</span>
+        <span class="n">decider</span><span class="p">,</span>
+        <span class="n">target_key_info</span><span class="p">,</span>
+        <span class="n">source_key_info</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="n">verbose</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">decision</span><span class="p">)</span>
 
@@ -426,7 +521,9 @@
     <span class="n">target</span><span class="p">:</span> <span class="n">MutableMapping</span><span class="p">[</span><span class="n">K</span><span class="p">,</span> <span class="n">V</span><span class="p">],</span>
     <span class="n">source</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="n">K</span><span class="p">,</span> <span class="n">V</span><span class="p">],</span>
     <span class="o">*</span><span class="p">,</span>
-    <span class="n">key_info</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">KeyInfoExtractor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">key_info</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>  <span class="c1"># For backward compatibility</span>
+    <span class="n">target_key_info</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">source_key_info</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="n">keys_to_consider</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Set</span><span class="p">[</span><span class="n">K</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">verbose</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">bool</span><span class="p">,</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">K</span><span class="p">,</span> <span class="n">KeyDecision</span><span class="p">],</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
@@ -436,7 +533,9 @@
 <span class="sd">    Args:</span>
 <span class="sd">        target: The mapping to be updated (modified in-place)</span>
 <span class="sd">        source: The mapping containing items to potentially copy to target</span>
-<span class="sd">        key_info: Function to extract comparison info from values</span>
+<span class="sd">        key_info: (Deprecated) Function to extract comparison info from values</span>
+<span class="sd">        target_key_info: Function to extract comparison info from target keys</span>
+<span class="sd">        source_key_info: Function to extract comparison info from source keys</span>
 <span class="sd">        keys_to_consider: Specific set of keys to consider</span>
 <span class="sd">        verbose: If True, print debug information, if callable, call with</span>
 <span class="sd">            (key, decision) on each key that is looped over</span>
@@ -444,11 +543,17 @@
 <span class="sd">    Returns:</span>
 <span class="sd">        Dictionary with statistics about the update operation</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Handle backward compatibility</span>
+    <span class="k">if</span> <span class="n">key_info</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">target_key_info</span> <span class="o">=</span> <span class="n">target_key_info</span> <span class="ow">or</span> <span class="p">(</span><span class="k">lambda</span> <span class="n">k</span><span class="p">:</span> <span class="n">key_info</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">target</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">k</span><span class="p">)))</span>
+        <span class="n">source_key_info</span> <span class="o">=</span> <span class="n">source_key_info</span> <span class="ow">or</span> <span class="p">(</span><span class="k">lambda</span> <span class="n">k</span><span class="p">:</span> <span class="n">key_info</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">source</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">k</span><span class="p">)))</span>
+
     <span class="k">return</span> <span class="n">update_with_policy</span><span class="p">(</span>
         <span class="n">target</span><span class="p">,</span>
         <span class="n">source</span><span class="p">,</span>
         <span class="n">policy</span><span class="o">=</span><span class="n">DefaultPolicy</span><span class="o">.</span><span class="n">UPDATE_IF_DIFFERENT</span><span class="p">,</span>
-        <span class="n">key_info</span><span class="o">=</span><span class="n">key_info</span><span class="p">,</span>
+        <span class="n">target_key_info</span><span class="o">=</span><span class="n">target_key_info</span><span class="p">,</span>
+        <span class="n">source_key_info</span><span class="o">=</span><span class="n">source_key_info</span><span class="p">,</span>
         <span class="n">keys_to_consider</span><span class="o">=</span><span class="n">keys_to_consider</span><span class="p">,</span>
         <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span>
     <span class="p">)</span></div>
@@ -547,29 +652,24 @@
 <span class="sd">        Dictionary with statistics about the update operation</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">_get_hash</span><span class="p">(</span><span class="n">key</span><span class="p">:</span> <span class="n">K</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">V</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">hash_function</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_target_hash</span><span class="p">(</span><span class="n">key</span><span class="p">:</span> <span class="n">K</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+        <span class="n">value</span> <span class="o">=</span> <span class="n">target</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+        <span class="k">return</span> <span class="kc">None</span> <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">hash_function</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_source_hash</span><span class="p">(</span><span class="n">key</span><span class="p">:</span> <span class="n">K</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+        <span class="n">value</span> <span class="o">=</span> <span class="n">source</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+        <span class="k">return</span> <span class="kc">None</span> <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">hash_function</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">update_with_policy</span><span class="p">(</span>
         <span class="n">target</span><span class="p">,</span>
         <span class="n">source</span><span class="p">,</span>
         <span class="n">policy</span><span class="o">=</span><span class="n">DefaultPolicy</span><span class="o">.</span><span class="n">UPDATE_IF_DIFFERENT</span><span class="p">,</span>
-        <span class="n">key_info</span><span class="o">=</span><span class="n">_get_hash</span><span class="p">,</span>
+        <span class="n">target_key_info</span><span class="o">=</span><span class="n">get_target_hash</span><span class="p">,</span>
+        <span class="n">source_key_info</span><span class="o">=</span><span class="n">get_source_hash</span><span class="p">,</span>
         <span class="n">keys_to_consider</span><span class="o">=</span><span class="n">keys_to_consider</span><span class="p">,</span>
         <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span>
     <span class="p">)</span></div>
 
-
-
-<span class="c1"># from typing import Mapping, MutableMapping, Any, Callable, Dict, TypeVar, Set, Optional</span>
-<span class="c1"># import os</span>
-<span class="c1"># from datetime import datetime</span>
-<span class="c1"># from functools import partial</span>
-<span class="c1"># from update_policy import update_with_policy, KeyDecision</span>
-<span class="c1">#</span>
-
-<span class="c1"># K = TypeVar(&#39;K&#39;)</span>
-<span class="c1"># V = TypeVar(&#39;V&#39;)</span>
 
 
 <div class="viewcode-block" id="local_file_timestamp">
@@ -613,55 +713,25 @@
 <span class="sd">    Args:</span>
 <span class="sd">        target: The mapping to be updated (modified in-place)</span>
 <span class="sd">        source: The mapping containing items to potentially copy to target</span>
-<span class="sd">        target_timestamp: Function(key) -&gt; timestamp that extracts timestamp from target for a key</span>
-<span class="sd">        source_timestamp: Function(key) -&gt; timestamp that extracts timestamp from source for a key</span>
+<span class="sd">        target_timestamp: Function(key) -&gt; timestamp that extracts timestamp from target</span>
+<span class="sd">        source_timestamp: Function(key) -&gt; timestamp that extracts timestamp from source</span>
 <span class="sd">        keys_to_consider: Specific set of keys to consider</span>
 <span class="sd">        verbose: If True, print debug information, if callable, call with</span>
 <span class="sd">            (key, decision) on each key that is looped over</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        Dictionary with statistics about the update operation</span>
-
-<span class="sd">    Example:</span>
-<span class="sd">        &gt;&gt;&gt; import tempfile, os</span>
-<span class="sd">        &gt;&gt;&gt; from datetime import datetime</span>
-<span class="sd">        &gt;&gt;&gt; # Create a function to get timestamps from values that contain timestamps</span>
-<span class="sd">        &gt;&gt;&gt; def get_timestamp(store, key):</span>
-<span class="sd">        ...     return store[key].get(&quot;modified_date&quot;)</span>
-<span class="sd">        &gt;&gt;&gt;</span>
-<span class="sd">        &gt;&gt;&gt; # Setup</span>
-<span class="sd">        &gt;&gt;&gt; target = {</span>
-<span class="sd">        ...     &quot;file1.txt&quot;: {&quot;modified_date&quot;: &quot;2022-01-01&quot;, &quot;content&quot;: &quot;old&quot;},</span>
-<span class="sd">        ...     &quot;file2.txt&quot;: {&quot;modified_date&quot;: &quot;2022-03-01&quot;, &quot;content&quot;: &quot;newer&quot;}</span>
-<span class="sd">        ... }</span>
-<span class="sd">        &gt;&gt;&gt; source = {</span>
-<span class="sd">        ...     &quot;file1.txt&quot;: {&quot;modified_date&quot;: &quot;2022-02-01&quot;, &quot;content&quot;: &quot;updated&quot;},</span>
-<span class="sd">        ...     &quot;file2.txt&quot;: {&quot;modified_date&quot;: &quot;2022-02-01&quot;, &quot;content&quot;: &quot;older&quot;},</span>
-<span class="sd">        ...     &quot;file3.txt&quot;: {&quot;modified_date&quot;: &quot;2022-04-01&quot;, &quot;content&quot;: &quot;newest&quot;}</span>
-<span class="sd">        ... }</span>
-<span class="sd">        &gt;&gt;&gt;</span>
-<span class="sd">        &gt;&gt;&gt; # Create timestamp functions</span>
-<span class="sd">        &gt;&gt;&gt; target_ts = lambda k: get_timestamp(target, k)</span>
-<span class="sd">        &gt;&gt;&gt; source_ts = lambda k: get_timestamp(source, k)</span>
-<span class="sd">        &gt;&gt;&gt;</span>
-<span class="sd">        &gt;&gt;&gt; # Update</span>
-<span class="sd">        &gt;&gt;&gt; update_newer(target, source, target_timestamp=target_ts, source_timestamp=source_ts)</span>
-<span class="sd">        {&#39;examined&#39;: 3, &#39;updated&#39;: 1, &#39;added&#39;: 1, &#39;unchanged&#39;: 1, &#39;deleted&#39;: 0}</span>
-<span class="sd">        &gt;&gt;&gt;</span>
-<span class="sd">        &gt;&gt;&gt; # Verify results</span>
-<span class="sd">        &gt;&gt;&gt; target[&quot;file1.txt&quot;][&quot;content&quot;]  # Updated (source is newer)</span>
-<span class="sd">        &#39;updated&#39;</span>
-<span class="sd">        &gt;&gt;&gt; target[&quot;file2.txt&quot;][&quot;content&quot;]  # Not updated (target is newer)</span>
-<span class="sd">        &#39;newer&#39;</span>
-<span class="sd">        &gt;&gt;&gt; target[&quot;file3.txt&quot;][&quot;content&quot;]  # Added</span>
-<span class="sd">        &#39;newest&#39;</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">_newer_decider</span><span class="p">(</span><span class="n">key</span><span class="p">:</span> <span class="n">K</span><span class="p">,</span> <span class="n">target_value</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">source_value</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">KeyDecision</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_newer_decider</span><span class="p">(</span>
+        <span class="n">key</span><span class="p">:</span> <span class="n">K</span><span class="p">,</span>
+        <span class="n">target_info</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
+        <span class="n">source_info</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">KeyDecision</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Decision function based on timestamp comparison.&quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="n">source_value</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">source</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">KeyDecision</span><span class="o">.</span><span class="n">SKIP</span>
-        <span class="k">if</span> <span class="n">target_value</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">target</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">KeyDecision</span><span class="o">.</span><span class="n">COPY</span>
 
         <span class="k">try</span><span class="p">:</span>
