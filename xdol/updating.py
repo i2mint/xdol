@@ -68,21 +68,28 @@ def add_as_attribute_of(obj, name=None):
     return decorator
 
 
-class DefaultPolicy(Enum):
+class StringEnum(str, Enum):
+    """Enum where members are also (and must be) strings."""
+
+    def __str__(self):
+        return self.value
+
+
+class DefaultPolicy(StringEnum):
     """Standard policies for updating mappings."""
 
-    ALWAYS_UPDATE = auto()  # Always update target with source values
-    UPDATE_IF_DIFFERENT = auto()  # Update only if values differ
-    PREFER_TARGET = auto()  # Keep target values if they exist
-    PREFER_SOURCE = auto()  # Always use source values when available
+    ALWAYS_UPDATE = "ALWAYS_UPDATE"  # Always update target with source values
+    UPDATE_IF_DIFFERENT = "UPDATE_IF_DIFFERENT"  # Update only if values differ
+    PREFER_TARGET = "PREFER_TARGET"  # Keep target values if they exist
+    PREFER_SOURCE = "PREFER_SOURCE"  # Always use source values when available
 
 
-class KeyDecision(Enum):
+class KeyDecision(StringEnum):
     """Decisions for individual keys during update."""
 
-    COPY = auto()  # Copy from source to target
-    SKIP = auto()  # Don't copy, keep target as is
-    DELETE = auto()  # Delete from target
+    COPY = "COPY"  # Copy from source to target
+    SKIP = "SKIP"  # Don't copy, keep target as is
+    DELETE = "DELETE"  # Delete from target
 
 
 class KeyInfoExtractor(Protocol):
@@ -226,6 +233,12 @@ def _get_key_decisions(
         yield key, decision
 
 
+def print_all_but_skips(key: K, decision: KeyDecision, *, print_func=print):
+    """Print all decisions except SKIP."""
+    if decision != KeyDecision.SKIP:
+        print_func(f"{decision}: {key}")
+
+
 def update_with_policy(
     target: MutableMapping[K, V],
     source: Mapping[K, V],
@@ -244,7 +257,7 @@ def update_with_policy(
         policy: Either a DefaultPolicy enum value or a custom decision function
         key_info: Function to extract comparison info from values for decision-making
         keys_to_consider: Specific set of keys to consider, if None, uses union of all keys
-        verbose: If True, print debug information, if callable, call with
+        verbose: If True, will print debug information, if callable, call with
             (key, decision) on each key that is looped over
 
     Returns:
@@ -271,7 +284,7 @@ def update_with_policy(
     if verbose is False:
         verbose = lambda k, d: None
     elif verbose is True:
-        verbose = lambda k, d: print(f"{k}: {d}")
+        verbose = print_all_but_skips
     else:
         assert callable(verbose), "Verbose must be a callable or boolean"
 
