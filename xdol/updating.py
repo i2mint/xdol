@@ -37,6 +37,37 @@ V = TypeVar('V')
 T = TypeVar('T')
 
 
+def add_as_attribute_of(obj, name=None):
+    """
+    Decorator to add the function as an attribute of the object.
+
+    Args:
+        obj: The object to which the function will be added
+        name: The name of the attribute to be added, if None, uses the function name
+
+    Returns:
+        The decorator function
+
+    Examples:
+
+    >>> def foo():
+    ...     return "bar"
+    ...
+    >>> @add_as_attribute_of(foo)
+    ... def baz():
+    ...     return "qux"
+    ...
+    >>> foo.baz()
+    'qux'
+    """
+
+    def decorator(func):
+        setattr(obj, name or func.__name__, func)
+        return func
+
+    return decorator
+
+
 class DefaultPolicy(Enum):
     """Standard policies for updating mappings."""
 
@@ -272,6 +303,7 @@ def update_with_policy(
 # Common update policies as convenience functions
 
 
+@add_as_attribute_of(update_with_policy, name='if_different')
 def update_if_different(
     target: MutableMapping[K, V],
     source: Mapping[K, V],
@@ -300,6 +332,7 @@ def update_if_different(
     )
 
 
+@add_as_attribute_of(update_with_policy, name='all')
 def update_all(
     target: MutableMapping[K, V],
     source: Mapping[K, V],
@@ -325,6 +358,7 @@ def update_all(
     )
 
 
+@add_as_attribute_of(update_with_policy, name='missing_only')
 def update_missing_only(
     target: MutableMapping[K, V],
     source: Mapping[K, V],
@@ -350,6 +384,7 @@ def update_missing_only(
     )
 
 
+@add_as_attribute_of(update_with_policy, name='by_content_hash')
 def update_by_content_hash(
     target: MutableMapping[K, V],
     source: Mapping[K, V],
@@ -413,6 +448,7 @@ def local_file_timestamp(store, key) -> float:
     return os.stat(full_path).st_mtime
 
 
+@add_as_attribute_of(update_with_policy, name='newer')
 def update_newer(
     target: MutableMapping[K, V],
     source: Mapping[K, V],
@@ -500,6 +536,7 @@ def update_newer(
 
 
 # Convenience function for file-based stores
+@add_as_attribute_of(update_newer, name='files_by_timestamp')
 def update_files_by_timestamp(
     target: MutableMapping[K, V],
     source: Mapping[K, V],
