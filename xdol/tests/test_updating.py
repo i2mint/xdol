@@ -23,6 +23,7 @@ from xdol.updating import (
     update_by_content_hash,
     update_files_by_timestamp,
     local_file_timestamp,
+    VALUE_NOT_RETRIEVED,
 )
 
 
@@ -110,10 +111,18 @@ def test_custom_key_info_extractor():
     target = {"a": {"value": 1}, "b": {"value": 2}}
     source = {"a": {"value": 10}, "c": {"value": 30}}
 
-    def get_value(key, obj):
-        return obj.get("value")
+    def get_target_value(key):
+        return target.get(key, {}).get("value")
 
-    stats = update_with_policy(target, source, key_info=get_value)
+    def get_source_value(key):
+        return source.get(key, {}).get("value")
+
+    stats = update_with_policy(
+        target,
+        source,
+        target_key_info=get_target_value,
+        source_key_info=get_source_value,
+    )
 
     assert target["a"]["value"] == 10
     assert target["b"]["value"] == 2
@@ -126,7 +135,7 @@ def test_custom_decision_function():
     source = {"a": 10, "b": 20, "d": 40}
 
     def update_only_for_a_and_d(key, target_info, source_info):
-        if key in ["a", "d"] and source_info is not None:
+        if key in ["a", "d"] and key in source:
             return KeyDecision.COPY
         return KeyDecision.SKIP
 
@@ -158,9 +167,9 @@ def test_delete_action():
     source = {"a": 10, "d": 40}
 
     def delete_missing_from_source(key, target_info, source_info):
-        if target_info is not None and source_info is None:
+        if key in target and key not in source:
             return KeyDecision.DELETE
-        if source_info is not None:
+        if key in source:
             return KeyDecision.COPY
         return KeyDecision.SKIP
 
@@ -220,8 +229,11 @@ def test_nested_metadata_example():
     }
 
     # Extract modified_date for comparison
-    def get_modified_date(key, value):
-        return value.get("modified_date")
+    def get_target_modified_date(key):
+        return target.get(key, {}).get("modified_date")
+
+    def get_source_modified_date(key):
+        return source.get(key, {}).get("modified_date")
 
     # Update only if source is newer
     def source_is_newer(key, target_date, source_date):
@@ -234,7 +246,11 @@ def test_nested_metadata_example():
         return KeyDecision.SKIP
 
     stats = update_with_policy(
-        target, source, policy=source_is_newer, key_info=get_modified_date
+        target,
+        source,
+        policy=source_is_newer,
+        target_key_info=get_target_modified_date,
+        source_key_info=get_source_modified_date,
     )
 
     assert target["file1.txt"]["content"] == "updated content"
@@ -255,7 +271,19 @@ def test_update_if_different():
     target = {"a": 1, "b": 2}
     source = {"a": 1, "c": 3}  # 'a' has same value
 
-    stats = update_if_different(target, source)
+    # Use closures instead of functions that require mapping argument
+    def get_target_value(key):
+        return target.get(key)
+
+    def get_source_value(key):
+        return source.get(key)
+
+    stats = update_if_different(
+        target,
+        source,
+        target_key_info=get_target_value,
+        source_key_info=get_source_value,
+    )
 
     assert target == {"a": 1, "b": 2, "c": 3}
     assert stats["updated"] == 0  # 'a' not updated (same value)

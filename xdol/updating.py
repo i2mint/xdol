@@ -1,13 +1,41 @@
 """
-Function to replace the update_newer function in update_policy.py.
-"""
 
-"""
+mapping using customizable policies to determine which items to update. It offers
+a fine-grained approach to dictionary updates beyond the standard dict.update()
+method.
+
+Key Features:
+- Multiple built-in update policies (always update, update if different, prefer target, prefer source)
+- Support for custom update decision functions
+- Lazy value retrieval for performance optimization
+- Detailed statistics about update operations
+- Specialized update strategies (content hash comparison, timestamp-based updates)
+- File system-specific convenience functions
+
+
+Custom update logic with a hash function:
+
+>>> target = {"a": "hello", "b": "world"}
+>>> source = {"a": "hello!", "c": "python"}
+>>> update_by_content_hash(target, source, hash_function=lambda x: len(x))
+{'examined': 3, 'updated': 1, 'added': 1, 'unchanged': 1, 'deleted': 0}
+>>> target
+{'a': 'hello!', 'b': 'world', 'c': 'python'}
+
+Using convenience methods:
+
+>>> update_with_policy.missing_only(target, source)
+{'examined': 3, 'updated': 0, 'added': 0, 'unchanged': 3, 'deleted': 0}
+>>> target
+{'a': 'hello!', 'b': 'world', 'c': 'python'}
+
 Functions for controlled mapping updates with customizable policies.
 
 This module provides flexible functions to update a target mapping from a source
 mapping using customizable policies to determine which items to update.
+
 """
+
 from typing import (
     Mapping,
     MutableMapping,
@@ -95,8 +123,8 @@ class KeyDecision(StringEnum):
 class KeyInfoExtractor(Protocol):
     """Protocol for functions that extract comparison information from values."""
 
-    def __call__(self, key: K, value: V) -> Any:
-        """Extract comparison information from a value."""
+    def __call__(self, key: K) -> Any:
+        """Extract comparison information for a key."""
         ...
 
 
@@ -104,15 +132,18 @@ class UpdateDecider(Protocol):
     """Protocol for functions that decide whether to update a key."""
 
     def __call__(
-        self, key: K, target_info: Optional[Any], source_info: Optional[Any]
+        self,
+        key: K,
+        target_info: Any,
+        source_info: Any,
     ) -> KeyDecision:
         """
         Decide whether to update a key based on comparison info.
 
         Args:
             key: The key being considered
-            target_info: Comparison info for target value, None if key not in target
-            source_info: Comparison info for source value, None if key not in source
+            target_info: Comparison info for target, None if key not in target
+            source_info: Comparison info for source, None if key not in source
 
         Returns:
             KeyDecision indicating what to do with this key
@@ -141,39 +172,107 @@ class UpdateStats:
         }
 
 
-def _key_info_identity(key: K, value: V) -> V:
-    """Default key info extractor that returns the value itself."""
-    return value
+# Define a sentinel object to indicate values that haven't been retrieved yet
+class NotRetrieved:
+    """Sentinel object indicating a value that hasn't been retrieved yet."""
+
+    def __repr__(self):
+        return "<NotRetrieved>"
 
 
+VALUE_NOT_RETRIEVED = NotRetrieved()
+
+
+def _key_info_from_mapping(mapping: Mapping[K, V], key: K) -> Any:
+    """Default key info extractor that retrieves and returns the value from a mapping."""
+    return mapping.get(key)
+
+
+def _get_key_decisions(
+    keys: Set[K],
+    target: Mapping,
+    source: Mapping,
+    decider: UpdateDecider,
+    target_key_info: Optional[KeyInfoExtractor] = None,
+    source_key_info: Optional[KeyInfoExtractor] = None,
+) -> Iterator[Tuple[K, KeyDecision]]:
+    """
+    Get decisions for each key regarding update action.
+
+    Args:
+        keys: Set of keys to consider
+        target: Target mapping
+        source: Source mapping
+        decider: Function to decide what to do with each key
+        target_key_info: Function to extract comparison info from target (optional)
+        source_key_info: Function to extract comparison info from source (optional)
+
+    Returns:
+        Iterator of (key, decision) pairs
+    """
+    # Use default extractors if none provided
+    target_info_func = target_key_info or (lambda k: _key_info_from_mapping(target, k))
+    source_info_func = source_key_info or (lambda k: _key_info_from_mapping(source, k))
+
+    for key in keys:
+        target_in = key in target
+        source_in = key in source
+
+        # Get info or None if key doesn't exist
+        target_info = None if not target_in else target_info_func(key)
+        source_info = None if not source_in else source_info_func(key)
+
+        # Get decision
+        decision = decider(key, target_info, source_info)
+        yield key, decision
+
+
+# Update the standard decider functions
 def _update_if_different_decider(
-    key: K, target_info: Any, source_info: Any
+    key: K,
+    target_info: Any,
+    source_info: Any,
 ) -> KeyDecision:
     """Default decision function that updates if values differ."""
+    # Handle case where key is missing from one mapping
     if target_info is None and source_info is not None:
         return KeyDecision.COPY
     if target_info is not None and source_info is None:
         return KeyDecision.SKIP
+
+    # Compare and decide
     if target_info != source_info:
         return KeyDecision.COPY
     return KeyDecision.SKIP
 
 
-def _always_update_decider(key: K, target_info: Any, source_info: Any) -> KeyDecision:
+def _always_update_decider(
+    key: K,
+    target_info: Any,
+    source_info: Any,
+) -> KeyDecision:
     """Decision function that always updates from source."""
     if source_info is None:
         return KeyDecision.SKIP
     return KeyDecision.COPY
 
 
-def _prefer_target_decider(key: K, target_info: Any, source_info: Any) -> KeyDecision:
+def _prefer_target_decider(
+    key: K,
+    target_info: Any,
+    source_info: Any,
+) -> KeyDecision:
     """Decision function that keeps target values if they exist."""
     if target_info is None and source_info is not None:
         return KeyDecision.COPY
     return KeyDecision.SKIP
 
 
-def _prefer_source_decider(key: K, target_info: Any, source_info: Any) -> KeyDecision:
+def _prefer_source_decider(
+    key: K,
+    target_info: Any,
+    source_info: Any,
+) -> KeyDecision:
     """Decision function that always uses source values when available."""
     if source_info is None:
         return KeyDecision.SKIP
@@ -202,37 +301,6 @@ def _union_keys(mappings: Iterable[Mapping]) -> Set[K]:
     return keys
 
 
-def _get_key_decisions(
-    keys: Set[K],
-    target: Mapping,
-    source: Mapping,
-    decider: UpdateDecider,
-    key_info: KeyInfoExtractor,
-) -> Iterator[Tuple[K, KeyDecision]]:
-    """
-    Get decisions for each key regarding update action.
-
-    Args:
-        keys: Set of keys to consider
-        target: Target mapping
-        source: Source mapping
-        decider: Function to decide what to do with each key
-        key_info: Function to extract comparison info from values
-
-    Returns:
-        Iterator of (key, decision) pairs
-    """
-    for key in keys:
-        target_value = target.get(key, None)
-        source_value = source.get(key, None)
-
-        target_info = None if target_value is None else key_info(key, target_value)
-        source_info = None if source_value is None else key_info(key, source_value)
-
-        decision = decider(key, target_info, source_info)
-        yield key, decision
-
-
 def print_all_but_skips(key: K, decision: KeyDecision, *, print_func=print):
     """Print all decisions except SKIP."""
     if decision != KeyDecision.SKIP:
@@ -244,7 +312,8 @@ def update_with_policy(
     source: Mapping[K, V],
     *,
     policy: Union[DefaultPolicy, UpdateDecider] = DefaultPolicy.UPDATE_IF_DIFFERENT,
-    key_info: Optional[KeyInfoExtractor] = None,
+    target_key_info: Optional[KeyInfoExtractor] = None,
+    source_key_info: Optional[KeyInfoExtractor] = None,
     keys_to_consider: Optional[Set[K]] = None,
     verbose: Union[bool, Callable[[K, KeyDecision], Any]] = False,
 ) -> Dict[str, int]:
@@ -255,7 +324,8 @@ def update_with_policy(
         target: The mapping to be updated (modified in-place)
         source: The mapping containing items to potentially copy to target
         policy: Either a DefaultPolicy enum value or a custom decision function
-        key_info: Function to extract comparison info from values for decision-making
+        target_key_info: Function to extract comparison info from target keys
+        source_key_info: Function to extract comparison info from source keys
         keys_to_consider: Specific set of keys to consider, if None, uses union of all keys
         verbose: If True, will print debug information, if callable, call with
             (key, decision) on each key that is looped over
@@ -279,8 +349,6 @@ def update_with_policy(
         >>> target
         {'a': 1, 'b': 2, 'c': 30}
     """
-    key_info_func = key_info or _key_info_identity
-
     if verbose is False:
         verbose = lambda k, d: None
     elif verbose is True:
@@ -302,7 +370,12 @@ def update_with_policy(
 
     # Process each key according to the decided action
     for key, decision in _get_key_decisions(
-        keys_to_consider, target, source, decider, key_info_func
+        keys_to_consider,
+        target,
+        source,
+        decider,
+        target_key_info,
+        source_key_info,
     ):
         verbose(key, decision)
 
@@ -333,7 +406,9 @@ def update_if_different(
     target: MutableMapping[K, V],
     source: Mapping[K, V],
     *,
-    key_info: Optional[KeyInfoExtractor] = None,
+    key_info=None,  # For backward compatibility
+    target_key_info=None,
+    source_key_info=None,
     keys_to_consider: Optional[Set[K]] = None,
     verbose: Union[bool, Callable[[K, KeyDecision], Any]] = False,
 ) -> Dict[str, int]:
@@ -343,7 +418,9 @@ def update_if_different(
     Args:
         target: The mapping to be updated (modified in-place)
         source: The mapping containing items to potentially copy to target
-        key_info: Function to extract comparison info from values
+        key_info: (Deprecated) Function to extract comparison info from values
+        target_key_info: Function to extract comparison info from target keys
+        source_key_info: Function to extract comparison info from source keys
         keys_to_consider: Specific set of keys to consider
         verbose: If True, print debug information, if callable, call with
             (key, decision) on each key that is looped over
@@ -351,11 +428,17 @@ def update_if_different(
     Returns:
         Dictionary with statistics about the update operation
     """
+    # Handle backward compatibility
+    if key_info is not None:
+        target_key_info = target_key_info or (lambda k: key_info(k, target.get(k)))
+        source_key_info = source_key_info or (lambda k: key_info(k, source.get(k)))
+
     return update_with_policy(
         target,
         source,
         policy=DefaultPolicy.UPDATE_IF_DIFFERENT,
-        key_info=key_info,
+        target_key_info=target_key_info,
+        source_key_info=source_key_info,
         keys_to_consider=keys_to_consider,
         verbose=verbose,
     )
@@ -445,28 +528,23 @@ def update_by_content_hash(
         Dictionary with statistics about the update operation
     """
 
-    def _get_hash(key: K, value: V) -> Any:
-        return hash_function(value)
+    def get_target_hash(key: K) -> Any:
+        value = target.get(key)
+        return None if value is None else hash_function(value)
+
+    def get_source_hash(key: K) -> Any:
+        value = source.get(key)
+        return None if value is None else hash_function(value)
 
     return update_with_policy(
         target,
         source,
         policy=DefaultPolicy.UPDATE_IF_DIFFERENT,
-        key_info=_get_hash,
+        target_key_info=get_target_hash,
+        source_key_info=get_source_hash,
         keys_to_consider=keys_to_consider,
         verbose=verbose,
     )
-
-
-# from typing import Mapping, MutableMapping, Any, Callable, Dict, TypeVar, Set, Optional
-# import os
-# from datetime import datetime
-# from functools import partial
-# from update_policy import update_with_policy, KeyDecision
-#
-
-# K = TypeVar('K')
-# V = TypeVar('V')
 
 
 def local_file_timestamp(store, key) -> float:
@@ -505,55 +583,25 @@ def update_newer(
     Args:
         target: The mapping to be updated (modified in-place)
         source: The mapping containing items to potentially copy to target
-        target_timestamp: Function(key) -> timestamp that extracts timestamp from target for a key
-        source_timestamp: Function(key) -> timestamp that extracts timestamp from source for a key
+        target_timestamp: Function(key) -> timestamp that extracts timestamp from target
+        source_timestamp: Function(key) -> timestamp that extracts timestamp from source
         keys_to_consider: Specific set of keys to consider
         verbose: If True, print debug information, if callable, call with
             (key, decision) on each key that is looped over
 
     Returns:
         Dictionary with statistics about the update operation
-
-    Example:
-        >>> import tempfile, os
-        >>> from datetime import datetime
-        >>> # Create a function to get timestamps from values that contain timestamps
-        >>> def get_timestamp(store, key):
-        ...     return store[key].get("modified_date")
-        >>>
-        >>> # Setup
-        >>> target = {
-        ...     "file1.txt": {"modified_date": "2022-01-01", "content": "old"},
-        ...     "file2.txt": {"modified_date": "2022-03-01", "content": "newer"}
-        ... }
-        >>> source = {
-        ...     "file1.txt": {"modified_date": "2022-02-01", "content": "updated"},
-        ...     "file2.txt": {"modified_date": "2022-02-01", "content": "older"},
-        ...     "file3.txt": {"modified_date": "2022-04-01", "content": "newest"}
-        ... }
-        >>>
-        >>> # Create timestamp functions
-        >>> target_ts = lambda k: get_timestamp(target, k)
-        >>> source_ts = lambda k: get_timestamp(source, k)
-        >>>
-        >>> # Update
-        >>> update_newer(target, source, target_timestamp=target_ts, source_timestamp=source_ts)
-        {'examined': 3, 'updated': 1, 'added': 1, 'unchanged': 1, 'deleted': 0}
-        >>>
-        >>> # Verify results
-        >>> target["file1.txt"]["content"]  # Updated (source is newer)
-        'updated'
-        >>> target["file2.txt"]["content"]  # Not updated (target is newer)
-        'newer'
-        >>> target["file3.txt"]["content"]  # Added
-        'newest'
     """
 
-    def _newer_decider(key: K, target_value: Any, source_value: Any) -> KeyDecision:
+    def _newer_decider(
+        key: K,
+        target_info: Any,
+        source_info: Any,
+    ) -> KeyDecision:
         """Decision function based on timestamp comparison."""
-        if source_value is None:
+        if key not in source:
             return KeyDecision.SKIP
-        if target_value is None:
+        if key not in target:
             return KeyDecision.COPY
 
         try:
