@@ -32,9 +32,9 @@ from dataclasses import dataclass
 from dol.dig import inner_most_key
 
 
-K = TypeVar('K')
-V = TypeVar('V')
-T = TypeVar('T')
+K = TypeVar("K")
+V = TypeVar("V")
+T = TypeVar("T")
 
 
 class DefaultPolicy(Enum):
