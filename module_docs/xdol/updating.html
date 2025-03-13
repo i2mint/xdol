@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>xdol.updating &mdash; xdol 0.1.1 documentation</title>
+  <title>xdol.updating &mdash; xdol 0.1.3 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
       <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
@@ -15,7 +15,7 @@
   
       <script src="../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../_static/documentation_options.js?v=a58bc63e"></script>
+      <script src="../../_static/documentation_options.js?v=360bc84d"></script>
       <script src="../../_static/doctools.js?v=9bcbadda"></script>
       <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
       <script src="../../_static/toggleprompt.js?v=d7ede5d2"></script>
@@ -61,6 +61,7 @@
 <li class="toctree-l3"><a class="reference internal" href="#xdol.updating.UpdateStats.as_dict"><code class="docutils literal notranslate"><span class="pre">UpdateStats.as_dict()</span></code></a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="#xdol.updating.add_as_attribute_of"><code class="docutils literal notranslate"><span class="pre">add_as_attribute_of()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="#xdol.updating.local_file_timestamp"><code class="docutils literal notranslate"><span class="pre">local_file_timestamp()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="#xdol.updating.update_all"><code class="docutils literal notranslate"><span class="pre">update_all()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="#xdol.updating.update_by_content_hash"><code class="docutils literal notranslate"><span class="pre">update_by_content_hash()</span></code></a></li>
@@ -135,6 +136,35 @@
 <dd><p>Convert stats to a dictionary.</p>
 </dd></dl>
 
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="xdol.updating.add_as_attribute_of">
+<span class="sig-prename descclassname"><span class="pre">xdol.updating.</span></span><span class="sig-name descname"><span class="pre">add_as_attribute_of</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">obj</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/xdol/updating.html#add_as_attribute_of"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xdol.updating.add_as_attribute_of" title="Link to this definition"></a></dt>
+<dd><p>Decorator to add the function as an attribute of the object.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>obj</strong> – The object to which the function will be added</p></li>
+<li><p><strong>name</strong> – The name of the attribute to be added, if None, uses the function name</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The decorator function</p>
+</dd>
+</dl>
+<p>Examples:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="k">def</span><span class="w"> </span><span class="nf">foo</span><span class="p">():</span>
+<span class="gp">... </span>    <span class="k">return</span> <span class="s2">&quot;bar&quot;</span>
+<span class="gp">...</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nd">@add_as_attribute_of</span><span class="p">(</span><span class="n">foo</span><span class="p">)</span>
+<span class="gp">... </span><span class="k">def</span><span class="w"> </span><span class="nf">baz</span><span class="p">():</span>
+<span class="gp">... </span>    <span class="k">return</span> <span class="s2">&quot;qux&quot;</span>
+<span class="gp">...</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">foo</span><span class="o">.</span><span class="n">baz</span><span class="p">()</span>
+<span class="go">&#39;qux&#39;</span>
+</pre></div>
+</div>
 </dd></dl>
 
 <dl class="py function">

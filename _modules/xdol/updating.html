@@ -5,7 +5,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>xdol.updating &mdash; xdol 0.1.1 documentation</title>
+  <title>xdol.updating &mdash; xdol 0.1.3 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
       <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
@@ -14,7 +14,7 @@
   
       <script src="../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../_static/documentation_options.js?v=a58bc63e"></script>
+      <script src="../../_static/documentation_options.js?v=360bc84d"></script>
       <script src="../../_static/doctools.js?v=9bcbadda"></script>
       <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
       <script src="../../_static/toggleprompt.js?v=d7ede5d2"></script>
@@ -112,9 +112,43 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">dol.dig</span><span class="w"> </span><span class="kn">import</span> <span class="n">inner_most_key</span>
 
 
-<span class="n">K</span> <span class="o">=</span> <span class="n">TypeVar</span><span class="p">(</span><span class="s1">&#39;K&#39;</span><span class="p">)</span>
-<span class="n">V</span> <span class="o">=</span> <span class="n">TypeVar</span><span class="p">(</span><span class="s1">&#39;V&#39;</span><span class="p">)</span>
-<span class="n">T</span> <span class="o">=</span> <span class="n">TypeVar</span><span class="p">(</span><span class="s1">&#39;T&#39;</span><span class="p">)</span>
+<span class="n">K</span> <span class="o">=</span> <span class="n">TypeVar</span><span class="p">(</span><span class="s2">&quot;K&quot;</span><span class="p">)</span>
+<span class="n">V</span> <span class="o">=</span> <span class="n">TypeVar</span><span class="p">(</span><span class="s2">&quot;V&quot;</span><span class="p">)</span>
+<span class="n">T</span> <span class="o">=</span> <span class="n">TypeVar</span><span class="p">(</span><span class="s2">&quot;T&quot;</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="add_as_attribute_of">
+<a class="viewcode-back" href="../../module_docs/xdol/updating.html#xdol.updating.add_as_attribute_of">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">add_as_attribute_of</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Decorator to add the function as an attribute of the object.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        obj: The object to which the function will be added</span>
+<span class="sd">        name: The name of the attribute to be added, if None, uses the function name</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        The decorator function</span>
+
+<span class="sd">    Examples:</span>
+
+<span class="sd">    &gt;&gt;&gt; def foo():</span>
+<span class="sd">    ...     return &quot;bar&quot;</span>
+<span class="sd">    ...</span>
+<span class="sd">    &gt;&gt;&gt; @add_as_attribute_of(foo)</span>
+<span class="sd">    ... def baz():</span>
+<span class="sd">    ...     return &quot;qux&quot;</span>
+<span class="sd">    ...</span>
+<span class="sd">    &gt;&gt;&gt; foo.baz()</span>
+<span class="sd">    &#39;qux&#39;</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">decorator</span><span class="p">(</span><span class="n">func</span><span class="p">):</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">name</span> <span class="ow">or</span> <span class="n">func</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="n">func</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">func</span>
+
+    <span class="k">return</span> <span class="n">decorator</span></div>
+
 
 
 <div class="viewcode-block" id="DefaultPolicy">
@@ -375,6 +409,7 @@
 
 <div class="viewcode-block" id="update_if_different">
 <a class="viewcode-back" href="../../module_docs/xdol/updating.html#xdol.updating.update_if_different">[docs]</a>
+<span class="nd">@add_as_attribute_of</span><span class="p">(</span><span class="n">update_with_policy</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;if_different&#39;</span><span class="p">)</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">update_if_different</span><span class="p">(</span>
     <span class="n">target</span><span class="p">:</span> <span class="n">MutableMapping</span><span class="p">[</span><span class="n">K</span><span class="p">,</span> <span class="n">V</span><span class="p">],</span>
     <span class="n">source</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="n">K</span><span class="p">,</span> <span class="n">V</span><span class="p">],</span>
@@ -406,6 +441,7 @@
 
 <div class="viewcode-block" id="update_all">
 <a class="viewcode-back" href="../../module_docs/xdol/updating.html#xdol.updating.update_all">[docs]</a>
+<span class="nd">@add_as_attribute_of</span><span class="p">(</span><span class="n">update_with_policy</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;all&#39;</span><span class="p">)</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">update_all</span><span class="p">(</span>
     <span class="n">target</span><span class="p">:</span> <span class="n">MutableMapping</span><span class="p">[</span><span class="n">K</span><span class="p">,</span> <span class="n">V</span><span class="p">],</span>
     <span class="n">source</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="n">K</span><span class="p">,</span> <span class="n">V</span><span class="p">],</span>
@@ -434,6 +470,7 @@
 
 <div class="viewcode-block" id="update_missing_only">
 <a class="viewcode-back" href="../../module_docs/xdol/updating.html#xdol.updating.update_missing_only">[docs]</a>
+<span class="nd">@add_as_attribute_of</span><span class="p">(</span><span class="n">update_with_policy</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;missing_only&#39;</span><span class="p">)</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">update_missing_only</span><span class="p">(</span>
     <span class="n">target</span><span class="p">:</span> <span class="n">MutableMapping</span><span class="p">[</span><span class="n">K</span><span class="p">,</span> <span class="n">V</span><span class="p">],</span>
     <span class="n">source</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="n">K</span><span class="p">,</span> <span class="n">V</span><span class="p">],</span>
@@ -462,6 +499,7 @@
 
 <div class="viewcode-block" id="update_by_content_hash">
 <a class="viewcode-back" href="../../module_docs/xdol/updating.html#xdol.updating.update_by_content_hash">[docs]</a>
+<span class="nd">@add_as_attribute_of</span><span class="p">(</span><span class="n">update_with_policy</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;by_content_hash&#39;</span><span class="p">)</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">update_by_content_hash</span><span class="p">(</span>
     <span class="n">target</span><span class="p">:</span> <span class="n">MutableMapping</span><span class="p">[</span><span class="n">K</span><span class="p">,</span> <span class="n">V</span><span class="p">],</span>
     <span class="n">source</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="n">K</span><span class="p">,</span> <span class="n">V</span><span class="p">],</span>
@@ -531,6 +569,7 @@
 
 <div class="viewcode-block" id="update_newer">
 <a class="viewcode-back" href="../../module_docs/xdol/updating.html#xdol.updating.update_newer">[docs]</a>
+<span class="nd">@add_as_attribute_of</span><span class="p">(</span><span class="n">update_with_policy</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;newer&#39;</span><span class="p">)</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">update_newer</span><span class="p">(</span>
     <span class="n">target</span><span class="p">:</span> <span class="n">MutableMapping</span><span class="p">[</span><span class="n">K</span><span class="p">,</span> <span class="n">V</span><span class="p">],</span>
     <span class="n">source</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="n">K</span><span class="p">,</span> <span class="n">V</span><span class="p">],</span>
@@ -621,6 +660,7 @@
 <span class="c1"># Convenience function for file-based stores</span>
 <div class="viewcode-block" id="update_files_by_timestamp">
 <a class="viewcode-back" href="../../module_docs/xdol/updating.html#xdol.updating.update_files_by_timestamp">[docs]</a>
+<span class="nd">@add_as_attribute_of</span><span class="p">(</span><span class="n">update_newer</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;files_by_timestamp&#39;</span><span class="p">)</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">update_files_by_timestamp</span><span class="p">(</span>
     <span class="n">target</span><span class="p">:</span> <span class="n">MutableMapping</span><span class="p">[</span><span class="n">K</span><span class="p">,</span> <span class="n">V</span><span class="p">],</span>
     <span class="n">source</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="n">K</span><span class="p">,</span> <span class="n">V</span><span class="p">],</span>

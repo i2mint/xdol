@@ -5,7 +5,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>xdol.paths &mdash; xdol 0.1.1 documentation</title>
+  <title>xdol.paths &mdash; xdol 0.1.3 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
       <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
@@ -14,7 +14,7 @@
   
       <script src="../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../_static/documentation_options.js?v=a58bc63e"></script>
+      <script src="../../_static/documentation_options.js?v=360bc84d"></script>
       <script src="../../_static/doctools.js?v=9bcbadda"></script>
       <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
       <script src="../../_static/toggleprompt.js?v=d7ede5d2"></script>
@@ -80,8 +80,8 @@
   <h1>Source code for xdol.paths</h1><div class="highlight"><pre>
 <span></span><span class="sd">&quot;&quot;&quot;Tools for manipulating paths.</span>
 
-<span class="sd">A path is a sequence of objects that represent a reference or location. </span>
-<span class="sd">Often paths are strings that use a special character (e.g. &#39;/&#39;) to distinguish the </span>
+<span class="sd">A path is a sequence of objects that represent a reference or location.</span>
+<span class="sd">Often paths are strings that use a special character (e.g. &#39;/&#39;) to distinguish the</span>
 <span class="sd">separate objects in the sequence.</span>
 
 <span class="sd">&quot;&quot;&quot;</span>
@@ -145,7 +145,7 @@
         <span class="k">return</span> <span class="nb">map</span><span class="p">(</span><span class="n">partial</span><span class="p">(</span><span class="n">extract_path_segments</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="n">sep</span><span class="p">,</span> <span class="n">depth</span><span class="o">=</span><span class="n">depth</span><span class="p">),</span> <span class="n">paths</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">depth</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;depth must be a positive integer&#39;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;depth must be a positive integer&quot;</span><span class="p">)</span>
 
         <span class="n">segments</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">sep</span><span class="p">)</span>
 
