@@ -1,0 +1,382 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>xdol.updating &mdash; xdol 0.1.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../_static/graphviz.css?v=4ae1632d" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=a58bc63e"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../_static/toggleprompt.js?v=d7ede5d2"></script>
+      <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="xdol.util" href="util.html" />
+    <link rel="prev" title="xdol.pystores" href="pystores.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            xdol
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../xdol.html">xdol</a></li>
+<li class="toctree-l1"><a class="reference internal" href="paths.html">xdol.paths</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pystores.html">xdol.pystores</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">xdol.updating</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#xdol.updating.DefaultPolicy"><code class="docutils literal notranslate"><span class="pre">DefaultPolicy</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#xdol.updating.KeyDecision"><code class="docutils literal notranslate"><span class="pre">KeyDecision</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#xdol.updating.KeyInfoExtractor"><code class="docutils literal notranslate"><span class="pre">KeyInfoExtractor</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#xdol.updating.UpdateDecider"><code class="docutils literal notranslate"><span class="pre">UpdateDecider</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#xdol.updating.UpdateStats"><code class="docutils literal notranslate"><span class="pre">UpdateStats</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#xdol.updating.UpdateStats.as_dict"><code class="docutils literal notranslate"><span class="pre">UpdateStats.as_dict()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#xdol.updating.local_file_timestamp"><code class="docutils literal notranslate"><span class="pre">local_file_timestamp()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#xdol.updating.update_all"><code class="docutils literal notranslate"><span class="pre">update_all()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#xdol.updating.update_by_content_hash"><code class="docutils literal notranslate"><span class="pre">update_by_content_hash()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#xdol.updating.update_files_by_timestamp"><code class="docutils literal notranslate"><span class="pre">update_files_by_timestamp()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#xdol.updating.update_if_different"><code class="docutils literal notranslate"><span class="pre">update_if_different()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#xdol.updating.update_missing_only"><code class="docutils literal notranslate"><span class="pre">update_missing_only()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#xdol.updating.update_newer"><code class="docutils literal notranslate"><span class="pre">update_newer()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#xdol.updating.update_with_policy"><code class="docutils literal notranslate"><span class="pre">update_with_policy()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="util.html">xdol.util</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">xdol</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">xdol.updating</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/module_docs/xdol/updating.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-xdol.updating">
+<span id="xdol-updating"></span><h1>xdol.updating<a class="headerlink" href="#module-xdol.updating" title="Link to this heading"></a></h1>
+<p>Function to replace the update_newer function in update_policy.py.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="xdol.updating.DefaultPolicy">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">xdol.updating.</span></span><span class="sig-name descname"><span class="pre">DefaultPolicy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/xdol/updating.html#DefaultPolicy"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xdol.updating.DefaultPolicy" title="Link to this definition"></a></dt>
+<dd><p>Standard policies for updating mappings.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="xdol.updating.KeyDecision">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">xdol.updating.</span></span><span class="sig-name descname"><span class="pre">KeyDecision</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/xdol/updating.html#KeyDecision"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xdol.updating.KeyDecision" title="Link to this definition"></a></dt>
+<dd><p>Decisions for individual keys during update.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="xdol.updating.KeyInfoExtractor">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">xdol.updating.</span></span><span class="sig-name descname"><span class="pre">KeyInfoExtractor</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/xdol/updating.html#KeyInfoExtractor"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xdol.updating.KeyInfoExtractor" title="Link to this definition"></a></dt>
+<dd><p>Protocol for functions that extract comparison information from values.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="xdol.updating.UpdateDecider">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">xdol.updating.</span></span><span class="sig-name descname"><span class="pre">UpdateDecider</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/xdol/updating.html#UpdateDecider"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xdol.updating.UpdateDecider" title="Link to this definition"></a></dt>
+<dd><p>Protocol for functions that decide whether to update a key.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="xdol.updating.UpdateStats">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">xdol.updating.</span></span><span class="sig-name descname"><span class="pre">UpdateStats</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">examined</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">updated</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">added</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">unchanged</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">deleted</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/xdol/updating.html#UpdateStats"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xdol.updating.UpdateStats" title="Link to this definition"></a></dt>
+<dd><p>Statistics for an update operation.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="xdol.updating.UpdateStats.as_dict">
+<span class="sig-name descname"><span class="pre">as_dict</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../../_modules/xdol/updating.html#UpdateStats.as_dict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xdol.updating.UpdateStats.as_dict" title="Link to this definition"></a></dt>
+<dd><p>Convert stats to a dictionary.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="xdol.updating.local_file_timestamp">
+<span class="sig-prename descclassname"><span class="pre">xdol.updating.</span></span><span class="sig-name descname"><span class="pre">local_file_timestamp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">store</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">key</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">float</span></span></span><a class="reference internal" href="../../_modules/xdol/updating.html#local_file_timestamp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xdol.updating.local_file_timestamp" title="Link to this definition"></a></dt>
+<dd><p>Get the modified timestamp of a file in a local file store.</p>
+<p>Uses inner_most_key to handle relative paths correctly, resolving to
+the full path before getting the timestamp.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>store</strong> – A mapping whose keys resolve to file paths</p></li>
+<li><p><strong>key</strong> – A key in the store</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The modification timestamp of the file</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="xdol.updating.update_all">
+<span class="sig-prename descclassname"><span class="pre">xdol.updating.</span></span><span class="sig-name descname"><span class="pre">update_all</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">target</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">MutableMapping</span><span class="p"><span class="pre">[</span></span><span class="pre">K</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">V</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">source</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Mapping</span><span class="p"><span class="pre">[</span></span><span class="pre">K</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">V</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">keys_to_consider</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Set</span><span class="p"><span class="pre">[</span></span><span class="pre">K</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../../_modules/xdol/updating.html#update_all"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xdol.updating.update_all" title="Link to this definition"></a></dt>
+<dd><p>Update target with all source values, equivalent to dict.update().</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>target</strong> – The mapping to be updated (modified in-place)</p></li>
+<li><p><strong>source</strong> – The mapping containing items to potentially copy to target</p></li>
+<li><p><strong>keys_to_consider</strong> – Specific set of keys to consider</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Dictionary with statistics about the update operation</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="xdol.updating.update_by_content_hash">
+<span class="sig-prename descclassname"><span class="pre">xdol.updating.</span></span><span class="sig-name descname"><span class="pre">update_by_content_hash</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">target</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">MutableMapping</span><span class="p"><span class="pre">[</span></span><span class="pre">K</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">V</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">source</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Mapping</span><span class="p"><span class="pre">[</span></span><span class="pre">K</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">V</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hash_function</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="pre">V</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">keys_to_consider</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Set</span><span class="p"><span class="pre">[</span></span><span class="pre">K</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../../_modules/xdol/updating.html#update_by_content_hash"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xdol.updating.update_by_content_hash" title="Link to this definition"></a></dt>
+<dd><p>Update target with source values only if their hash differs.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>target</strong> – The mapping to be updated (modified in-place)</p></li>
+<li><p><strong>source</strong> – The mapping containing items to potentially copy to target</p></li>
+<li><p><strong>hash_function</strong> – Function to generate a hash of a value</p></li>
+<li><p><strong>keys_to_consider</strong> – Specific set of keys to consider</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Dictionary with statistics about the update operation</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="xdol.updating.update_files_by_timestamp">
+<span class="sig-prename descclassname"><span class="pre">xdol.updating.</span></span><span class="sig-name descname"><span class="pre">update_files_by_timestamp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">target</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">MutableMapping</span><span class="p"><span class="pre">[</span></span><span class="pre">K</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">V</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">source</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Mapping</span><span class="p"><span class="pre">[</span></span><span class="pre">K</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">V</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">keys_to_consider</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Set</span><span class="p"><span class="pre">[</span></span><span class="pre">K</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../../_modules/xdol/updating.html#update_files_by_timestamp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xdol.updating.update_files_by_timestamp" title="Link to this definition"></a></dt>
+<dd><p>Update a target file store with files from a source store based on modification times.</p>
+<p>This is a convenience wrapper around update_newer that uses local_file_timestamp
+to compare file modification times.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>target</strong> – The target file store to be updated</p></li>
+<li><p><strong>source</strong> – The source file store containing potential updates</p></li>
+<li><p><strong>keys_to_consider</strong> – Specific set of keys to consider</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Dictionary with statistics about the update operation</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="xdol.updating.update_if_different">
+<span class="sig-prename descclassname"><span class="pre">xdol.updating.</span></span><span class="sig-name descname"><span class="pre">update_if_different</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">target</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">MutableMapping</span><span class="p"><span class="pre">[</span></span><span class="pre">K</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">V</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">source</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Mapping</span><span class="p"><span class="pre">[</span></span><span class="pre">K</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">V</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">key_info</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#xdol.updating.KeyInfoExtractor" title="xdol.updating.KeyInfoExtractor"><span class="pre">KeyInfoExtractor</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">keys_to_consider</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Set</span><span class="p"><span class="pre">[</span></span><span class="pre">K</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../../_modules/xdol/updating.html#update_if_different"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xdol.updating.update_if_different" title="Link to this definition"></a></dt>
+<dd><p>Update target with source values only if they differ.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>target</strong> – The mapping to be updated (modified in-place)</p></li>
+<li><p><strong>source</strong> – The mapping containing items to potentially copy to target</p></li>
+<li><p><strong>key_info</strong> – Function to extract comparison info from values</p></li>
+<li><p><strong>keys_to_consider</strong> – Specific set of keys to consider</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Dictionary with statistics about the update operation</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="xdol.updating.update_missing_only">
+<span class="sig-prename descclassname"><span class="pre">xdol.updating.</span></span><span class="sig-name descname"><span class="pre">update_missing_only</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">target</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">MutableMapping</span><span class="p"><span class="pre">[</span></span><span class="pre">K</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">V</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">source</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Mapping</span><span class="p"><span class="pre">[</span></span><span class="pre">K</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">V</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">keys_to_consider</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Set</span><span class="p"><span class="pre">[</span></span><span class="pre">K</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../../_modules/xdol/updating.html#update_missing_only"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xdol.updating.update_missing_only" title="Link to this definition"></a></dt>
+<dd><p>Update target with source values only for keys not in target.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>target</strong> – The mapping to be updated (modified in-place)</p></li>
+<li><p><strong>source</strong> – The mapping containing items to potentially copy to target</p></li>
+<li><p><strong>keys_to_consider</strong> – Specific set of keys to consider</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Dictionary with statistics about the update operation</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="xdol.updating.update_newer">
+<span class="sig-prename descclassname"><span class="pre">xdol.updating.</span></span><span class="sig-name descname"><span class="pre">update_newer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">target</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">MutableMapping</span><span class="p"><span class="pre">[</span></span><span class="pre">K</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">V</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">source</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Mapping</span><span class="p"><span class="pre">[</span></span><span class="pre">K</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">V</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_timestamp</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="pre">K</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">source_timestamp</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="pre">K</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">keys_to_consider</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Set</span><span class="p"><span class="pre">[</span></span><span class="pre">K</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../../_modules/xdol/updating.html#update_newer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xdol.updating.update_newer" title="Link to this definition"></a></dt>
+<dd><p>Update target with source values only if source has a newer timestamp.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>target</strong> – The mapping to be updated (modified in-place)</p></li>
+<li><p><strong>source</strong> – The mapping containing items to potentially copy to target</p></li>
+<li><p><strong>target_timestamp</strong> – Function(key) -&gt; timestamp that extracts timestamp from target for a key</p></li>
+<li><p><strong>source_timestamp</strong> – Function(key) -&gt; timestamp that extracts timestamp from source for a key</p></li>
+<li><p><strong>keys_to_consider</strong> – Specific set of keys to consider</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Dictionary with statistics about the update operation</p>
+</dd>
+</dl>
+<p class="rubric">Example</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">tempfile</span><span class="o">,</span><span class="w"> </span><span class="nn">os</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">datetime</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Create a function to get timestamps from values that contain timestamps</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">def</span><span class="w"> </span><span class="nf">get_timestamp</span><span class="p">(</span><span class="n">store</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="k">return</span> <span class="n">store</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;modified_date&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Setup</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">target</span> <span class="o">=</span> <span class="p">{</span>
+<span class="gp">... </span>    <span class="s2">&quot;file1.txt&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;modified_date&quot;</span><span class="p">:</span> <span class="s2">&quot;2022-01-01&quot;</span><span class="p">,</span> <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="s2">&quot;old&quot;</span><span class="p">},</span>
+<span class="gp">... </span>    <span class="s2">&quot;file2.txt&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;modified_date&quot;</span><span class="p">:</span> <span class="s2">&quot;2022-03-01&quot;</span><span class="p">,</span> <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="s2">&quot;newer&quot;</span><span class="p">}</span>
+<span class="gp">... </span><span class="p">}</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">source</span> <span class="o">=</span> <span class="p">{</span>
+<span class="gp">... </span>    <span class="s2">&quot;file1.txt&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;modified_date&quot;</span><span class="p">:</span> <span class="s2">&quot;2022-02-01&quot;</span><span class="p">,</span> <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="s2">&quot;updated&quot;</span><span class="p">},</span>
+<span class="gp">... </span>    <span class="s2">&quot;file2.txt&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;modified_date&quot;</span><span class="p">:</span> <span class="s2">&quot;2022-02-01&quot;</span><span class="p">,</span> <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="s2">&quot;older&quot;</span><span class="p">},</span>
+<span class="gp">... </span>    <span class="s2">&quot;file3.txt&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;modified_date&quot;</span><span class="p">:</span> <span class="s2">&quot;2022-04-01&quot;</span><span class="p">,</span> <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="s2">&quot;newest&quot;</span><span class="p">}</span>
+<span class="gp">... </span><span class="p">}</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Create timestamp functions</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">target_ts</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">k</span><span class="p">:</span> <span class="n">get_timestamp</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="n">k</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">source_ts</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">k</span><span class="p">:</span> <span class="n">get_timestamp</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="n">k</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Update</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">update_newer</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="n">source</span><span class="p">,</span> <span class="n">target_timestamp</span><span class="o">=</span><span class="n">target_ts</span><span class="p">,</span> <span class="n">source_timestamp</span><span class="o">=</span><span class="n">source_ts</span><span class="p">)</span>
+<span class="go">{&#39;examined&#39;: 3, &#39;updated&#39;: 1, &#39;added&#39;: 1, &#39;unchanged&#39;: 1, &#39;deleted&#39;: 0}</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Verify results</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">target</span><span class="p">[</span><span class="s2">&quot;file1.txt&quot;</span><span class="p">][</span><span class="s2">&quot;content&quot;</span><span class="p">]</span>  <span class="c1"># Updated (source is newer)</span>
+<span class="go">&#39;updated&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">target</span><span class="p">[</span><span class="s2">&quot;file2.txt&quot;</span><span class="p">][</span><span class="s2">&quot;content&quot;</span><span class="p">]</span>  <span class="c1"># Not updated (target is newer)</span>
+<span class="go">&#39;newer&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">target</span><span class="p">[</span><span class="s2">&quot;file3.txt&quot;</span><span class="p">][</span><span class="s2">&quot;content&quot;</span><span class="p">]</span>  <span class="c1"># Added</span>
+<span class="go">&#39;newest&#39;</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="xdol.updating.update_with_policy">
+<span class="sig-prename descclassname"><span class="pre">xdol.updating.</span></span><span class="sig-name descname"><span class="pre">update_with_policy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">target</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">MutableMapping</span><span class="p"><span class="pre">[</span></span><span class="pre">K</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">V</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">source</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Mapping</span><span class="p"><span class="pre">[</span></span><span class="pre">K</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">V</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">policy</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#xdol.updating.DefaultPolicy" title="xdol.updating.DefaultPolicy"><span class="pre">DefaultPolicy</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference internal" href="#xdol.updating.UpdateDecider" title="xdol.updating.UpdateDecider"><span class="pre">UpdateDecider</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">DefaultPolicy.UPDATE_IF_DIFFERENT</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">key_info</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#xdol.updating.KeyInfoExtractor" title="xdol.updating.KeyInfoExtractor"><span class="pre">KeyInfoExtractor</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">keys_to_consider</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Set</span><span class="p"><span class="pre">[</span></span><span class="pre">K</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../../_modules/xdol/updating.html#update_with_policy"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xdol.updating.update_with_policy" title="Link to this definition"></a></dt>
+<dd><p>Update a target mapping with values from a source mapping using a customizable policy.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>target</strong> – The mapping to be updated (modified in-place)</p></li>
+<li><p><strong>source</strong> – The mapping containing items to potentially copy to target</p></li>
+<li><p><strong>policy</strong> – Either a DefaultPolicy enum value or a custom decision function</p></li>
+<li><p><strong>key_info</strong> – Function to extract comparison info from values for decision-making</p></li>
+<li><p><strong>keys_to_consider</strong> – Specific set of keys to consider, if None, uses union of all keys</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Dictionary with statistics about the update operation</p>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">target</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;a&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;b&quot;</span><span class="p">:</span> <span class="mi">2</span><span class="p">}</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">source</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;a&quot;</span><span class="p">:</span> <span class="mi">10</span><span class="p">,</span> <span class="s2">&quot;c&quot;</span><span class="p">:</span> <span class="mi">30</span><span class="p">}</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">update_with_policy</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="n">source</span><span class="p">)</span>
+<span class="go">{&#39;examined&#39;: 3, &#39;updated&#39;: 1, &#39;added&#39;: 1, &#39;unchanged&#39;: 1, &#39;deleted&#39;: 0}</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">target</span>
+<span class="go">{&#39;a&#39;: 10, &#39;b&#39;: 2, &#39;c&#39;: 30}</span>
+</pre></div>
+</div>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="c1"># Using PREFER_TARGET policy</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">target</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;a&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;b&quot;</span><span class="p">:</span> <span class="mi">2</span><span class="p">}</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">source</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;a&quot;</span><span class="p">:</span> <span class="mi">10</span><span class="p">,</span> <span class="s2">&quot;c&quot;</span><span class="p">:</span> <span class="mi">30</span><span class="p">}</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">update_with_policy</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="n">source</span><span class="p">,</span> <span class="n">policy</span><span class="o">=</span><span class="n">DefaultPolicy</span><span class="o">.</span><span class="n">PREFER_TARGET</span><span class="p">)</span>
+<span class="go">{&#39;examined&#39;: 3, &#39;updated&#39;: 0, &#39;added&#39;: 1, &#39;unchanged&#39;: 2, &#39;deleted&#39;: 0}</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">target</span>
+<span class="go">{&#39;a&#39;: 1, &#39;b&#39;: 2, &#39;c&#39;: 30}</span>
+</pre></div>
+</div>
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="pystores.html" class="btn btn-neutral float-left" title="xdol.pystores" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="util.html" class="btn btn-neutral float-right" title="xdol.util" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright NO COPYRIGHT.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
