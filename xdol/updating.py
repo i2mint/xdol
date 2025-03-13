@@ -233,6 +233,7 @@ def update_with_policy(
     policy: Union[DefaultPolicy, UpdateDecider] = DefaultPolicy.UPDATE_IF_DIFFERENT,
     key_info: Optional[KeyInfoExtractor] = None,
     keys_to_consider: Optional[Set[K]] = None,
+    verbose: Union[bool, Callable[[K, KeyDecision], Any]] = False,
 ) -> Dict[str, int]:
     """
     Update a target mapping with values from a source mapping using a customizable policy.
@@ -243,6 +244,8 @@ def update_with_policy(
         policy: Either a DefaultPolicy enum value or a custom decision function
         key_info: Function to extract comparison info from values for decision-making
         keys_to_consider: Specific set of keys to consider, if None, uses union of all keys
+        verbose: If True, print debug information, if callable, call with
+            (key, decision) on each key that is looped over
 
     Returns:
         Dictionary with statistics about the update operation
@@ -265,6 +268,13 @@ def update_with_policy(
     """
     key_info_func = key_info or _key_info_identity
 
+    if verbose is False:
+        verbose = lambda k, d: None
+    elif verbose is True:
+        verbose = lambda k, d: print(f"{k}: {d}")
+    else:
+        assert callable(verbose), "Verbose must be a callable or boolean"
+
     # Determine the decision function
     if isinstance(policy, DefaultPolicy):
         decider = _get_standard_decider(policy)
@@ -281,6 +291,8 @@ def update_with_policy(
     for key, decision in _get_key_decisions(
         keys_to_consider, target, source, decider, key_info_func
     ):
+        verbose(key, decision)
+
         stats.examined += 1
 
         if decision == KeyDecision.COPY:
@@ -310,6 +322,7 @@ def update_if_different(
     *,
     key_info: Optional[KeyInfoExtractor] = None,
     keys_to_consider: Optional[Set[K]] = None,
+    verbose: Union[bool, Callable[[K, KeyDecision], Any]] = False,
 ) -> Dict[str, int]:
     """
     Update target with source values only if they differ.
@@ -319,6 +332,8 @@ def update_if_different(
         source: The mapping containing items to potentially copy to target
         key_info: Function to extract comparison info from values
         keys_to_consider: Specific set of keys to consider
+        verbose: If True, print debug information, if callable, call with
+            (key, decision) on each key that is looped over
 
     Returns:
         Dictionary with statistics about the update operation
@@ -329,6 +344,7 @@ def update_if_different(
         policy=DefaultPolicy.UPDATE_IF_DIFFERENT,
         key_info=key_info,
         keys_to_consider=keys_to_consider,
+        verbose=verbose,
     )
 
 
@@ -338,6 +354,7 @@ def update_all(
     source: Mapping[K, V],
     *,
     keys_to_consider: Optional[Set[K]] = None,
+    verbose: Union[bool, Callable[[K, KeyDecision], Any]] = False,
 ) -> Dict[str, int]:
     """
     Update target with all source values, equivalent to dict.update().
@@ -346,6 +363,8 @@ def update_all(
         target: The mapping to be updated (modified in-place)
         source: The mapping containing items to potentially copy to target
         keys_to_consider: Specific set of keys to consider
+        verbose: If True, print debug information, if callable, call with
+            (key, decision) on each key that is looped over
 
     Returns:
         Dictionary with statistics about the update operation
@@ -355,6 +374,7 @@ def update_all(
         source,
         policy=DefaultPolicy.ALWAYS_UPDATE,
         keys_to_consider=keys_to_consider,
+        verbose=verbose,
     )
 
 
@@ -364,6 +384,7 @@ def update_missing_only(
     source: Mapping[K, V],
     *,
     keys_to_consider: Optional[Set[K]] = None,
+    verbose: Union[bool, Callable[[K, KeyDecision], Any]] = False,
 ) -> Dict[str, int]:
     """
     Update target with source values only for keys not in target.
@@ -372,6 +393,8 @@ def update_missing_only(
         target: The mapping to be updated (modified in-place)
         source: The mapping containing items to potentially copy to target
         keys_to_consider: Specific set of keys to consider
+        verbose: If True, print debug information, if callable, call with
+            (key, decision) on each key that is looped over
 
     Returns:
         Dictionary with statistics about the update operation
@@ -381,6 +404,7 @@ def update_missing_only(
         source,
         policy=DefaultPolicy.PREFER_TARGET,
         keys_to_consider=keys_to_consider,
+        verbose=verbose,
     )
 
 
@@ -391,6 +415,7 @@ def update_by_content_hash(
     *,
     hash_function: Callable[[V], Any],
     keys_to_consider: Optional[Set[K]] = None,
+    verbose: Union[bool, Callable[[K, KeyDecision], Any]] = False,
 ) -> Dict[str, int]:
     """
     Update target with source values only if their hash differs.
@@ -400,6 +425,8 @@ def update_by_content_hash(
         source: The mapping containing items to potentially copy to target
         hash_function: Function to generate a hash of a value
         keys_to_consider: Specific set of keys to consider
+        verbose: If True, print debug information, if callable, call with
+            (key, decision) on each key that is looped over
 
     Returns:
         Dictionary with statistics about the update operation
@@ -414,6 +441,7 @@ def update_by_content_hash(
         policy=DefaultPolicy.UPDATE_IF_DIFFERENT,
         key_info=_get_hash,
         keys_to_consider=keys_to_consider,
+        verbose=verbose,
     )
 
 
@@ -456,6 +484,7 @@ def update_newer(
     target_timestamp: Callable[[K], Any],
     source_timestamp: Callable[[K], Any],
     keys_to_consider: Optional[Set[K]] = None,
+    verbose: Union[bool, Callable[[K, KeyDecision], Any]] = False,
 ) -> Dict[str, int]:
     """
     Update target with source values only if source has a newer timestamp.
@@ -466,6 +495,8 @@ def update_newer(
         target_timestamp: Function(key) -> timestamp that extracts timestamp from target for a key
         source_timestamp: Function(key) -> timestamp that extracts timestamp from source for a key
         keys_to_consider: Specific set of keys to consider
+        verbose: If True, print debug information, if callable, call with
+            (key, decision) on each key that is looped over
 
     Returns:
         Dictionary with statistics about the update operation
@@ -531,7 +562,11 @@ def update_newer(
             return KeyDecision.SKIP
 
     return update_with_policy(
-        target, source, policy=_newer_decider, keys_to_consider=keys_to_consider
+        target,
+        source,
+        policy=_newer_decider,
+        keys_to_consider=keys_to_consider,
+        verbose=verbose,
     )
 
 
@@ -542,6 +577,7 @@ def update_files_by_timestamp(
     source: Mapping[K, V],
     *,
     keys_to_consider: Optional[Set[K]] = None,
+    verbose: Union[bool, Callable[[K, KeyDecision], Any]] = False,
 ) -> Dict[str, int]:
     """
     Update a target file store with files from a source store based on modification times.
@@ -553,6 +589,8 @@ def update_files_by_timestamp(
         target: The target file store to be updated
         source: The source file store containing potential updates
         keys_to_consider: Specific set of keys to consider
+        verbose: If True, print debug information, if callable, call with
+            (key, decision) on each key that is looped over
 
     Returns:
         Dictionary with statistics about the update operation
@@ -566,4 +604,5 @@ def update_files_by_timestamp(
         target_timestamp=target_ts,
         source_timestamp=source_ts,
         keys_to_consider=keys_to_consider,
+        verbose=verbose,
     )
