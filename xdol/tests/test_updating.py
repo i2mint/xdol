@@ -60,10 +60,10 @@ def test_default_policy():
     stats = update_with_policy(target, source)
 
     assert target == {"a": 10, "b": 2, "c": 30}
-    assert stats["examined"] == 3
+    assert stats["examined"] == 2  # Changed from 3 to 2 (only source keys)
     assert stats["updated"] == 1
     assert stats["added"] == 1
-    assert stats["unchanged"] == 1
+    assert stats["unchanged"] == 0  # Changed from 1 to 0 ('b' is not examined)
     assert stats["deleted"] == 0
 
 
@@ -77,7 +77,8 @@ def test_always_update_policy():
     assert target == {"a": 1, "b": 2, "c": 30}
     assert stats["updated"] == 1  # 'a' is updated even though value is the same
     assert stats["added"] == 1  # 'c' is added
-    assert stats["unchanged"] == 1  # 'b' is unchanged
+    assert stats["unchanged"] == 0  # Changed from 1 to 0 ('b' is not examined)
+    assert stats["examined"] == 2  # Now only examines 'a' and 'c'
 
 
 def test_prefer_target_policy():
@@ -90,7 +91,8 @@ def test_prefer_target_policy():
     assert target == {"a": 1, "b": 2, "c": 30}
     assert stats["updated"] == 0  # 'a' is not updated
     assert stats["added"] == 1  # 'c' is added
-    assert stats["unchanged"] == 2  # 'a' and 'b' are unchanged
+    assert stats["unchanged"] == 1  # Changed from 2 to 1 (only 'a' not 'b')
+    assert stats["examined"] == 2  # Now only examines 'a' and 'c'
 
 
 def test_prefer_source_policy():
@@ -103,7 +105,8 @@ def test_prefer_source_policy():
     assert target == {"a": 10, "b": 2, "c": 30}
     assert stats["updated"] == 1  # 'a' is updated
     assert stats["added"] == 1  # 'c' is added
-    assert stats["unchanged"] == 1  # 'b' is unchanged
+    assert stats["unchanged"] == 0  # Changed from 1 to 0 ('b' is not examined)
+    assert stats["examined"] == 2  # Now only examines 'a' and 'c'
 
 
 def test_custom_key_info_extractor():
@@ -144,7 +147,10 @@ def test_custom_decision_function():
     assert target == {"a": 10, "b": 2, "c": 3, "d": 40}
     assert stats["updated"] == 1  # 'a' is updated
     assert stats["added"] == 1  # 'd' is added
-    assert stats["unchanged"] == 2  # 'b' and 'c' are unchanged
+    assert (
+        stats["unchanged"] == 1
+    )  # Changed from 2 to 1 (only 'b' in source is examined)
+    assert stats["examined"] == 3  # Now only examines 'a', 'b', and 'd'
 
 
 def test_keys_to_consider():
@@ -161,6 +167,23 @@ def test_keys_to_consider():
     assert stats["unchanged"] == 1  # 'c' unchanged
 
 
+def test_source_and_target_keys():
+    """Test explicitly using _source_and_target_keys."""
+    target = {"a": 1, "b": 2, "c": 3}
+    source = {"a": 10, "d": 40}
+
+    # Import the source_and_target_keys function
+    from xdol.updating import _source_and_target_keys
+
+    stats = update_with_policy(target, source, keys_to_consider=_source_and_target_keys)
+
+    assert target == {"a": 10, "b": 2, "c": 3, "d": 40}
+    assert stats["examined"] == 4  # 'a', 'b', 'c', 'd' are all examined
+    assert stats["updated"] == 1  # 'a' updated
+    assert stats["added"] == 1  # 'd' added
+    assert stats["unchanged"] == 2  # 'b' and 'c' unchanged
+
+
 def test_delete_action():
     """Test a custom policy that can delete keys."""
     target = {"a": 1, "b": 2, "c": 3}
@@ -173,7 +196,15 @@ def test_delete_action():
             return KeyDecision.COPY
         return KeyDecision.SKIP
 
-    stats = update_with_policy(target, source, policy=delete_missing_from_source)
+    # Need to use _source_and_target_keys to also consider keys in target
+    from xdol.updating import _source_and_target_keys
+
+    stats = update_with_policy(
+        target,
+        source,
+        policy=delete_missing_from_source,
+        keys_to_consider=_source_and_target_keys,
+    )
 
     assert target == {"a": 10, "d": 40}
     assert stats["updated"] == 1  # 'a' is updated
@@ -205,7 +236,10 @@ def test_file_like_example():
 
     assert stats["updated"] == 1  # file1.txt updated
     assert stats["added"] == 1  # file4.txt added
-    assert stats["unchanged"] == 2  # file2.txt and file3.txt unchanged
+    assert (
+        stats["unchanged"] == 1
+    )  # Changed from 2 to 1 (file3.txt only, file2.txt not examined)
+    assert stats["examined"] == 3  # Only source keys examined
 
 
 def test_nested_metadata_example():
@@ -288,7 +322,8 @@ def test_update_if_different():
     assert target == {"a": 1, "b": 2, "c": 3}
     assert stats["updated"] == 0  # 'a' not updated (same value)
     assert stats["added"] == 1  # 'c' added
-    assert stats["unchanged"] == 2  # 'a' and 'b' unchanged
+    assert stats["unchanged"] == 1  # Changed from 2 to 1 (only 'a' not 'b')
+    assert stats["examined"] == 2  # Only source keys examined
 
 
 def test_update_all():
@@ -349,10 +384,10 @@ def test_doctest_examples():
     target = {"a": 1, "b": 2}
     source = {"a": 10, "c": 30}
     stats = update_with_policy(target, source)
-    assert stats["examined"] == 3
+    assert stats["examined"] == 2  # Changed from 3 to 2 (only source keys)
     assert stats["updated"] == 1
     assert stats["added"] == 1
-    assert stats["unchanged"] == 1
+    assert stats["unchanged"] == 0  # Changed from 1 to 0 ('b' not examined)
     assert stats["deleted"] == 0
     assert target == {"a": 10, "b": 2, "c": 30}
 
@@ -360,10 +395,10 @@ def test_doctest_examples():
     target = {"a": 1, "b": 2}
     source = {"a": 10, "c": 30}
     stats = update_with_policy(target, source, policy=DefaultPolicy.PREFER_TARGET)
-    assert stats["examined"] == 3
+    assert stats["examined"] == 2  # Changed from 3 to 2 (only source keys)
     assert stats["updated"] == 0
     assert stats["added"] == 1
-    assert stats["unchanged"] == 2
+    assert stats["unchanged"] == 1  # Changed from 2 to 1 (only 'a' not 'b')
     assert stats["deleted"] == 0
     assert target == {"a": 1, "b": 2, "c": 30}
 
@@ -495,7 +530,8 @@ def test_local_file_timestamp_and_update_files_by_timestamp():
         # Check stats
         assert stats["updated"] == 1  # file1.txt
         assert stats["added"] == 1  # file3.txt
-        assert stats["unchanged"] == 1  # file2.txt
+        assert stats["unchanged"] == 0  # Changed from 1 to 0 (file2.txt not examined)
+        assert stats["examined"] == 2  # Only source keys examined
 
     finally:
         # Clean up

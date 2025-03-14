@@ -18,14 +18,14 @@ Custom update logic with a hash function:
 >>> target = {"a": "hello", "b": "world"}
 >>> source = {"a": "hello!", "c": "python"}
 >>> update_by_content_hash(target, source, hash_function=lambda x: len(x))
-{'examined': 3, 'updated': 1, 'added': 1, 'unchanged': 1, 'deleted': 0}
+{'examined': 2, 'updated': 1, 'added': 1, 'unchanged': 0, 'deleted': 0}
 >>> target
 {'a': 'hello!', 'b': 'world', 'c': 'python'}
 
 Using convenience methods:
 
 >>> update_with_policy.missing_only(target, source)
-{'examined': 3, 'updated': 0, 'added': 0, 'unchanged': 3, 'deleted': 0}
+{'examined': 2, 'updated': 0, 'added': 0, 'unchanged': 2, 'deleted': 0}
 >>> target
 {'a': 'hello!', 'b': 'world', 'c': 'python'}
 
@@ -40,6 +40,8 @@ from typing import (
     Mapping,
     MutableMapping,
     Any,
+    Iterable,
+    Generator,
     Callable,
     Optional,
     Dict,
@@ -58,7 +60,6 @@ from typing_extensions import Protocol
 from dataclasses import dataclass
 
 from dol.dig import inner_most_key
-
 
 K = TypeVar("K")
 V = TypeVar("V")
@@ -293,18 +294,49 @@ def _get_standard_decider(policy: DefaultPolicy) -> UpdateDecider:
         raise ValueError(f"Unknown policy: {policy}")
 
 
-def _union_keys(mappings: Iterable[Mapping]) -> Set[K]:
-    """Get the union of keys from multiple mappings."""
-    keys = set()
-    for mapping in mappings:
-        keys.update(mapping.keys())
-    return keys
+def union_iter(*iterables: Iterable[T]) -> Generator[T, None, None]:
+    """
+    Generator yielding unique hashable items from an iterable of iterables.
+
+    Args:
+        iterables: An iterable where each element is itself an iterable of hashable items.
+
+    Yields:
+        Unique items from the nested iterables, in order of first appearance.
+
+    Example:
+        >>> list(union_iter(['a', 'b'], ['b', 'c']))
+        ['a', 'b', 'c']
+        >>> list(union_iter({'a': 1, 'b': 2}.keys(), {'b': 3, 'c': 4}.values()))
+        ['a', 'b', 3, 4]
+    """
+    seen = set()
+    for iterable in iterables:
+        for item in iterable:
+            if item not in seen:
+                seen.add(item)
+                yield item
 
 
 def print_all_but_skips(key: K, decision: KeyDecision, *, print_func=print):
     """Print all decisions except SKIP."""
     if decision != KeyDecision.SKIP:
         print_func(f"{decision}: {key}")
+
+
+def _source_and_target_keys(source: Mapping, target: Mapping):
+    """Return the union of keys from both source and target mappings."""
+    return source.keys() | target.keys()
+
+
+def _just_source_keys(source: Mapping, target: Mapping):
+    """Return only the keys from the source mapping."""
+    return source.keys()
+
+
+Target = MutableMapping
+Source = Mapping
+KeysToConsider = Union[Iterable[K], Callable[[Source, Target], Iterable[K]]]
 
 
 def update_with_policy(
@@ -314,7 +346,7 @@ def update_with_policy(
     policy: Union[DefaultPolicy, UpdateDecider] = DefaultPolicy.UPDATE_IF_DIFFERENT,
     target_key_info: Optional[KeyInfoExtractor] = None,
     source_key_info: Optional[KeyInfoExtractor] = None,
-    keys_to_consider: Optional[Set[K]] = None,
+    keys_to_consider: KeysToConsider = _just_source_keys,
     verbose: Union[bool, Callable[[K, KeyDecision], Any]] = False,
 ) -> Dict[str, int]:
     """
@@ -326,7 +358,8 @@ def update_with_policy(
         policy: Either a DefaultPolicy enum value or a custom decision function
         target_key_info: Function to extract comparison info from target keys
         source_key_info: Function to extract comparison info from source keys
-        keys_to_consider: Specific set of keys to consider, if None, uses union of all keys
+        keys_to_consider: Specific iterable of keys to consider or a callable to make
+            this from source and target. The default will consider source keys only.
         verbose: If True, will print debug information, if callable, call with
             (key, decision) on each key that is looped over
 
@@ -337,7 +370,7 @@ def update_with_policy(
         >>> target = {"a": 1, "b": 2}
         >>> source = {"a": 10, "c": 30}
         >>> update_with_policy(target, source)
-        {'examined': 3, 'updated': 1, 'added': 1, 'unchanged': 1, 'deleted': 0}
+        {'examined': 2, 'updated': 1, 'added': 1, 'unchanged': 0, 'deleted': 0}
         >>> target
         {'a': 10, 'b': 2, 'c': 30}
 
@@ -345,7 +378,7 @@ def update_with_policy(
         >>> target = {"a": 1, "b": 2}
         >>> source = {"a": 10, "c": 30}
         >>> update_with_policy(target, source, policy=DefaultPolicy.PREFER_TARGET)
-        {'examined': 3, 'updated': 0, 'added': 1, 'unchanged': 2, 'deleted': 0}
+        {'examined': 2, 'updated': 0, 'added': 1, 'unchanged': 1, 'deleted': 0}
         >>> target
         {'a': 1, 'b': 2, 'c': 30}
     """
@@ -357,14 +390,17 @@ def update_with_policy(
         assert callable(verbose), "Verbose must be a callable or boolean"
 
     # Determine the decision function
-    if isinstance(policy, DefaultPolicy):
+    if isinstance(policy, (DefaultPolicy, str)):
         decider = _get_standard_decider(policy)
-    else:
+    elif callable(policy):
         decider = policy
-
+    else:
+        raise ValueError(f"Unknown policy: {policy}")
+    
     # Determine keys to consider
-    if keys_to_consider is None:
-        keys_to_consider = _union_keys([target, source])
+    if callable(keys_to_consider):
+        keys_to_consider_factory = keys_to_consider
+        keys_to_consider = keys_to_consider_factory(source, target)
 
     stats = UpdateStats()
 
@@ -409,7 +445,7 @@ def update_if_different(
     key_info=None,  # For backward compatibility
     target_key_info=None,
     source_key_info=None,
-    keys_to_consider: Optional[Set[K]] = None,
+    keys_to_consider: KeysToConsider = _just_source_keys,
     verbose: Union[bool, Callable[[K, KeyDecision], Any]] = False,
 ) -> Dict[str, int]:
     """
@@ -421,7 +457,8 @@ def update_if_different(
         key_info: (Deprecated) Function to extract comparison info from values
         target_key_info: Function to extract comparison info from target keys
         source_key_info: Function to extract comparison info from source keys
-        keys_to_consider: Specific set of keys to consider
+        keys_to_consider: Specific iterable of keys to consider or a callable to make
+            this from source and target. The default will consider source keys only.
         verbose: If True, print debug information, if callable, call with
             (key, decision) on each key that is looped over
 
@@ -449,7 +486,7 @@ def update_all(
     target: MutableMapping[K, V],
     source: Mapping[K, V],
     *,
-    keys_to_consider: Optional[Set[K]] = None,
+    keys_to_consider: KeysToConsider = _just_source_keys,
     verbose: Union[bool, Callable[[K, KeyDecision], Any]] = False,
 ) -> Dict[str, int]:
     """
@@ -458,7 +495,8 @@ def update_all(
     Args:
         target: The mapping to be updated (modified in-place)
         source: The mapping containing items to potentially copy to target
-        keys_to_consider: Specific set of keys to consider
+        keys_to_consider: Specific iterable of keys to consider or a callable to make
+            this from source and target. The default will consider source keys only.
         verbose: If True, print debug information, if callable, call with
             (key, decision) on each key that is looped over
 
@@ -479,7 +517,7 @@ def update_missing_only(
     target: MutableMapping[K, V],
     source: Mapping[K, V],
     *,
-    keys_to_consider: Optional[Set[K]] = None,
+    keys_to_consider: KeysToConsider = _just_source_keys,
     verbose: Union[bool, Callable[[K, KeyDecision], Any]] = False,
 ) -> Dict[str, int]:
     """
@@ -488,7 +526,8 @@ def update_missing_only(
     Args:
         target: The mapping to be updated (modified in-place)
         source: The mapping containing items to potentially copy to target
-        keys_to_consider: Specific set of keys to consider
+        keys_to_consider: Specific iterable of keys to consider or a callable to make
+            this from source and target. The default will consider source keys only.
         verbose: If True, print debug information, if callable, call with
             (key, decision) on each key that is looped over
 
@@ -510,7 +549,7 @@ def update_by_content_hash(
     source: Mapping[K, V],
     *,
     hash_function: Callable[[V], Any],
-    keys_to_consider: Optional[Set[K]] = None,
+    keys_to_consider: KeysToConsider = _just_source_keys,
     verbose: Union[bool, Callable[[K, KeyDecision], Any]] = False,
 ) -> Dict[str, int]:
     """
@@ -520,7 +559,8 @@ def update_by_content_hash(
         target: The mapping to be updated (modified in-place)
         source: The mapping containing items to potentially copy to target
         hash_function: Function to generate a hash of a value
-        keys_to_consider: Specific set of keys to consider
+        keys_to_consider: Specific iterable of keys to consider or a callable to make
+            this from source and target. The default will consider source keys only.
         verbose: If True, print debug information, if callable, call with
             (key, decision) on each key that is looped over
 
@@ -574,7 +614,7 @@ def update_newer(
     *,
     target_timestamp: Callable[[K], Any],
     source_timestamp: Callable[[K], Any],
-    keys_to_consider: Optional[Set[K]] = None,
+    keys_to_consider: KeysToConsider = _just_source_keys,
     verbose: Union[bool, Callable[[K, KeyDecision], Any]] = False,
 ) -> Dict[str, int]:
     """
@@ -585,7 +625,8 @@ def update_newer(
         source: The mapping containing items to potentially copy to target
         target_timestamp: Function(key) -> timestamp that extracts timestamp from target
         source_timestamp: Function(key) -> timestamp that extracts timestamp from source
-        keys_to_consider: Specific set of keys to consider
+        keys_to_consider: Specific iterable of keys to consider or a callable to make
+            this from source and target. The default will consider source keys only.
         verbose: If True, print debug information, if callable, call with
             (key, decision) on each key that is looped over
 
@@ -637,7 +678,7 @@ def update_files_by_timestamp(
     target: MutableMapping[K, V],
     source: Mapping[K, V],
     *,
-    keys_to_consider: Optional[Set[K]] = None,
+    keys_to_consider: KeysToConsider = _just_source_keys,
     verbose: Union[bool, Callable[[K, KeyDecision], Any]] = False,
 ) -> Dict[str, int]:
     """
@@ -649,7 +690,8 @@ def update_files_by_timestamp(
     Args:
         target: The target file store to be updated
         source: The source file store containing potential updates
-        keys_to_consider: Specific set of keys to consider
+        keys_to_consider: Specific iterable of keys to consider or a callable to make
+            this from source and target. The default will consider source keys only.
         verbose: If True, print debug information, if callable, call with
             (key, decision) on each key that is looped over
 
