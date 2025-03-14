@@ -5,7 +5,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>xdol.updating &mdash; xdol 0.1.5 documentation</title>
+  <title>xdol.updating &mdash; xdol 0.1.6 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
       <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
@@ -14,7 +14,7 @@
   
       <script src="../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../_static/documentation_options.js?v=59fadc99"></script>
+      <script src="../../_static/documentation_options.js?v=6e0256f3"></script>
       <script src="../../_static/doctools.js?v=9bcbadda"></script>
       <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
       <script src="../../_static/toggleprompt.js?v=d7ede5d2"></script>
@@ -98,14 +98,14 @@
 <span class="sd">&gt;&gt;&gt; target = {&quot;a&quot;: &quot;hello&quot;, &quot;b&quot;: &quot;world&quot;}</span>
 <span class="sd">&gt;&gt;&gt; source = {&quot;a&quot;: &quot;hello!&quot;, &quot;c&quot;: &quot;python&quot;}</span>
 <span class="sd">&gt;&gt;&gt; update_by_content_hash(target, source, hash_function=lambda x: len(x))</span>
-<span class="sd">{&#39;examined&#39;: 3, &#39;updated&#39;: 1, &#39;added&#39;: 1, &#39;unchanged&#39;: 1, &#39;deleted&#39;: 0}</span>
+<span class="sd">{&#39;examined&#39;: 2, &#39;updated&#39;: 1, &#39;added&#39;: 1, &#39;unchanged&#39;: 0, &#39;deleted&#39;: 0}</span>
 <span class="sd">&gt;&gt;&gt; target</span>
 <span class="sd">{&#39;a&#39;: &#39;hello!&#39;, &#39;b&#39;: &#39;world&#39;, &#39;c&#39;: &#39;python&#39;}</span>
 
 <span class="sd">Using convenience methods:</span>
 
 <span class="sd">&gt;&gt;&gt; update_with_policy.missing_only(target, source)</span>
-<span class="sd">{&#39;examined&#39;: 3, &#39;updated&#39;: 0, &#39;added&#39;: 0, &#39;unchanged&#39;: 3, &#39;deleted&#39;: 0}</span>
+<span class="sd">{&#39;examined&#39;: 2, &#39;updated&#39;: 0, &#39;added&#39;: 0, &#39;unchanged&#39;: 2, &#39;deleted&#39;: 0}</span>
 <span class="sd">&gt;&gt;&gt; target</span>
 <span class="sd">{&#39;a&#39;: &#39;hello!&#39;, &#39;b&#39;: &#39;world&#39;, &#39;c&#39;: &#39;python&#39;}</span>
 
@@ -120,6 +120,8 @@
     <span class="n">Mapping</span><span class="p">,</span>
     <span class="n">MutableMapping</span><span class="p">,</span>
     <span class="n">Any</span><span class="p">,</span>
+    <span class="n">Iterable</span><span class="p">,</span>
+    <span class="n">Generator</span><span class="p">,</span>
     <span class="n">Callable</span><span class="p">,</span>
     <span class="n">Optional</span><span class="p">,</span>
     <span class="n">Dict</span><span class="p">,</span>
@@ -138,7 +140,6 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">dol.dig</span><span class="w"> </span><span class="kn">import</span> <span class="n">inner_most_key</span>
-
 
 <span class="n">K</span> <span class="o">=</span> <span class="n">TypeVar</span><span class="p">(</span><span class="s2">&quot;K&quot;</span><span class="p">)</span>
 <span class="n">V</span> <span class="o">=</span> <span class="n">TypeVar</span><span class="p">(</span><span class="s2">&quot;V&quot;</span><span class="p">)</span>
@@ -400,12 +401,31 @@
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unknown policy: </span><span class="si">{</span><span class="n">policy</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">_union_keys</span><span class="p">(</span><span class="n">mappings</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">Mapping</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Set</span><span class="p">[</span><span class="n">K</span><span class="p">]:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Get the union of keys from multiple mappings.&quot;&quot;&quot;</span>
-    <span class="n">keys</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
-    <span class="k">for</span> <span class="n">mapping</span> <span class="ow">in</span> <span class="n">mappings</span><span class="p">:</span>
-        <span class="n">keys</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">mapping</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
-    <span class="k">return</span> <span class="n">keys</span>
+<div class="viewcode-block" id="union_iter">
+<a class="viewcode-back" href="../../module_docs/xdol/updating.html#xdol.updating.union_iter">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">union_iter</span><span class="p">(</span><span class="o">*</span><span class="n">iterables</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">T</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Generator</span><span class="p">[</span><span class="n">T</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Generator yielding unique hashable items from an iterable of iterables.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        iterables: An iterable where each element is itself an iterable of hashable items.</span>
+
+<span class="sd">    Yields:</span>
+<span class="sd">        Unique items from the nested iterables, in order of first appearance.</span>
+
+<span class="sd">    Example:</span>
+<span class="sd">        &gt;&gt;&gt; list(union_iter([&#39;a&#39;, &#39;b&#39;], [&#39;b&#39;, &#39;c&#39;]))</span>
+<span class="sd">        [&#39;a&#39;, &#39;b&#39;, &#39;c&#39;]</span>
+<span class="sd">        &gt;&gt;&gt; list(union_iter({&#39;a&#39;: 1, &#39;b&#39;: 2}.keys(), {&#39;b&#39;: 3, &#39;c&#39;: 4}.values()))</span>
+<span class="sd">        [&#39;a&#39;, &#39;b&#39;, 3, 4]</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">seen</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">iterable</span> <span class="ow">in</span> <span class="n">iterables</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">iterable</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">item</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">seen</span><span class="p">:</span>
+                <span class="n">seen</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">item</span><span class="p">)</span>
+                <span class="k">yield</span> <span class="n">item</span></div>
+
 
 
 <div class="viewcode-block" id="print_all_but_skips">
@@ -417,6 +437,21 @@
 
 
 
+<span class="k">def</span><span class="w"> </span><span class="nf">_source_and_target_keys</span><span class="p">(</span><span class="n">source</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">target</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return the union of keys from both source and target mappings.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">source</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="o">|</span> <span class="n">target</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_just_source_keys</span><span class="p">(</span><span class="n">source</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">target</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return only the keys from the source mapping.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">source</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+
+
+<span class="n">Target</span> <span class="o">=</span> <span class="n">MutableMapping</span>
+<span class="n">Source</span> <span class="o">=</span> <span class="n">Mapping</span>
+<span class="n">KeysToConsider</span> <span class="o">=</span> <span class="n">Union</span><span class="p">[</span><span class="n">Iterable</span><span class="p">[</span><span class="n">K</span><span class="p">],</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Source</span><span class="p">,</span> <span class="n">Target</span><span class="p">],</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">K</span><span class="p">]]]</span>
+
+
 <div class="viewcode-block" id="update_with_policy">
 <a class="viewcode-back" href="../../module_docs/xdol/updating.html#xdol.updating.update_with_policy">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">update_with_policy</span><span class="p">(</span>
@@ -426,7 +461,7 @@
     <span class="n">policy</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">DefaultPolicy</span><span class="p">,</span> <span class="n">UpdateDecider</span><span class="p">]</span> <span class="o">=</span> <span class="n">DefaultPolicy</span><span class="o">.</span><span class="n">UPDATE_IF_DIFFERENT</span><span class="p">,</span>
     <span class="n">target_key_info</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">KeyInfoExtractor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">source_key_info</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">KeyInfoExtractor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">keys_to_consider</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Set</span><span class="p">[</span><span class="n">K</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">keys_to_consider</span><span class="p">:</span> <span class="n">KeysToConsider</span> <span class="o">=</span> <span class="n">_just_source_keys</span><span class="p">,</span>
     <span class="n">verbose</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">bool</span><span class="p">,</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">K</span><span class="p">,</span> <span class="n">KeyDecision</span><span class="p">],</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
@@ -438,7 +473,8 @@
 <span class="sd">        policy: Either a DefaultPolicy enum value or a custom decision function</span>
 <span class="sd">        target_key_info: Function to extract comparison info from target keys</span>
 <span class="sd">        source_key_info: Function to extract comparison info from source keys</span>
-<span class="sd">        keys_to_consider: Specific set of keys to consider, if None, uses union of all keys</span>
+<span class="sd">        keys_to_consider: Specific iterable of keys to consider or a callable to make</span>
+<span class="sd">            this from source and target. The default will consider source keys only.</span>
 <span class="sd">        verbose: If True, will print debug information, if callable, call with</span>
 <span class="sd">            (key, decision) on each key that is looped over</span>
 
@@ -449,7 +485,7 @@
 <span class="sd">        &gt;&gt;&gt; target = {&quot;a&quot;: 1, &quot;b&quot;: 2}</span>
 <span class="sd">        &gt;&gt;&gt; source = {&quot;a&quot;: 10, &quot;c&quot;: 30}</span>
 <span class="sd">        &gt;&gt;&gt; update_with_policy(target, source)</span>
-<span class="sd">        {&#39;examined&#39;: 3, &#39;updated&#39;: 1, &#39;added&#39;: 1, &#39;unchanged&#39;: 1, &#39;deleted&#39;: 0}</span>
+<span class="sd">        {&#39;examined&#39;: 2, &#39;updated&#39;: 1, &#39;added&#39;: 1, &#39;unchanged&#39;: 0, &#39;deleted&#39;: 0}</span>
 <span class="sd">        &gt;&gt;&gt; target</span>
 <span class="sd">        {&#39;a&#39;: 10, &#39;b&#39;: 2, &#39;c&#39;: 30}</span>
 
@@ -457,7 +493,7 @@
 <span class="sd">        &gt;&gt;&gt; target = {&quot;a&quot;: 1, &quot;b&quot;: 2}</span>
 <span class="sd">        &gt;&gt;&gt; source = {&quot;a&quot;: 10, &quot;c&quot;: 30}</span>
 <span class="sd">        &gt;&gt;&gt; update_with_policy(target, source, policy=DefaultPolicy.PREFER_TARGET)</span>
-<span class="sd">        {&#39;examined&#39;: 3, &#39;updated&#39;: 0, &#39;added&#39;: 1, &#39;unchanged&#39;: 2, &#39;deleted&#39;: 0}</span>
+<span class="sd">        {&#39;examined&#39;: 2, &#39;updated&#39;: 0, &#39;added&#39;: 1, &#39;unchanged&#39;: 1, &#39;deleted&#39;: 0}</span>
 <span class="sd">        &gt;&gt;&gt; target</span>
 <span class="sd">        {&#39;a&#39;: 1, &#39;b&#39;: 2, &#39;c&#39;: 30}</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -469,14 +505,17 @@
         <span class="k">assert</span> <span class="nb">callable</span><span class="p">(</span><span class="n">verbose</span><span class="p">),</span> <span class="s2">&quot;Verbose must be a callable or boolean&quot;</span>
 
     <span class="c1"># Determine the decision function</span>
-    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">policy</span><span class="p">,</span> <span class="n">DefaultPolicy</span><span class="p">):</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">policy</span><span class="p">,</span> <span class="p">(</span><span class="n">DefaultPolicy</span><span class="p">,</span> <span class="nb">str</span><span class="p">)):</span>
         <span class="n">decider</span> <span class="o">=</span> <span class="n">_get_standard_decider</span><span class="p">(</span><span class="n">policy</span><span class="p">)</span>
-    <span class="k">else</span><span class="p">:</span>
+    <span class="k">elif</span> <span class="nb">callable</span><span class="p">(</span><span class="n">policy</span><span class="p">):</span>
         <span class="n">decider</span> <span class="o">=</span> <span class="n">policy</span>
-
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unknown policy: </span><span class="si">{</span><span class="n">policy</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    
     <span class="c1"># Determine keys to consider</span>
-    <span class="k">if</span> <span class="n">keys_to_consider</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">keys_to_consider</span> <span class="o">=</span> <span class="n">_union_keys</span><span class="p">([</span><span class="n">target</span><span class="p">,</span> <span class="n">source</span><span class="p">])</span>
+    <span class="k">if</span> <span class="nb">callable</span><span class="p">(</span><span class="n">keys_to_consider</span><span class="p">):</span>
+        <span class="n">keys_to_consider_factory</span> <span class="o">=</span> <span class="n">keys_to_consider</span>
+        <span class="n">keys_to_consider</span> <span class="o">=</span> <span class="n">keys_to_consider_factory</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="n">target</span><span class="p">)</span>
 
     <span class="n">stats</span> <span class="o">=</span> <span class="n">UpdateStats</span><span class="p">()</span>
 
@@ -524,7 +563,7 @@
     <span class="n">key_info</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>  <span class="c1"># For backward compatibility</span>
     <span class="n">target_key_info</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="n">source_key_info</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-    <span class="n">keys_to_consider</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Set</span><span class="p">[</span><span class="n">K</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">keys_to_consider</span><span class="p">:</span> <span class="n">KeysToConsider</span> <span class="o">=</span> <span class="n">_just_source_keys</span><span class="p">,</span>
     <span class="n">verbose</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">bool</span><span class="p">,</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">K</span><span class="p">,</span> <span class="n">KeyDecision</span><span class="p">],</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
@@ -536,7 +575,8 @@
 <span class="sd">        key_info: (Deprecated) Function to extract comparison info from values</span>
 <span class="sd">        target_key_info: Function to extract comparison info from target keys</span>
 <span class="sd">        source_key_info: Function to extract comparison info from source keys</span>
-<span class="sd">        keys_to_consider: Specific set of keys to consider</span>
+<span class="sd">        keys_to_consider: Specific iterable of keys to consider or a callable to make</span>
+<span class="sd">            this from source and target. The default will consider source keys only.</span>
 <span class="sd">        verbose: If True, print debug information, if callable, call with</span>
 <span class="sd">            (key, decision) on each key that is looped over</span>
 
@@ -567,7 +607,7 @@
     <span class="n">target</span><span class="p">:</span> <span class="n">MutableMapping</span><span class="p">[</span><span class="n">K</span><span class="p">,</span> <span class="n">V</span><span class="p">],</span>
     <span class="n">source</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="n">K</span><span class="p">,</span> <span class="n">V</span><span class="p">],</span>
     <span class="o">*</span><span class="p">,</span>
-    <span class="n">keys_to_consider</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Set</span><span class="p">[</span><span class="n">K</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">keys_to_consider</span><span class="p">:</span> <span class="n">KeysToConsider</span> <span class="o">=</span> <span class="n">_just_source_keys</span><span class="p">,</span>
     <span class="n">verbose</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">bool</span><span class="p">,</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">K</span><span class="p">,</span> <span class="n">KeyDecision</span><span class="p">],</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
@@ -576,7 +616,8 @@
 <span class="sd">    Args:</span>
 <span class="sd">        target: The mapping to be updated (modified in-place)</span>
 <span class="sd">        source: The mapping containing items to potentially copy to target</span>
-<span class="sd">        keys_to_consider: Specific set of keys to consider</span>
+<span class="sd">        keys_to_consider: Specific iterable of keys to consider or a callable to make</span>
+<span class="sd">            this from source and target. The default will consider source keys only.</span>
 <span class="sd">        verbose: If True, print debug information, if callable, call with</span>
 <span class="sd">            (key, decision) on each key that is looped over</span>
 
@@ -600,7 +641,7 @@
     <span class="n">target</span><span class="p">:</span> <span class="n">MutableMapping</span><span class="p">[</span><span class="n">K</span><span class="p">,</span> <span class="n">V</span><span class="p">],</span>
     <span class="n">source</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="n">K</span><span class="p">,</span> <span class="n">V</span><span class="p">],</span>
     <span class="o">*</span><span class="p">,</span>
-    <span class="n">keys_to_consider</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Set</span><span class="p">[</span><span class="n">K</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">keys_to_consider</span><span class="p">:</span> <span class="n">KeysToConsider</span> <span class="o">=</span> <span class="n">_just_source_keys</span><span class="p">,</span>
     <span class="n">verbose</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">bool</span><span class="p">,</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">K</span><span class="p">,</span> <span class="n">KeyDecision</span><span class="p">],</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
@@ -609,7 +650,8 @@
 <span class="sd">    Args:</span>
 <span class="sd">        target: The mapping to be updated (modified in-place)</span>
 <span class="sd">        source: The mapping containing items to potentially copy to target</span>
-<span class="sd">        keys_to_consider: Specific set of keys to consider</span>
+<span class="sd">        keys_to_consider: Specific iterable of keys to consider or a callable to make</span>
+<span class="sd">            this from source and target. The default will consider source keys only.</span>
 <span class="sd">        verbose: If True, print debug information, if callable, call with</span>
 <span class="sd">            (key, decision) on each key that is looped over</span>
 
@@ -634,7 +676,7 @@
     <span class="n">source</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="n">K</span><span class="p">,</span> <span class="n">V</span><span class="p">],</span>
     <span class="o">*</span><span class="p">,</span>
     <span class="n">hash_function</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">V</span><span class="p">],</span> <span class="n">Any</span><span class="p">],</span>
-    <span class="n">keys_to_consider</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Set</span><span class="p">[</span><span class="n">K</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">keys_to_consider</span><span class="p">:</span> <span class="n">KeysToConsider</span> <span class="o">=</span> <span class="n">_just_source_keys</span><span class="p">,</span>
     <span class="n">verbose</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">bool</span><span class="p">,</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">K</span><span class="p">,</span> <span class="n">KeyDecision</span><span class="p">],</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
@@ -644,7 +686,8 @@
 <span class="sd">        target: The mapping to be updated (modified in-place)</span>
 <span class="sd">        source: The mapping containing items to potentially copy to target</span>
 <span class="sd">        hash_function: Function to generate a hash of a value</span>
-<span class="sd">        keys_to_consider: Specific set of keys to consider</span>
+<span class="sd">        keys_to_consider: Specific iterable of keys to consider or a callable to make</span>
+<span class="sd">            this from source and target. The default will consider source keys only.</span>
 <span class="sd">        verbose: If True, print debug information, if callable, call with</span>
 <span class="sd">            (key, decision) on each key that is looped over</span>
 
@@ -704,7 +747,7 @@
     <span class="o">*</span><span class="p">,</span>
     <span class="n">target_timestamp</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">K</span><span class="p">],</span> <span class="n">Any</span><span class="p">],</span>
     <span class="n">source_timestamp</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">K</span><span class="p">],</span> <span class="n">Any</span><span class="p">],</span>
-    <span class="n">keys_to_consider</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Set</span><span class="p">[</span><span class="n">K</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">keys_to_consider</span><span class="p">:</span> <span class="n">KeysToConsider</span> <span class="o">=</span> <span class="n">_just_source_keys</span><span class="p">,</span>
     <span class="n">verbose</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">bool</span><span class="p">,</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">K</span><span class="p">,</span> <span class="n">KeyDecision</span><span class="p">],</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
@@ -715,7 +758,8 @@
 <span class="sd">        source: The mapping containing items to potentially copy to target</span>
 <span class="sd">        target_timestamp: Function(key) -&gt; timestamp that extracts timestamp from target</span>
 <span class="sd">        source_timestamp: Function(key) -&gt; timestamp that extracts timestamp from source</span>
-<span class="sd">        keys_to_consider: Specific set of keys to consider</span>
+<span class="sd">        keys_to_consider: Specific iterable of keys to consider or a callable to make</span>
+<span class="sd">            this from source and target. The default will consider source keys only.</span>
 <span class="sd">        verbose: If True, print debug information, if callable, call with</span>
 <span class="sd">            (key, decision) on each key that is looped over</span>
 
@@ -770,7 +814,7 @@
     <span class="n">target</span><span class="p">:</span> <span class="n">MutableMapping</span><span class="p">[</span><span class="n">K</span><span class="p">,</span> <span class="n">V</span><span class="p">],</span>
     <span class="n">source</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="n">K</span><span class="p">,</span> <span class="n">V</span><span class="p">],</span>
     <span class="o">*</span><span class="p">,</span>
-    <span class="n">keys_to_consider</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Set</span><span class="p">[</span><span class="n">K</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">keys_to_consider</span><span class="p">:</span> <span class="n">KeysToConsider</span> <span class="o">=</span> <span class="n">_just_source_keys</span><span class="p">,</span>
     <span class="n">verbose</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">bool</span><span class="p">,</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">K</span><span class="p">,</span> <span class="n">KeyDecision</span><span class="p">],</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
@@ -782,7 +826,8 @@
 <span class="sd">    Args:</span>
 <span class="sd">        target: The target file store to be updated</span>
 <span class="sd">        source: The source file store containing potential updates</span>
-<span class="sd">        keys_to_consider: Specific set of keys to consider</span>
+<span class="sd">        keys_to_consider: Specific iterable of keys to consider or a callable to make</span>
+<span class="sd">            this from source and target. The default will consider source keys only.</span>
 <span class="sd">        verbose: If True, print debug information, if callable, call with</span>
 <span class="sd">            (key, decision) on each key that is looped over</span>
 
