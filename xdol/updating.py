@@ -396,7 +396,7 @@ def update_with_policy(
         decider = policy
     else:
         raise ValueError(f"Unknown policy: {policy}")
-    
+
     # Determine keys to consider
     if callable(keys_to_consider):
         keys_to_consider_factory = keys_to_consider
