@@ -5,7 +5,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>xdol.updating &mdash; xdol 0.1.6 documentation</title>
+  <title>xdol.updating &mdash; xdol 0.1.7 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
       <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
@@ -14,7 +14,7 @@
   
       <script src="../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../_static/documentation_options.js?v=6e0256f3"></script>
+      <script src="../../_static/documentation_options.js?v=ca7ad2ea"></script>
       <script src="../../_static/doctools.js?v=9bcbadda"></script>
       <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
       <script src="../../_static/toggleprompt.js?v=d7ede5d2"></script>
@@ -51,6 +51,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../module_docs/xdol/pystores.html">xdol.pystores</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../module_docs/xdol/updating.html">xdol.updating</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../module_docs/xdol/util.html">xdol.util</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../module_docs/xdol/x_codecs.html">xdol.x_codecs</a></li>
 </ul>
 
         </div>
@@ -511,7 +512,7 @@
         <span class="n">decider</span> <span class="o">=</span> <span class="n">policy</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unknown policy: </span><span class="si">{</span><span class="n">policy</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-    
+
     <span class="c1"># Determine keys to consider</span>
     <span class="k">if</span> <span class="nb">callable</span><span class="p">(</span><span class="n">keys_to_consider</span><span class="p">):</span>
         <span class="n">keys_to_consider_factory</span> <span class="o">=</span> <span class="n">keys_to_consider</span>

@@ -7,3 +7,4 @@
    module_docs/xdol/pystores
    module_docs/xdol/updating
    module_docs/xdol/util
+   module_docs/xdol/x_codecs
