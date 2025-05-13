@@ -7,7 +7,7 @@ from dol import wrap_kvs
 
 # TODO: Make it into a plugin (enable encoding registration)
 #   See: [dol: Standard lib support for postget and preset](https://github.com/i2mint/dol/discussions/46#discussioncomment-13131631)
-def _resolve_values_to_bytes(v, *, encoding='utf-8'):
+def _resolve_values_to_bytes(v, *, encoding="utf-8"):
     """
     >>> wrapped_dict = resolve_values_to_bytes(dict)
     >>> d = wrapped_dict()
@@ -32,9 +32,12 @@ def _resolve_values_to_bytes(v, *, encoding='utf-8'):
 
 
 resolve_values_to_bytes = wrap_kvs(value_encoder=_resolve_values_to_bytes)
-resolve_values_to_bytes.__doc__ = """
+resolve_values_to_bytes.__doc__ = (
+    """
     Store wrapper that encodes values (bytes, str, iterables) to bytes.
     It uses json.dumps for lists, tuples, dicts, ints, floats, and bools.
     For other types, it uses the default encoding.
 
-""" + _resolve_values_to_bytes.__doc__
+"""
+    + _resolve_values_to_bytes.__doc__
+)
