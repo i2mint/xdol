@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>xdol.util &mdash; xdol 0.1.8 documentation</title>
+  <title>xdol.util &mdash; xdol 0.1.9 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
       <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
@@ -15,7 +15,7 @@
   
       <script src="../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../_static/documentation_options.js?v=22607128"></script>
+      <script src="../../_static/documentation_options.js?v=8618f531"></script>
       <script src="../../_static/doctools.js?v=9bcbadda"></script>
       <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
       <script src="../../_static/toggleprompt.js?v=d7ede5d2"></script>
@@ -53,7 +53,10 @@
 <li class="toctree-l1"><a class="reference internal" href="paths.html">xdol.paths</a></li>
 <li class="toctree-l1"><a class="reference internal" href="pystores.html">xdol.pystores</a></li>
 <li class="toctree-l1"><a class="reference internal" href="updating.html">xdol.updating</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">xdol.util</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">xdol.util</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#xdol.util.save_obj"><code class="docutils literal notranslate"><span class="pre">save_obj()</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="x_codecs.html">xdol.x_codecs</a></li>
 </ul>
 
@@ -84,6 +87,47 @@
   <section id="module-xdol.util">
 <span id="xdol-util"></span><h1>xdol.util<a class="headerlink" href="#module-xdol.util" title="Link to this heading"></a></h1>
 <p>Utility functions for xdol.</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="xdol.util.save_obj">
+<span class="sig-prename descclassname"><span class="pre">xdol.util.</span></span><span class="sig-name descname"><span class="pre">save_obj</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="pre">obj:</span> <span class="pre">~typing.Any,</span> <span class="pre">*,</span> <span class="pre">encode:</span> <span class="pre">~typing.Callable[[~typing.Any],</span> <span class="pre">bytes]</span> <span class="pre">=</span> <span class="pre">&lt;built-in</span> <span class="pre">function</span> <span class="pre">dumps&gt;,</span> <span class="pre">key:</span> <span class="pre">~typing.Callable[[~typing.Any,</span> <span class="pre">bytes],</span> <span class="pre">str]</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None,</span> <span class="pre">save_under_key:</span> <span class="pre">~typing.Callable[[str,</span> <span class="pre">bytes],</span> <span class="pre">None]</span> <span class="pre">|</span> <span class="pre">~typing.Any</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None,</span> <span class="pre">return_func:</span> <span class="pre">~typing.Callable[[~typing.Any,</span> <span class="pre">bytes,</span> <span class="pre">str],</span> <span class="pre">~typing.Any]</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None</span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Any</span></span></span><a class="reference internal" href="../../_modules/xdol/util.html#save_obj"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xdol.util.save_obj" title="Link to this definition"></a></dt>
+<dd><p>Serialize and save a Python object with customizable encoding and storage.</p>
+<p>By default, pickles the object and saves it to a temp directory with a
+timestamp-based filename, returning the full filepath. All behaviors can
+be customized for different serialization, naming, storage, or return formats.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>obj</strong> – The object to save</p></li>
+<li><p><strong>encode</strong> – Function to encode obj to bytes (default: pickle.dumps)</p></li>
+<li><p><strong>key</strong> – Function taking (obj, encoded_obj) and returning a key string.
+If None, generates a hex timestamp-based key.</p></li>
+<li><p><strong>save_under_key</strong> – Function taking (key, encoded_obj), or object with __setitem__.
+If None, saves to ‘obj_dumps’ subdirectory in temp directory.</p></li>
+<li><p><strong>return_func</strong> – Function taking (obj, encoded_obj, key) and returning the result.
+If None, returns filepath (default storage) or key (custom storage).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>By default, the filepath string where the object was saved</p>
+</dd>
+</dl>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">result</span> <span class="o">=</span> <span class="n">save_obj</span><span class="p">({</span><span class="s1">&#39;test&#39;</span><span class="p">:</span> <span class="mi">123</span><span class="p">})</span>
+</pre></div>
+</div>
+<p>By default, saves the pickle serialization of the object to a temp file and
+returns the filepath. The filename that is created is a hex-encoded timestamp
+with a .pkl extension.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">result</span>  
+<span class="go">&#39;/var/folders/.../1190a0e0ec5cde143.pkl&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+<span class="go">True</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">result</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">&#39;.pkl&#39;</span><span class="p">)</span>
+<span class="go">True</span>
+</pre></div>
+</div>
+</dd></dl>
+
 </section>
 
 
