@@ -82,7 +82,7 @@ def save_obj(
 
     >>> result = save_obj({'test': 123})
 
-    By default, saves the pickle serialization of the object to a temp file and 
+    By default, saves the pickle serialization of the object to a temp file and
     returns the filepath. The filename that is created is a hex-encoded timestamp
     with a .pkl extension.
 
@@ -93,7 +93,7 @@ def save_obj(
     True
     >>> result.endswith('.pkl')
     True
-    
+
     """
     encoded_obj = encode(obj)
 
@@ -108,7 +108,7 @@ def save_obj(
         save_func = _default_save_to_temp
     elif callable(save_under_key):
         save_func = save_under_key
-    elif hasattr(save_under_key, '__setitem__'):
+    elif hasattr(save_under_key, "__setitem__"):
 
         def save_func(k, v):
             save_under_key[k] = v
@@ -140,8 +140,8 @@ def _default_key_generator(obj: Any, encoded_obj: bytes) -> str:
     >>> len(key) > 4  # Has timestamp + extension
     True
     """
-    timestamp = datetime.now().strftime('%Y%m%d%H%M%S%f')
-    return hex(int(timestamp))[2:] + '.pkl'
+    timestamp = datetime.now().strftime("%Y%m%d%H%M%S%f")
+    return hex(int(timestamp))[2:] + ".pkl"
 
 
 def _default_save_to_temp(key: str, encoded_obj: bytes) -> None:
@@ -150,7 +150,7 @@ def _default_save_to_temp(key: str, encoded_obj: bytes) -> None:
 
     Creates the directory if it doesn't exist.
     """
-    temp_dir = Path(tempfile.gettempdir()) / 'obj_dumps'
+    temp_dir = Path(tempfile.gettempdir()) / "obj_dumps"
     temp_dir.mkdir(exist_ok=True)
     filepath = temp_dir / key
     filepath.write_bytes(encoded_obj)
@@ -166,5 +166,5 @@ def _get_default_filepath(key: str) -> str:
     >>> path.endswith('test.pkl')
     True
     """
-    temp_dir = Path(tempfile.gettempdir()) / 'obj_dumps'
+    temp_dir = Path(tempfile.gettempdir()) / "obj_dumps"
     return str(temp_dir / key)
