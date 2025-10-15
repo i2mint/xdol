@@ -1,6 +1,6 @@
 """Extra codecs"""
 
-from typing import Iterable
+from collections.abc import Iterable
 import json
 from dol import wrap_kvs
 

@@ -37,21 +37,16 @@ mapping using customizable policies to determine which items to update.
 """
 
 from typing import (
-    Mapping,
-    MutableMapping,
     Any,
-    Iterable,
-    Generator,
-    Callable,
     Optional,
     Dict,
     Union,
     TypeVar,
-    Iterator,
     Tuple,
     Set,
     Protocol,
 )
+from collections.abc import Mapping, MutableMapping, Iterable, Generator, Callable, Iterator
 import os
 from collections.abc import Iterable
 from enum import Enum, auto
@@ -162,7 +157,7 @@ class UpdateStats:
     unchanged: int = 0
     deleted: int = 0
 
-    def as_dict(self) -> Dict[str, int]:
+    def as_dict(self) -> dict[str, int]:
         """Convert stats to a dictionary."""
         return {
             "examined": self.examined,
@@ -190,13 +185,13 @@ def _key_info_from_mapping(mapping: Mapping[K, V], key: K) -> Any:
 
 
 def _get_key_decisions(
-    keys: Set[K],
+    keys: set[K],
     target: Mapping,
     source: Mapping,
     decider: UpdateDecider,
-    target_key_info: Optional[KeyInfoExtractor] = None,
-    source_key_info: Optional[KeyInfoExtractor] = None,
-) -> Iterator[Tuple[K, KeyDecision]]:
+    target_key_info: KeyInfoExtractor | None = None,
+    source_key_info: KeyInfoExtractor | None = None,
+) -> Iterator[tuple[K, KeyDecision]]:
     """
     Get decisions for each key regarding update action.
 
@@ -343,12 +338,12 @@ def update_with_policy(
     target: MutableMapping[K, V],
     source: Mapping[K, V],
     *,
-    policy: Union[DefaultPolicy, UpdateDecider] = DefaultPolicy.UPDATE_IF_DIFFERENT,
-    target_key_info: Optional[KeyInfoExtractor] = None,
-    source_key_info: Optional[KeyInfoExtractor] = None,
+    policy: DefaultPolicy | UpdateDecider = DefaultPolicy.UPDATE_IF_DIFFERENT,
+    target_key_info: KeyInfoExtractor | None = None,
+    source_key_info: KeyInfoExtractor | None = None,
     keys_to_consider: KeysToConsider = _just_source_keys,
-    verbose: Union[bool, Callable[[K, KeyDecision], Any]] = False,
-) -> Dict[str, int]:
+    verbose: bool | Callable[[K, KeyDecision], Any] = False,
+) -> dict[str, int]:
     """
     Update a target mapping with values from a source mapping using a customizable policy.
 
@@ -446,8 +441,8 @@ def update_if_different(
     target_key_info=None,
     source_key_info=None,
     keys_to_consider: KeysToConsider = _just_source_keys,
-    verbose: Union[bool, Callable[[K, KeyDecision], Any]] = False,
-) -> Dict[str, int]:
+    verbose: bool | Callable[[K, KeyDecision], Any] = False,
+) -> dict[str, int]:
     """
     Update target with source values only if they differ.
 
@@ -487,8 +482,8 @@ def update_all(
     source: Mapping[K, V],
     *,
     keys_to_consider: KeysToConsider = _just_source_keys,
-    verbose: Union[bool, Callable[[K, KeyDecision], Any]] = False,
-) -> Dict[str, int]:
+    verbose: bool | Callable[[K, KeyDecision], Any] = False,
+) -> dict[str, int]:
     """
     Update target with all source values, equivalent to dict.update().
 
@@ -518,8 +513,8 @@ def update_missing_only(
     source: Mapping[K, V],
     *,
     keys_to_consider: KeysToConsider = _just_source_keys,
-    verbose: Union[bool, Callable[[K, KeyDecision], Any]] = False,
-) -> Dict[str, int]:
+    verbose: bool | Callable[[K, KeyDecision], Any] = False,
+) -> dict[str, int]:
     """
     Update target with source values only for keys not in target.
 
@@ -550,8 +545,8 @@ def update_by_content_hash(
     *,
     hash_function: Callable[[V], Any],
     keys_to_consider: KeysToConsider = _just_source_keys,
-    verbose: Union[bool, Callable[[K, KeyDecision], Any]] = False,
-) -> Dict[str, int]:
+    verbose: bool | Callable[[K, KeyDecision], Any] = False,
+) -> dict[str, int]:
     """
     Update target with source values only if their hash differs.
 
@@ -615,8 +610,8 @@ def update_newer(
     target_timestamp: Callable[[K], Any],
     source_timestamp: Callable[[K], Any],
     keys_to_consider: KeysToConsider = _just_source_keys,
-    verbose: Union[bool, Callable[[K, KeyDecision], Any]] = False,
-) -> Dict[str, int]:
+    verbose: bool | Callable[[K, KeyDecision], Any] = False,
+) -> dict[str, int]:
     """
     Update target with source values only if source has a newer timestamp.
 
@@ -679,8 +674,8 @@ def update_files_by_timestamp(
     source: Mapping[K, V],
     *,
     keys_to_consider: KeysToConsider = _just_source_keys,
-    verbose: Union[bool, Callable[[K, KeyDecision], Any]] = False,
-) -> Dict[str, int]:
+    verbose: bool | Callable[[K, KeyDecision], Any] = False,
+) -> dict[str, int]:
     """
     Update a target file store with files from a source store based on modification times.
 

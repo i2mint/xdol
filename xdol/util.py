@@ -48,7 +48,8 @@ def resolve_to_folder(obj, assert_output_is_existing_folder=True):
 import pickle
 import tempfile
 from pathlib import Path
-from typing import Callable, Any
+from typing import Any
+from collections.abc import Callable
 from datetime import datetime
 
 
