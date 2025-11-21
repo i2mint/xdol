@@ -107,6 +107,17 @@ def _is_setup_cfg(filepath: str) -> bool:
     return os.path.basename(filepath) == 'setup.cfg'
 
 
+def _is_pyproject_toml(filepath: str) -> bool:
+    """Check if filepath is a pyproject.toml file.
+
+    >>> _is_pyproject_toml('project/pyproject.toml')
+    True
+    >>> _is_pyproject_toml('project/setup.cfg')
+    False
+    """
+    return os.path.basename(filepath) == 'pyproject.toml'
+
+
 @filt_iter(filt=_is_setup_cfg)
 @mk_relative_path_store(prefix_attr="rootdir")
 class SetupCfgReader(FileBytesReader, KvReader):
@@ -171,3 +182,82 @@ class SetupCfgReader(FileBytesReader, KvReader):
 
         for cfg_content in self.values():
             yield from _extract_from_file(cfg_content)
+
+
+@filt_iter(filt=_is_pyproject_toml)
+@mk_relative_path_store(prefix_attr="rootdir")
+class PyprojectReader(FileBytesReader, KvReader):
+    """Mapping interface to pyproject.toml files in a directory tree.
+    Keys are relative paths to pyproject.toml files.
+    Values are the string contents of the pyproject.toml files.
+
+    >>> import tempfile, os
+    >>> with tempfile.TemporaryDirectory() as tmpdir:
+    ...     # Create a pyproject.toml file
+    ...     proj1_dir = os.path.join(tmpdir, 'proj1')
+    ...     os.makedirs(proj1_dir)
+    ...     toml_path = os.path.join(proj1_dir, 'pyproject.toml')
+    ...     with open(toml_path, 'w') as f:
+    ...         _ = f.write('[project]\\ndependencies = ["requests>=2.0"]')
+    ...
+    ...     reader = PyprojectReader(tmpdir)
+    ...     assert len(reader) == 1
+    ...     assert 'proj1/pyproject.toml' in reader
+    ...     assert 'requests' in reader['proj1/pyproject.toml']
+    True
+    """
+
+    def __init__(self, src, *, max_levels=None):
+        """Initialize with source directory.
+
+        Args:
+            src: Directory path, module, or any source resolvable to a folder
+            max_levels: Maximum directory depth to search
+        """
+        super().__init__(rootdir=resolve_to_folder(src), max_levels=max_levels)
+
+    def __getitem__(self, key):
+        """Get pyproject.toml content as string, handling decode errors gracefully."""
+        try:
+            return super().__getitem__(key).decode('utf-8')
+        except UnicodeDecodeError:
+            return ""  # Return empty string for undecodable files
+
+    def dependencies_from_all(self):
+        """Generate all dependencies from all pyproject.toml files.
+
+        Yields:
+            Individual dependency strings from all pyproject.toml files
+        """
+
+        def _extract_from_file(toml_content: str):
+            try:
+                import tomli
+            except ImportError:
+                try:
+                    import tomllib as tomli  # Python 3.11+
+                except ImportError:
+                    # Skip if no TOML parser available
+                    return
+
+            try:
+                data = tomli.loads(toml_content)
+                # Handle [project] table dependencies
+                dependencies = data.get('project', {}).get('dependencies', [])
+                if dependencies:
+                    for dep in dependencies:
+                        if isinstance(dep, str) and dep.strip():
+                            yield dep.strip()
+
+                # Handle [build-system] requires
+                build_requires = data.get('build-system', {}).get('requires', [])
+                if build_requires:
+                    for dep in build_requires:
+                        if isinstance(dep, str) and dep.strip():
+                            yield dep.strip()
+            except Exception:
+                # Skip malformed TOML files
+                pass
+
+        for toml_content in self.values():
+            yield from _extract_from_file(toml_content)
