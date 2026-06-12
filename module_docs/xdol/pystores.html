@@ -6,25 +6,25 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>xdol.pystores &mdash; xdol 0.1.9 documentation</title>
+  <title>xdol.pystores &mdash; xdol 0.1.10 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
-      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
       <link rel="stylesheet" type="text/css" href="../../_static/graphviz.css?v=4ae1632d" />
 
   
       <script src="../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../_static/documentation_options.js?v=8618f531"></script>
-      <script src="../../_static/doctools.js?v=9bcbadda"></script>
-      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../_static/documentation_options.js?v=bafade30"></script>
+      <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../../_static/toggleprompt.js?v=d7ede5d2"></script>
       <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
       <script src="../../_static/copybutton.js?v=f281be69"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
-    <link rel="next" title="xdol.updating" href="updating.html" />
+    <link rel="next" title="xdol.registry" href="registry.html" />
     <link rel="prev" title="xdol.paths" href="paths.html" /> 
 </head>
 
@@ -62,8 +62,17 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#xdol.pystores.PyFilesReader"><code class="docutils literal notranslate"><span class="pre">PyFilesReader</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#xdol.pystores.PyprojectReader"><code class="docutils literal notranslate"><span class="pre">PyprojectReader</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#xdol.pystores.PyprojectReader.get"><code class="docutils literal notranslate"><span class="pre">PyprojectReader.get()</span></code></a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="#xdol.pystores.SetupCfgReader"><code class="docutils literal notranslate"><span class="pre">SetupCfgReader</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#xdol.pystores.SetupCfgReader.get"><code class="docutils literal notranslate"><span class="pre">SetupCfgReader.get()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="registry.html">xdol.registry</a></li>
 <li class="toctree-l1"><a class="reference internal" href="updating.html">xdol.updating</a></li>
 <li class="toctree-l1"><a class="reference internal" href="util.html">xdol.util</a></li>
 <li class="toctree-l1"><a class="reference internal" href="x_codecs.html">xdol.x_codecs</a></li>
@@ -104,7 +113,7 @@
 
 <dl class="py class">
 <dt class="sig sig-object py" id="xdol.pystores.PkgReader">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">xdol.pystores.</span></span><span class="sig-name descname"><span class="pre">PkgReader</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rootdir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">subpath</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pattern_for_field</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_levels</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">include_hidden</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">assert_rootdir_existence</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/xdol/pystores.html#PkgReader"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xdol.pystores.PkgReader" title="Link to this definition"></a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">xdol.pystores.</span></span><span class="sig-name descname"><span class="pre">PkgReader</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rootdir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">subpath</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pattern_for_field</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_levels</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">include_hidden</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">assert_rootdir_existence</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/xdol/pystores.html#PkgReader"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xdol.pystores.PkgReader" title="Link to this definition"></a></dt>
 <dd><p>By store we mean key-value store. This could be files in a filesystem, objects in s3, or a database. Where and
 how the content is stored should be specified, but StoreInterface offers a dict-like interface to this.</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="fm">__getitem__</span> <span class="n">calls</span><span class="p">:</span> <span class="n">_id_of_key</span>                                       <span class="n">_obj_of_data</span>
@@ -217,7 +226,7 @@ override the <cite>KeysView</cite>, <cite>ValuesView</cite> or <cite>ItemsView</
 
 <dl class="py class">
 <dt class="sig sig-object py" id="xdol.pystores.PyFilesBytes">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">xdol.pystores.</span></span><span class="sig-name descname"><span class="pre">PyFilesBytes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rootdir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">subpath</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pattern_for_field</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_levels</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">include_hidden</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">assert_rootdir_existence</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/xdol/pystores.html#PyFilesBytes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xdol.pystores.PyFilesBytes" title="Link to this definition"></a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">xdol.pystores.</span></span><span class="sig-name descname"><span class="pre">PyFilesBytes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rootdir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">subpath</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pattern_for_field</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_levels</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">include_hidden</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">assert_rootdir_existence</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/xdol/pystores.html#PyFilesBytes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xdol.pystores.PyFilesBytes" title="Link to this definition"></a></dt>
 <dd><p>Mapping interface to .py files’ bytes</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="xdol.pystores.PyFilesBytes.get">
@@ -228,7 +237,7 @@ override the <cite>KeysView</cite>, <cite>ValuesView</cite> or <cite>ItemsView</
 
 <dl class="py class">
 <dt class="sig sig-object py" id="xdol.pystores.PyFilesReader">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">xdol.pystores.</span></span><span class="sig-name descname"><span class="pre">PyFilesReader</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">store=&lt;class</span> <span class="pre">'dict'&gt;</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/xdol/pystores.html#PyFilesReader"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xdol.pystores.PyFilesReader" title="Link to this definition"></a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">xdol.pystores.</span></span><span class="sig-name descname"><span class="pre">PyFilesReader</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">store</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;class</span> <span class="pre">'dict'&gt;</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/xdol/pystores.html#PyFilesReader"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xdol.pystores.PyFilesReader" title="Link to this definition"></a></dt>
 <dd><p>Mapping interface to .py files of a folder.
 Keys are relative .py paths.
 Values are the string contents of the .py file.</p>
@@ -252,6 +261,64 @@ an empty string will be returned as it’s value (i.e. contents).</p>
 </div>
 </dd></dl>
 
+<dl class="py class">
+<dt class="sig sig-object py" id="xdol.pystores.PyprojectReader">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">xdol.pystores.</span></span><span class="sig-name descname"><span class="pre">PyprojectReader</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">src</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_levels</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/xdol/pystores.html#PyprojectReader"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xdol.pystores.PyprojectReader" title="Link to this definition"></a></dt>
+<dd><p>Mapping interface to pyproject.toml files in a directory tree.
+Keys are relative paths to pyproject.toml files.
+Values are the string contents of the pyproject.toml files.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">tempfile</span><span class="o">,</span><span class="w"> </span><span class="nn">os</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">with</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">TemporaryDirectory</span><span class="p">()</span> <span class="k">as</span> <span class="n">tmpdir</span><span class="p">:</span>
+<span class="gp">... </span>    <span class="c1"># Create a pyproject.toml file</span>
+<span class="gp">... </span>    <span class="n">proj1_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">tmpdir</span><span class="p">,</span> <span class="s1">&#39;proj1&#39;</span><span class="p">)</span>
+<span class="gp">... </span>    <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">proj1_dir</span><span class="p">)</span>
+<span class="gp">... </span>    <span class="n">toml_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">proj1_dir</span><span class="p">,</span> <span class="s1">&#39;pyproject.toml&#39;</span><span class="p">)</span>
+<span class="gp">... </span>    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">toml_path</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+<span class="gp">... </span>        <span class="n">_</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;[project]</span><span class="se">\n</span><span class="s1">dependencies = [&quot;requests&gt;=2.0&quot;]&#39;</span><span class="p">)</span>
+<span class="gp">...</span>
+<span class="gp">... </span>    <span class="n">reader</span> <span class="o">=</span> <span class="n">PyprojectReader</span><span class="p">(</span><span class="n">tmpdir</span><span class="p">)</span>
+<span class="gp">... </span>    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">reader</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span>
+<span class="gp">... </span>    <span class="k">assert</span> <span class="s1">&#39;proj1/pyproject.toml&#39;</span> <span class="ow">in</span> <span class="n">reader</span>
+<span class="gp">... </span>    <span class="k">assert</span> <span class="s1">&#39;requests&#39;</span> <span class="ow">in</span> <span class="n">reader</span><span class="p">[</span><span class="s1">&#39;proj1/pyproject.toml&#39;</span><span class="p">]</span>
+<span class="go">True</span>
+</pre></div>
+</div>
+<dl class="py method">
+<dt class="sig sig-object py" id="xdol.pystores.PyprojectReader.get">
+<span class="sig-name descname"><span class="pre">get</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">k</span></span></em><span class="optional">[</span>, <em class="sig-param"><span class="n"><span class="pre">d</span></span></em><span class="optional">]</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">D[k]</span> <span class="pre">if</span> <span class="pre">k</span> <span class="pre">in</span> <span class="pre">D,</span> <span class="pre">else</span> <span class="pre">d.</span>&#160; <span class="pre">d</span> <span class="pre">defaults</span> <span class="pre">to</span> <span class="pre">None.</span></span></span><a class="headerlink" href="#xdol.pystores.PyprojectReader.get" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="xdol.pystores.SetupCfgReader">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">xdol.pystores.</span></span><span class="sig-name descname"><span class="pre">SetupCfgReader</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">src</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_levels</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/xdol/pystores.html#SetupCfgReader"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xdol.pystores.SetupCfgReader" title="Link to this definition"></a></dt>
+<dd><p>Mapping interface to setup.cfg files in a directory tree.
+Keys are relative paths to setup.cfg files.
+Values are the string contents of the setup.cfg files.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">tempfile</span><span class="o">,</span><span class="w"> </span><span class="nn">os</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">with</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">TemporaryDirectory</span><span class="p">()</span> <span class="k">as</span> <span class="n">tmpdir</span><span class="p">:</span>
+<span class="gp">... </span>    <span class="c1"># Create some setup.cfg files</span>
+<span class="gp">... </span>    <span class="n">proj1_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">tmpdir</span><span class="p">,</span> <span class="s1">&#39;proj1&#39;</span><span class="p">)</span>
+<span class="gp">... </span>    <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">proj1_dir</span><span class="p">)</span>
+<span class="gp">... </span>    <span class="n">cfg_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">proj1_dir</span><span class="p">,</span> <span class="s1">&#39;setup.cfg&#39;</span><span class="p">)</span>
+<span class="gp">... </span>    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">cfg_path</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+<span class="gp">... </span>        <span class="n">_</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;[options]</span><span class="se">\n</span><span class="s1">install_requires = requests&#39;</span><span class="p">)</span>
+<span class="gp">...</span>
+<span class="gp">... </span>    <span class="n">reader</span> <span class="o">=</span> <span class="n">SetupCfgReader</span><span class="p">(</span><span class="n">tmpdir</span><span class="p">)</span>
+<span class="gp">... </span>    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">reader</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span>
+<span class="gp">... </span>    <span class="k">assert</span> <span class="s1">&#39;proj1/setup.cfg&#39;</span> <span class="ow">in</span> <span class="n">reader</span>
+<span class="gp">... </span>    <span class="k">assert</span> <span class="s1">&#39;requests&#39;</span> <span class="ow">in</span> <span class="n">reader</span><span class="p">[</span><span class="s1">&#39;proj1/setup.cfg&#39;</span><span class="p">]</span>
+<span class="go">True</span>
+</pre></div>
+</div>
+<dl class="py method">
+<dt class="sig sig-object py" id="xdol.pystores.SetupCfgReader.get">
+<span class="sig-name descname"><span class="pre">get</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">k</span></span></em><span class="optional">[</span>, <em class="sig-param"><span class="n"><span class="pre">d</span></span></em><span class="optional">]</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">D[k]</span> <span class="pre">if</span> <span class="pre">k</span> <span class="pre">in</span> <span class="pre">D,</span> <span class="pre">else</span> <span class="pre">d.</span>&#160; <span class="pre">d</span> <span class="pre">defaults</span> <span class="pre">to</span> <span class="pre">None.</span></span></span><a class="headerlink" href="#xdol.pystores.SetupCfgReader.get" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
 </section>
 
 
@@ -259,7 +326,7 @@ an empty string will be returned as it’s value (i.e. contents).</p>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="paths.html" class="btn btn-neutral float-left" title="xdol.paths" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="updating.html" class="btn btn-neutral float-right" title="xdol.updating" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="registry.html" class="btn btn-neutral float-right" title="xdol.registry" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

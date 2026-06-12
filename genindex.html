@@ -5,18 +5,18 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Index &mdash; xdol 0.1.9 documentation</title>
+  <title>Index &mdash; xdol 0.1.10 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
-      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
       <link rel="stylesheet" type="text/css" href="_static/graphviz.css?v=4ae1632d" />
 
   
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=8618f531"></script>
-      <script src="_static/doctools.js?v=9bcbadda"></script>
-      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="_static/documentation_options.js?v=bafade30"></script>
+      <script src="_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="_static/toggleprompt.js?v=d7ede5d2"></script>
       <script src="_static/clipboard.min.js?v=a7894cd8"></script>
       <script src="_static/copybutton.js?v=f281be69"></script>
@@ -49,6 +49,7 @@
 <li class="toctree-l1"><a class="reference internal" href="module_docs/xdol.html">xdol</a></li>
 <li class="toctree-l1"><a class="reference internal" href="module_docs/xdol/paths.html">xdol.paths</a></li>
 <li class="toctree-l1"><a class="reference internal" href="module_docs/xdol/pystores.html">xdol.pystores</a></li>
+<li class="toctree-l1"><a class="reference internal" href="module_docs/xdol/registry.html">xdol.registry</a></li>
 <li class="toctree-l1"><a class="reference internal" href="module_docs/xdol/updating.html">xdol.updating</a></li>
 <li class="toctree-l1"><a class="reference internal" href="module_docs/xdol/util.html">xdol.util</a></li>
 <li class="toctree-l1"><a class="reference internal" href="module_docs/xdol/x_codecs.html">xdol.x_codecs</a></li>
@@ -90,6 +91,7 @@
  | <a href="#M"><strong>M</strong></a>
  | <a href="#N"><strong>N</strong></a>
  | <a href="#P"><strong>P</strong></a>
+ | <a href="#R"><strong>R</strong></a>
  | <a href="#S"><strong>S</strong></a>
  | <a href="#U"><strong>U</strong></a>
  | <a href="#X"><strong>X</strong></a>
@@ -102,6 +104,8 @@
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="module_docs/xdol/registry.html#xdol.registry.Registry.alias">alias() (xdol.registry.Registry method)</a>
+</li>
       <li><a href="module_docs/xdol/updating.html#xdol.updating.UpdateStats.as_dict">as_dict() (xdol.updating.UpdateStats method)</a>
 </li>
   </ul></td>
@@ -131,6 +135,12 @@
       <ul>
         <li><a href="module_docs/xdol/pystores.html#xdol.pystores.PyFilesBytes.get">(xdol.pystores.PyFilesBytes method)</a>
 </li>
+        <li><a href="module_docs/xdol/pystores.html#xdol.pystores.PyprojectReader.get">(xdol.pystores.PyprojectReader method)</a>
+</li>
+        <li><a href="module_docs/xdol/pystores.html#xdol.pystores.SetupCfgReader.get">(xdol.pystores.SetupCfgReader method)</a>
+</li>
+        <li><a href="module_docs/xdol/registry.html#xdol.registry.Registry.get">(xdol.registry.Registry method)</a>
+</li>
       </ul></li>
   </ul></td>
 </tr></table>
@@ -143,6 +153,8 @@
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="module_docs/xdol/updating.html#xdol.updating.KeyInfoExtractor">KeyInfoExtractor (class in xdol.updating)</a>
+</li>
+      <li><a href="module_docs/xdol/registry.html#xdol.registry.Registry.keys_with_tag">keys_with_tag() (xdol.registry.Registry method)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -167,6 +179,8 @@
         <li><a href="module_docs/xdol/paths.html#module-xdol.paths">xdol.paths</a>
 </li>
         <li><a href="module_docs/xdol/pystores.html#module-xdol.pystores">xdol.pystores</a>
+</li>
+        <li><a href="module_docs/xdol/registry.html#module-xdol.registry">xdol.registry</a>
 </li>
         <li><a href="module_docs/xdol/updating.html#module-xdol.updating">xdol.updating</a>
 </li>
@@ -193,13 +207,37 @@
 </li>
       <li><a href="module_docs/xdol/pystores.html#xdol.pystores.PkgReader">PkgReader (class in xdol.pystores)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="module_docs/xdol/updating.html#xdol.updating.print_all_but_skips">print_all_but_skips() (in module xdol.updating)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="module_docs/xdol/pystores.html#xdol.pystores.PyFilesBytes">PyFilesBytes (class in xdol.pystores)</a>
 </li>
       <li><a href="module_docs/xdol/pystores.html#xdol.pystores.PyFilesReader">PyFilesReader (class in xdol.pystores)</a>
+</li>
+      <li><a href="module_docs/xdol/pystores.html#xdol.pystores.PyprojectReader">PyprojectReader (class in xdol.pystores)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="R">R</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="module_docs/xdol/registry.html#xdol.registry.Registry.register">register() (xdol.registry.Registry method)</a>
+</li>
+      <li><a href="module_docs/xdol/registry.html#xdol.registry.Registry.register_decorator">register_decorator() (xdol.registry.Registry method)</a>
+</li>
+      <li><a href="module_docs/xdol/registry.html#xdol.registry.Registry.register_lazy">register_lazy() (xdol.registry.Registry method)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="module_docs/xdol/registry.html#xdol.registry.Registry">Registry (class in xdol.registry)</a>
+</li>
+      <li><a href="module_docs/xdol/registry.html#xdol.registry.RegistryConflict">RegistryConflict</a>
+</li>
+      <li><a href="module_docs/xdol/registry.html#xdol.registry.RegistryError">RegistryError</a>
+</li>
+      <li><a href="module_docs/xdol/registry.html#xdol.registry.RegistryMissing">RegistryMissing</a>
 </li>
   </ul></td>
 </tr></table>
@@ -209,9 +247,17 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="module_docs/xdol/util.html#xdol.util.save_obj">save_obj() (in module xdol.util)</a>
 </li>
+      <li><a href="module_docs/xdol/registry.html#xdol.registry.Registry.search">search() (xdol.registry.Registry method)</a>
+</li>
+      <li><a href="module_docs/xdol/pystores.html#xdol.pystores.SetupCfgReader">SetupCfgReader (class in xdol.pystores)</a>
+</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="module_docs/xdol/updating.html#xdol.updating.StringEnum">StringEnum (class in xdol.updating)</a>
+</li>
+      <li><a href="module_docs/xdol/registry.html#xdol.registry.Registry.subscribe">subscribe() (xdol.registry.Registry method)</a>
+</li>
+      <li><a href="module_docs/xdol/registry.html#xdol.registry.Subscription">Subscription (class in xdol.registry)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -266,6 +312,13 @@
 
       <ul>
         <li><a href="module_docs/xdol/pystores.html#module-xdol.pystores">module</a>
+</li>
+      </ul></li>
+      <li>
+    xdol.registry
+
+      <ul>
+        <li><a href="module_docs/xdol/registry.html#module-xdol.registry">module</a>
 </li>
       </ul></li>
   </ul></td>

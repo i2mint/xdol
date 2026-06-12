@@ -1,0 +1,333 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>xdol.registry &mdash; xdol 0.1.10 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../_static/graphviz.css?v=4ae1632d" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=bafade30"></script>
+      <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../../_static/toggleprompt.js?v=d7ede5d2"></script>
+      <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="xdol.updating" href="updating.html" />
+    <link rel="prev" title="xdol.pystores" href="pystores.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            xdol
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../xdol.html">xdol</a></li>
+<li class="toctree-l1"><a class="reference internal" href="paths.html">xdol.paths</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pystores.html">xdol.pystores</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">xdol.registry</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#xdol.registry.Registry"><code class="docutils literal notranslate"><span class="pre">Registry</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#xdol.registry.Registry.alias"><code class="docutils literal notranslate"><span class="pre">Registry.alias()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#xdol.registry.Registry.get"><code class="docutils literal notranslate"><span class="pre">Registry.get()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#xdol.registry.Registry.keys_with_tag"><code class="docutils literal notranslate"><span class="pre">Registry.keys_with_tag()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#xdol.registry.Registry.register"><code class="docutils literal notranslate"><span class="pre">Registry.register()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#xdol.registry.Registry.register_decorator"><code class="docutils literal notranslate"><span class="pre">Registry.register_decorator()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#xdol.registry.Registry.register_lazy"><code class="docutils literal notranslate"><span class="pre">Registry.register_lazy()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#xdol.registry.Registry.search"><code class="docutils literal notranslate"><span class="pre">Registry.search()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#xdol.registry.Registry.subscribe"><code class="docutils literal notranslate"><span class="pre">Registry.subscribe()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#xdol.registry.RegistryConflict"><code class="docutils literal notranslate"><span class="pre">RegistryConflict</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#xdol.registry.RegistryError"><code class="docutils literal notranslate"><span class="pre">RegistryError</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#xdol.registry.RegistryMissing"><code class="docutils literal notranslate"><span class="pre">RegistryMissing</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#xdol.registry.Subscription"><code class="docutils literal notranslate"><span class="pre">Subscription</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="updating.html">xdol.updating</a></li>
+<li class="toctree-l1"><a class="reference internal" href="util.html">xdol.util</a></li>
+<li class="toctree-l1"><a class="reference internal" href="x_codecs.html">xdol.x_codecs</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">xdol</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">xdol.registry</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/module_docs/xdol/registry.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-xdol.registry">
+<span id="xdol-registry"></span><h1>xdol.registry<a class="headerlink" href="#module-xdol.registry" title="Link to this heading"></a></h1>
+<p>A typed dict-backed plugin registry.</p>
+<p>The <a class="reference internal" href="#xdol.registry.Registry" title="xdol.registry.Registry"><code class="xref py py-class docutils literal notranslate"><span class="pre">Registry</span></code></a> is the dict-pattern that recurs across packages
+(<code class="docutils literal notranslate"><span class="pre">falaw.registry</span></code>, <code class="docutils literal notranslate"><span class="pre">lacing.processors</span></code>, <code class="docutils literal notranslate"><span class="pre">lookbook.registry</span></code>, …): a
+dict, a <code class="docutils literal notranslate"><span class="pre">register(key,</span> <span class="pre">value)</span></code> call, a <code class="docutils literal notranslate"><span class="pre">get(key)</span></code> lookup, an iteration
+protocol, and a small number of conveniences that each package keeps
+re-implementing — aliases, lazy loading, decorator-form registration, and
+conflict policies. <code class="docutils literal notranslate"><span class="pre">Registry</span></code> collects these into one builtin-only,
+<code class="docutils literal notranslate"><span class="pre">MutableMapping</span></code>-compatible class.</p>
+<p>Basic use:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">xdol.registry</span><span class="w"> </span><span class="kn">import</span> <span class="n">Registry</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">tools</span> <span class="o">=</span> <span class="n">Registry</span><span class="p">[</span><span class="nb">str</span><span class="p">](</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;tools&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">tools</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="s2">&quot;hello&quot;</span><span class="p">,</span> <span class="s2">&quot;say hi&quot;</span><span class="p">)</span>
+<span class="go">&#39;say hi&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">tools</span><span class="p">[</span><span class="s2">&quot;hello&quot;</span><span class="p">]</span>
+<span class="go">&#39;say hi&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">sorted</span><span class="p">(</span><span class="n">tools</span><span class="p">)</span>
+<span class="go">[&#39;hello&#39;]</span>
+</pre></div>
+</div>
+<p>Decorator form:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">handlers</span> <span class="o">=</span> <span class="n">Registry</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nd">@handlers</span><span class="o">.</span><span class="n">register_decorator</span><span class="p">(</span><span class="s2">&quot;greet&quot;</span><span class="p">)</span>
+<span class="gp">... </span><span class="k">def</span><span class="w"> </span><span class="nf">greet</span><span class="p">(</span><span class="n">name</span><span class="p">):</span> <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;hi </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">handlers</span><span class="p">[</span><span class="s2">&quot;greet&quot;</span><span class="p">](</span><span class="s2">&quot;ada&quot;</span><span class="p">)</span>
+<span class="go">&#39;hi ada&#39;</span>
+</pre></div>
+</div>
+<p>Aliases:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">models</span> <span class="o">=</span> <span class="n">Registry</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">models</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="s2">&quot;fal-ai/flux/dev&quot;</span><span class="p">,</span> <span class="p">{</span><span class="s2">&quot;family&quot;</span><span class="p">:</span> <span class="s2">&quot;flux&quot;</span><span class="p">})</span>
+<span class="go">{&#39;family&#39;: &#39;flux&#39;}</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">models</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;flux&quot;</span><span class="p">,</span> <span class="s2">&quot;fal-ai/flux/dev&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">models</span><span class="p">[</span><span class="s2">&quot;flux&quot;</span><span class="p">]</span>
+<span class="go">{&#39;family&#39;: &#39;flux&#39;}</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="s2">&quot;flux&quot;</span> <span class="ow">in</span> <span class="n">models</span>
+<span class="go">True</span>
+</pre></div>
+</div>
+<p>Conflict policies — <code class="docutils literal notranslate"><span class="pre">error</span></code> (default), <code class="docutils literal notranslate"><span class="pre">replace</span></code>, <code class="docutils literal notranslate"><span class="pre">keep</span></code>:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">r</span> <span class="o">=</span> <span class="n">Registry</span><span class="p">(</span><span class="n">on_conflict</span><span class="o">=</span><span class="s2">&quot;error&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">r</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="s2">&quot;k&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+<span class="go">1</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">r</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="s2">&quot;k&quot;</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+<span class="gt">Traceback (most recent call last):</span>
+<span class="w">    </span><span class="o">...</span>
+<span class="gr">xdol.registry.RegistryConflict</span>: <span class="n">&#39;k&#39; is already registered in &lt;Registry&gt;</span>
+</pre></div>
+</div>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">r2</span> <span class="o">=</span> <span class="n">Registry</span><span class="p">(</span><span class="n">on_conflict</span><span class="o">=</span><span class="s2">&quot;keep&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">r2</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="s2">&quot;k&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+<span class="go">1</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">r2</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="s2">&quot;k&quot;</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>  <span class="c1"># silently kept</span>
+<span class="go">1</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">r2</span><span class="p">[</span><span class="s2">&quot;k&quot;</span><span class="p">]</span>
+<span class="go">1</span>
+</pre></div>
+</div>
+<p>Lazy loading — value is built on first access:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">calls</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">def</span><span class="w"> </span><span class="nf">make_thing</span><span class="p">():</span>
+<span class="gp">... </span>    <span class="n">calls</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+<span class="gp">... </span>    <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;built&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">}</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">r3</span> <span class="o">=</span> <span class="n">Registry</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">r3</span><span class="o">.</span><span class="n">register_lazy</span><span class="p">(</span><span class="s2">&quot;thing&quot;</span><span class="p">,</span> <span class="n">make_thing</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">calls</span>
+<span class="go">[]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">r3</span><span class="p">[</span><span class="s2">&quot;thing&quot;</span><span class="p">]</span>
+<span class="go">{&#39;built&#39;: True}</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">r3</span><span class="p">[</span><span class="s2">&quot;thing&quot;</span><span class="p">]</span>  <span class="c1"># cached after first build</span>
+<span class="go">{&#39;built&#39;: True}</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">calls</span>
+<span class="go">[1]</span>
+</pre></div>
+</div>
+<p>Subscription — observe registrations as they happen:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">r4</span> <span class="o">=</span> <span class="n">Registry</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">seen</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">sub</span> <span class="o">=</span> <span class="n">r4</span><span class="o">.</span><span class="n">subscribe</span><span class="p">(</span><span class="k">lambda</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">seen</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">)))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">r4</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="s2">&quot;a&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+<span class="go">1</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">r4</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="s2">&quot;b&quot;</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+<span class="go">2</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">seen</span>
+<span class="go">[(&#39;a&#39;, 1), (&#39;b&#39;, 2)]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">sub</span><span class="o">.</span><span class="n">unsubscribe</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">r4</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="s2">&quot;c&quot;</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+<span class="go">3</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">seen</span>  <span class="c1"># no longer notified</span>
+<span class="go">[(&#39;a&#39;, 1), (&#39;b&#39;, 2)]</span>
+</pre></div>
+</div>
+<dl class="py class">
+<dt class="sig sig-object py" id="xdol.registry.Registry">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">xdol.registry.</span></span><span class="sig-name descname"><span class="pre">Registry</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">on_conflict</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'error'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'replace'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'keep'</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'error'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/xdol/registry.html#Registry"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xdol.registry.Registry" title="Link to this definition"></a></dt>
+<dd><p>A typed dict-backed plugin registry.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> – Optional name; appears in error messages and <code class="docutils literal notranslate"><span class="pre">repr</span></code>.</p></li>
+<li><p><strong>on_conflict</strong> – <code class="docutils literal notranslate"><span class="pre">'error'</span></code> (default) raises <a class="reference internal" href="#xdol.registry.RegistryConflict" title="xdol.registry.RegistryConflict"><code class="xref py py-class docutils literal notranslate"><span class="pre">RegistryConflict</span></code></a> when registering
+a key that already exists. <code class="docutils literal notranslate"><span class="pre">'replace'</span></code> silently overwrites.
+<code class="docutils literal notranslate"><span class="pre">'keep'</span></code> silently keeps the original.</p></li>
+<li><p><strong>(</strong><strong>dict</strong><strong>(</strong><strong>...</strong><strong>)</strong> (<em>Implements MutableMapping so anything that takes a mapping</em>)</p></li>
+</ul>
+</dd>
+</dl>
+<p>:param :
+:param iteration:
+:param length checks:
+:param <code class="docutils literal notranslate"><span class="pre">in</span></code> lookups:
+:param <code class="docutils literal notranslate"><span class="pre">.items()</span></code>) just works.:</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="xdol.registry.Registry.alias">
+<span class="sig-name descname"><span class="pre">alias</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">alias</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../../_modules/xdol/registry.html#Registry.alias"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xdol.registry.Registry.alias" title="Link to this definition"></a></dt>
+<dd><p>Make <code class="docutils literal notranslate"><span class="pre">alias</span></code> resolve to <code class="docutils literal notranslate"><span class="pre">target</span></code> (which must already be registered).</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="xdol.registry.Registry.get">
+<span class="sig-name descname"><span class="pre">get</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">default</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;object</span> <span class="pre">object&gt;</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/xdol/registry.html#Registry.get"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xdol.registry.Registry.get" title="Link to this definition"></a></dt>
+<dd><p>Like <code class="docutils literal notranslate"><span class="pre">dict.get</span></code> but raises <a class="reference internal" href="#xdol.registry.RegistryMissing" title="xdol.registry.RegistryMissing"><code class="xref py py-class docutils literal notranslate"><span class="pre">RegistryMissing</span></code></a> if no default given.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="xdol.registry.Registry.keys_with_tag">
+<span class="sig-name descname"><span class="pre">keys_with_tag</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tag</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../../_modules/xdol/registry.html#Registry.keys_with_tag"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xdol.registry.Registry.keys_with_tag" title="Link to this definition"></a></dt>
+<dd><p>Return canonical keys whose tag set contains <code class="docutils literal notranslate"><span class="pre">tag</span></code>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="xdol.registry.Registry.register">
+<span class="sig-name descname"><span class="pre">register</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">V</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">tags</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">()</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">V</span></span></span><a class="reference internal" href="../../_modules/xdol/registry.html#Registry.register"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xdol.registry.Registry.register" title="Link to this definition"></a></dt>
+<dd><p>Register <code class="docutils literal notranslate"><span class="pre">value</span></code> under <code class="docutils literal notranslate"><span class="pre">key</span></code>. Returns <code class="docutils literal notranslate"><span class="pre">value</span></code> so it can be used inline.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="xdol.registry.Registry.register_decorator">
+<span class="sig-name descname"><span class="pre">register_decorator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">tags</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">()</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="pre">V</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">V</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../../_modules/xdol/registry.html#Registry.register_decorator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xdol.registry.Registry.register_decorator" title="Link to this definition"></a></dt>
+<dd><p>Return a decorator that registers the decorated object under <code class="docutils literal notranslate"><span class="pre">key</span></code>.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">r</span> <span class="o">=</span> <span class="n">Registry</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nd">@r</span><span class="o">.</span><span class="n">register_decorator</span><span class="p">(</span><span class="s2">&quot;hi&quot;</span><span class="p">)</span>
+<span class="gp">... </span><span class="k">def</span><span class="w"> </span><span class="nf">hi</span><span class="p">():</span> <span class="k">return</span> <span class="s2">&quot;hello&quot;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">r</span><span class="p">[</span><span class="s2">&quot;hi&quot;</span><span class="p">]()</span>
+<span class="go">&#39;hello&#39;</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="xdol.registry.Registry.register_lazy">
+<span class="sig-name descname"><span class="pre">register_lazy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">loader</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">V</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">tags</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">()</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../../_modules/xdol/registry.html#Registry.register_lazy"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xdol.registry.Registry.register_lazy" title="Link to this definition"></a></dt>
+<dd><p>Register a no-arg <code class="docutils literal notranslate"><span class="pre">loader</span></code> callable; value is built on first <code class="docutils literal notranslate"><span class="pre">__getitem__</span></code>.</p>
+<p>Once built, the result replaces the loader and is cached.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="xdol.registry.Registry.search">
+<span class="sig-name descname"><span class="pre">search</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">tags</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">()</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">V</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../../_modules/xdol/registry.html#Registry.search"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xdol.registry.Registry.search" title="Link to this definition"></a></dt>
+<dd><p>Return values whose tag set contains ALL of <code class="docutils literal notranslate"><span class="pre">tags</span></code> (empty <code class="docutils literal notranslate"><span class="pre">tags</span></code> = all).</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="xdol.registry.Registry.subscribe">
+<span class="sig-name descname"><span class="pre">subscribe</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">callback</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">V</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">None</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#xdol.registry.Subscription" title="xdol.registry.Subscription"><span class="pre">Subscription</span></a></span></span><a class="reference internal" href="../../_modules/xdol/registry.html#Registry.subscribe"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xdol.registry.Registry.subscribe" title="Link to this definition"></a></dt>
+<dd><p>Call <code class="docutils literal notranslate"><span class="pre">callback(key,</span> <span class="pre">value)</span></code> on every eager registration.</p>
+<p>Lazy registrations do NOT fire the callback at registration time;
+only when the value is materialized via <code class="docutils literal notranslate"><span class="pre">__getitem__</span></code>. This
+keeps subscribers free of partially-built state.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py exception">
+<dt class="sig sig-object py" id="xdol.registry.RegistryConflict">
+<span class="property"><span class="k"><span class="pre">exception</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">xdol.registry.</span></span><span class="sig-name descname"><span class="pre">RegistryConflict</span></span><a class="reference internal" href="../../_modules/xdol/registry.html#RegistryConflict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xdol.registry.RegistryConflict" title="Link to this definition"></a></dt>
+<dd><p>Raised when registering a key that is already taken under <code class="docutils literal notranslate"><span class="pre">on_conflict='error'</span></code>.</p>
+</dd></dl>
+
+<dl class="py exception">
+<dt class="sig sig-object py" id="xdol.registry.RegistryError">
+<span class="property"><span class="k"><span class="pre">exception</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">xdol.registry.</span></span><span class="sig-name descname"><span class="pre">RegistryError</span></span><a class="reference internal" href="../../_modules/xdol/registry.html#RegistryError"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xdol.registry.RegistryError" title="Link to this definition"></a></dt>
+<dd><p>Base for registry errors.</p>
+</dd></dl>
+
+<dl class="py exception">
+<dt class="sig sig-object py" id="xdol.registry.RegistryMissing">
+<span class="property"><span class="k"><span class="pre">exception</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">xdol.registry.</span></span><span class="sig-name descname"><span class="pre">RegistryMissing</span></span><a class="reference internal" href="../../_modules/xdol/registry.html#RegistryMissing"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xdol.registry.RegistryMissing" title="Link to this definition"></a></dt>
+<dd><p>Raised by <a class="reference internal" href="#xdol.registry.Registry.get" title="xdol.registry.Registry.get"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Registry.get()</span></code></a> when a key is missing.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="xdol.registry.Subscription">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">xdol.registry.</span></span><span class="sig-name descname"><span class="pre">Subscription</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">registry</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#xdol.registry.Registry" title="xdol.registry.Registry"><span class="pre">Registry</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">callback</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/xdol/registry.html#Subscription"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xdol.registry.Subscription" title="Link to this definition"></a></dt>
+<dd><p>Handle returned by <a class="reference internal" href="#xdol.registry.Registry.subscribe" title="xdol.registry.Registry.subscribe"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Registry.subscribe()</span></code></a>. Call <code class="xref py py-meth docutils literal notranslate"><span class="pre">unsubscribe()</span></code> to detach.</p>
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="pystores.html" class="btn btn-neutral float-left" title="xdol.pystores" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="updating.html" class="btn btn-neutral float-right" title="xdol.updating" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright NO COPYRIGHT.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

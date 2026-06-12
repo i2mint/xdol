@@ -1,0 +1,473 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>xdol.registry &mdash; xdol 0.1.10 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../_static/graphviz.css?v=4ae1632d" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=bafade30"></script>
+      <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../../_static/toggleprompt.js?v=d7ede5d2"></script>
+      <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            xdol
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../module_docs/xdol.html">xdol</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../module_docs/xdol/paths.html">xdol.paths</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../module_docs/xdol/pystores.html">xdol.pystores</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../module_docs/xdol/registry.html">xdol.registry</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../module_docs/xdol/updating.html">xdol.updating</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../module_docs/xdol/util.html">xdol.util</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../module_docs/xdol/x_codecs.html">xdol.x_codecs</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">xdol</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">xdol.registry</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for xdol.registry</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;A typed dict-backed plugin registry.</span>
+
+<span class="sd">The :class:`Registry` is the dict-pattern that recurs across packages</span>
+<span class="sd">(``falaw.registry``, ``lacing.processors``, ``lookbook.registry``, …): a</span>
+<span class="sd">dict, a ``register(key, value)`` call, a ``get(key)`` lookup, an iteration</span>
+<span class="sd">protocol, and a small number of conveniences that each package keeps</span>
+<span class="sd">re-implementing — aliases, lazy loading, decorator-form registration, and</span>
+<span class="sd">conflict policies. ``Registry`` collects these into one builtin-only,</span>
+<span class="sd">``MutableMapping``-compatible class.</span>
+
+<span class="sd">Basic use:</span>
+
+<span class="sd">&gt;&gt;&gt; from xdol.registry import Registry</span>
+<span class="sd">&gt;&gt;&gt; tools = Registry[str](name=&quot;tools&quot;)</span>
+<span class="sd">&gt;&gt;&gt; tools.register(&quot;hello&quot;, &quot;say hi&quot;)</span>
+<span class="sd">&#39;say hi&#39;</span>
+<span class="sd">&gt;&gt;&gt; tools[&quot;hello&quot;]</span>
+<span class="sd">&#39;say hi&#39;</span>
+<span class="sd">&gt;&gt;&gt; sorted(tools)</span>
+<span class="sd">[&#39;hello&#39;]</span>
+
+<span class="sd">Decorator form:</span>
+
+<span class="sd">&gt;&gt;&gt; handlers = Registry()</span>
+<span class="sd">&gt;&gt;&gt; @handlers.register_decorator(&quot;greet&quot;)</span>
+<span class="sd">... def greet(name): return f&quot;hi {name}&quot;</span>
+<span class="sd">&gt;&gt;&gt; handlers[&quot;greet&quot;](&quot;ada&quot;)</span>
+<span class="sd">&#39;hi ada&#39;</span>
+
+<span class="sd">Aliases:</span>
+
+<span class="sd">&gt;&gt;&gt; models = Registry()</span>
+<span class="sd">&gt;&gt;&gt; models.register(&quot;fal-ai/flux/dev&quot;, {&quot;family&quot;: &quot;flux&quot;})</span>
+<span class="sd">{&#39;family&#39;: &#39;flux&#39;}</span>
+<span class="sd">&gt;&gt;&gt; models.alias(&quot;flux&quot;, &quot;fal-ai/flux/dev&quot;)</span>
+<span class="sd">&gt;&gt;&gt; models[&quot;flux&quot;]</span>
+<span class="sd">{&#39;family&#39;: &#39;flux&#39;}</span>
+<span class="sd">&gt;&gt;&gt; &quot;flux&quot; in models</span>
+<span class="sd">True</span>
+
+<span class="sd">Conflict policies — ``error`` (default), ``replace``, ``keep``:</span>
+
+<span class="sd">&gt;&gt;&gt; r = Registry(on_conflict=&quot;error&quot;)</span>
+<span class="sd">&gt;&gt;&gt; r.register(&quot;k&quot;, 1)</span>
+<span class="sd">1</span>
+<span class="sd">&gt;&gt;&gt; r.register(&quot;k&quot;, 2)</span>
+<span class="sd">Traceback (most recent call last):</span>
+<span class="sd">    ...</span>
+<span class="sd">xdol.registry.RegistryConflict: &#39;k&#39; is already registered in &lt;Registry&gt;</span>
+
+<span class="sd">&gt;&gt;&gt; r2 = Registry(on_conflict=&quot;keep&quot;)</span>
+<span class="sd">&gt;&gt;&gt; r2.register(&quot;k&quot;, 1)</span>
+<span class="sd">1</span>
+<span class="sd">&gt;&gt;&gt; r2.register(&quot;k&quot;, 2)  # silently kept</span>
+<span class="sd">1</span>
+<span class="sd">&gt;&gt;&gt; r2[&quot;k&quot;]</span>
+<span class="sd">1</span>
+
+<span class="sd">Lazy loading — value is built on first access:</span>
+
+<span class="sd">&gt;&gt;&gt; calls = []</span>
+<span class="sd">&gt;&gt;&gt; def make_thing():</span>
+<span class="sd">...     calls.append(1)</span>
+<span class="sd">...     return {&quot;built&quot;: True}</span>
+<span class="sd">&gt;&gt;&gt; r3 = Registry()</span>
+<span class="sd">&gt;&gt;&gt; r3.register_lazy(&quot;thing&quot;, make_thing)</span>
+<span class="sd">&gt;&gt;&gt; calls</span>
+<span class="sd">[]</span>
+<span class="sd">&gt;&gt;&gt; r3[&quot;thing&quot;]</span>
+<span class="sd">{&#39;built&#39;: True}</span>
+<span class="sd">&gt;&gt;&gt; r3[&quot;thing&quot;]  # cached after first build</span>
+<span class="sd">{&#39;built&#39;: True}</span>
+<span class="sd">&gt;&gt;&gt; calls</span>
+<span class="sd">[1]</span>
+
+<span class="sd">Subscription — observe registrations as they happen:</span>
+
+<span class="sd">&gt;&gt;&gt; r4 = Registry()</span>
+<span class="sd">&gt;&gt;&gt; seen = []</span>
+<span class="sd">&gt;&gt;&gt; sub = r4.subscribe(lambda key, value: seen.append((key, value)))</span>
+<span class="sd">&gt;&gt;&gt; r4.register(&quot;a&quot;, 1)</span>
+<span class="sd">1</span>
+<span class="sd">&gt;&gt;&gt; r4.register(&quot;b&quot;, 2)</span>
+<span class="sd">2</span>
+<span class="sd">&gt;&gt;&gt; seen</span>
+<span class="sd">[(&#39;a&#39;, 1), (&#39;b&#39;, 2)]</span>
+<span class="sd">&gt;&gt;&gt; sub.unsubscribe()</span>
+<span class="sd">&gt;&gt;&gt; r4.register(&quot;c&quot;, 3)</span>
+<span class="sd">3</span>
+<span class="sd">&gt;&gt;&gt; seen  # no longer notified</span>
+<span class="sd">[(&#39;a&#39;, 1), (&#39;b&#39;, 2)]</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Iterator</span><span class="p">,</span> <span class="n">MutableMapping</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Generic</span><span class="p">,</span> <span class="n">Literal</span><span class="p">,</span> <span class="n">TypeVar</span>
+
+
+<span class="n">V</span> <span class="o">=</span> <span class="n">TypeVar</span><span class="p">(</span><span class="s2">&quot;V&quot;</span><span class="p">)</span>
+<span class="n">OnConflict</span> <span class="o">=</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;error&quot;</span><span class="p">,</span> <span class="s2">&quot;replace&quot;</span><span class="p">,</span> <span class="s2">&quot;keep&quot;</span><span class="p">]</span>
+
+
+<div class="viewcode-block" id="RegistryError">
+<a class="viewcode-back" href="../../module_docs/xdol/registry.html#xdol.registry.RegistryError">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">RegistryError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Base for registry errors.&quot;&quot;&quot;</span></div>
+
+
+
+<div class="viewcode-block" id="RegistryConflict">
+<a class="viewcode-back" href="../../module_docs/xdol/registry.html#xdol.registry.RegistryConflict">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">RegistryConflict</span><span class="p">(</span><span class="n">RegistryError</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Raised when registering a key that is already taken under ``on_conflict=&#39;error&#39;``.&quot;&quot;&quot;</span></div>
+
+
+
+<div class="viewcode-block" id="RegistryMissing">
+<a class="viewcode-back" href="../../module_docs/xdol/registry.html#xdol.registry.RegistryMissing">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">RegistryMissing</span><span class="p">(</span><span class="n">RegistryError</span><span class="p">,</span> <span class="ne">KeyError</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Raised by :meth:`Registry.get` when a key is missing.&quot;&quot;&quot;</span></div>
+
+
+
+<span class="n">_MISSING</span> <span class="o">=</span> <span class="nb">object</span><span class="p">()</span>
+
+
+<div class="viewcode-block" id="Subscription">
+<a class="viewcode-back" href="../../module_docs/xdol/registry.html#xdol.registry.Subscription">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">Subscription</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Handle returned by :meth:`Registry.subscribe`. Call :meth:`unsubscribe` to detach.&quot;&quot;&quot;</span>
+
+    <span class="vm">__slots__</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;_registry&quot;</span><span class="p">,</span> <span class="s2">&quot;_callback&quot;</span><span class="p">,</span> <span class="s2">&quot;_active&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">registry</span><span class="p">:</span> <span class="s2">&quot;Registry&quot;</span><span class="p">,</span> <span class="n">callback</span><span class="p">:</span> <span class="n">Callable</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_registry</span> <span class="o">=</span> <span class="n">registry</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_callback</span> <span class="o">=</span> <span class="n">callback</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_active</span> <span class="o">=</span> <span class="kc">True</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">unsubscribe</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_active</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_registry</span><span class="o">.</span><span class="n">_subscribers</span><span class="o">.</span><span class="n">discard</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_callback</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_active</span> <span class="o">=</span> <span class="kc">False</span></div>
+
+
+
+<div class="viewcode-block" id="Registry">
+<a class="viewcode-back" href="../../module_docs/xdol/registry.html#xdol.registry.Registry">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">Registry</span><span class="p">(</span><span class="n">MutableMapping</span><span class="p">,</span> <span class="n">Generic</span><span class="p">[</span><span class="n">V</span><span class="p">]):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;A typed dict-backed plugin registry.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    name:</span>
+<span class="sd">        Optional name; appears in error messages and ``repr``.</span>
+<span class="sd">    on_conflict:</span>
+<span class="sd">        ``&#39;error&#39;`` (default) raises :class:`RegistryConflict` when registering</span>
+<span class="sd">        a key that already exists. ``&#39;replace&#39;`` silently overwrites.</span>
+<span class="sd">        ``&#39;keep&#39;`` silently keeps the original.</span>
+
+<span class="sd">    Implements ``MutableMapping`` so anything that takes a mapping (``dict(...)``,</span>
+<span class="sd">    iteration, length checks, ``in`` lookups, ``.items()``) just works.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">on_conflict</span><span class="p">:</span> <span class="n">OnConflict</span> <span class="o">=</span> <span class="s2">&quot;error&quot;</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_name</span> <span class="o">=</span> <span class="n">name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_on_conflict</span><span class="p">:</span> <span class="n">OnConflict</span> <span class="o">=</span> <span class="n">on_conflict</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_values</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">V</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_aliases</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>  <span class="c1"># alias -&gt; canonical key</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_lazy</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Callable</span><span class="p">[[],</span> <span class="n">V</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_tags</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">frozenset</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_subscribers</span><span class="p">:</span> <span class="nb">set</span><span class="p">[</span><span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">,</span> <span class="n">V</span><span class="p">],</span> <span class="kc">None</span><span class="p">]]</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+
+    <span class="c1"># -- core MutableMapping interface ---------------------------------------</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">V</span><span class="p">:</span>
+        <span class="n">canonical</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_aliases</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">canonical</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_values</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_values</span><span class="p">[</span><span class="n">canonical</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">canonical</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lazy</span><span class="p">:</span>
+            <span class="n">value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lazy</span><span class="p">[</span><span class="n">canonical</span><span class="p">]()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_values</span><span class="p">[</span><span class="n">canonical</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+            <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lazy</span><span class="p">[</span><span class="n">canonical</span><span class="p">]</span>
+            <span class="k">return</span> <span class="n">value</span>
+        <span class="k">raise</span> <span class="n">RegistryMissing</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">key</span><span class="si">!r}</span><span class="s2"> is not registered in </span><span class="si">{</span><span class="bp">self</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">V</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="c1"># Setitem bypasses on_conflict (&quot;replace&quot; semantics) — explicit assignment.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_values</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_lazy</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_notify</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__delitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">canonical</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_aliases</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span>
+        <span class="n">had_value</span> <span class="o">=</span> <span class="n">canonical</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_values</span> <span class="ow">or</span> <span class="n">canonical</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lazy</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_values</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">canonical</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_lazy</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">canonical</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_tags</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">canonical</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="c1"># Drop any aliases pointing at the deleted canonical key.</span>
+        <span class="k">for</span> <span class="n">alias</span><span class="p">,</span> <span class="n">target</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_aliases</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
+            <span class="k">if</span> <span class="n">target</span> <span class="o">==</span> <span class="n">canonical</span> <span class="ow">or</span> <span class="n">alias</span> <span class="o">==</span> <span class="n">canonical</span><span class="p">:</span>
+                <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">_aliases</span><span class="p">[</span><span class="n">alias</span><span class="p">]</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">had_value</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">RegistryMissing</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">key</span><span class="si">!r}</span><span class="s2"> is not registered in </span><span class="si">{</span><span class="bp">self</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+        <span class="c1"># Iterate over canonical keys only; aliases are visible via __contains__/__getitem__.</span>
+        <span class="n">seen</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_values</span><span class="p">)</span>
+        <span class="n">seen</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_lazy</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">iter</span><span class="p">(</span><span class="n">seen</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_values</span><span class="p">)</span> <span class="o">|</span> <span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_lazy</span><span class="p">))</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__contains__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">object</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="n">canonical</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_aliases</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">canonical</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_values</span> <span class="ow">or</span> <span class="n">canonical</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lazy</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_name</span><span class="p">:</span>
+            <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;&lt;Registry </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_name</span><span class="si">}</span><span class="s2">&gt;&quot;</span>
+        <span class="k">return</span> <span class="s2">&quot;&lt;Registry&gt;&quot;</span>
+
+    <span class="c1"># -- registration --------------------------------------------------------</span>
+
+<div class="viewcode-block" id="Registry.register">
+<a class="viewcode-back" href="../../module_docs/xdol/registry.html#xdol.registry.Registry.register">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">register</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">V</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">tags</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="p">())</span> <span class="o">-&gt;</span> <span class="n">V</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Register ``value`` under ``key``. Returns ``value`` so it can be used inline.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_values</span> <span class="ow">or</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lazy</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_on_conflict</span> <span class="o">==</span> <span class="s2">&quot;error&quot;</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">RegistryConflict</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">key</span><span class="si">!r}</span><span class="s2"> is already registered in </span><span class="si">{</span><span class="bp">self</span><span class="si">!r}</span><span class="s2">&quot;</span>
+                <span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_on_conflict</span> <span class="o">==</span> <span class="s2">&quot;keep&quot;</span><span class="p">:</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_values</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">)</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lazy</span><span class="p">[</span><span class="n">key</span><span class="p">]()</span>
+            <span class="c1"># on_conflict == &quot;replace&quot; falls through</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_values</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_lazy</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">tags</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_tags</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">(</span><span class="n">tags</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_notify</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">value</span></div>
+
+
+<div class="viewcode-block" id="Registry.register_lazy">
+<a class="viewcode-back" href="../../module_docs/xdol/registry.html#xdol.registry.Registry.register_lazy">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">register_lazy</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">loader</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[],</span> <span class="n">V</span><span class="p">],</span> <span class="o">*</span><span class="p">,</span> <span class="n">tags</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="p">()</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Register a no-arg ``loader`` callable; value is built on first ``__getitem__``.</span>
+
+<span class="sd">        Once built, the result replaces the loader and is cached.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_values</span> <span class="ow">or</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lazy</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_on_conflict</span> <span class="o">==</span> <span class="s2">&quot;error&quot;</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">RegistryConflict</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">key</span><span class="si">!r}</span><span class="s2"> is already registered in </span><span class="si">{</span><span class="bp">self</span><span class="si">!r}</span><span class="s2">&quot;</span>
+                <span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_on_conflict</span> <span class="o">==</span> <span class="s2">&quot;keep&quot;</span><span class="p">:</span>
+                <span class="k">return</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_lazy</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">loader</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_values</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">tags</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_tags</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">(</span><span class="n">tags</span><span class="p">)</span></div>
+
+        <span class="c1"># No notify: the value isn&#39;t built yet. Emit on first access? No —</span>
+        <span class="c1"># subscribers want resolved values, and lazy entries promise nothing</span>
+        <span class="c1"># until accessed. Document this in the subscriber contract.</span>
+
+<div class="viewcode-block" id="Registry.register_decorator">
+<a class="viewcode-back" href="../../module_docs/xdol/registry.html#xdol.registry.Registry.register_decorator">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">register_decorator</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">tags</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="p">()</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">V</span><span class="p">],</span> <span class="n">V</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return a decorator that registers the decorated object under ``key``.</span>
+
+<span class="sd">        &gt;&gt;&gt; r = Registry()</span>
+<span class="sd">        &gt;&gt;&gt; @r.register_decorator(&quot;hi&quot;)</span>
+<span class="sd">        ... def hi(): return &quot;hello&quot;</span>
+<span class="sd">        &gt;&gt;&gt; r[&quot;hi&quot;]()</span>
+<span class="sd">        &#39;hello&#39;</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">def</span><span class="w"> </span><span class="nf">_wrap</span><span class="p">(</span><span class="n">value</span><span class="p">:</span> <span class="n">V</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">V</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">tags</span><span class="o">=</span><span class="n">tags</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">value</span>
+        <span class="k">return</span> <span class="n">_wrap</span></div>
+
+
+<div class="viewcode-block" id="Registry.alias">
+<a class="viewcode-back" href="../../module_docs/xdol/registry.html#xdol.registry.Registry.alias">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">alias</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">alias</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">target</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Make ``alias`` resolve to ``target`` (which must already be registered).&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">target</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_values</span> <span class="ow">and</span> <span class="n">target</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lazy</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">RegistryMissing</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;cannot alias </span><span class="si">{</span><span class="n">alias</span><span class="si">!r}</span><span class="s2"> to unregistered </span><span class="si">{</span><span class="n">target</span><span class="si">!r}</span><span class="s2"> in </span><span class="si">{</span><span class="bp">self</span><span class="si">!r}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="n">alias</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_values</span> <span class="ow">or</span> <span class="n">alias</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lazy</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">RegistryConflict</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">alias</span><span class="si">!r}</span><span class="s2"> is already a registered key in </span><span class="si">{</span><span class="bp">self</span><span class="si">!r}</span><span class="s2">; &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;cannot use it as an alias&quot;</span>
+            <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_aliases</span><span class="p">[</span><span class="n">alias</span><span class="p">]</span> <span class="o">=</span> <span class="n">target</span></div>
+
+
+    <span class="c1"># -- queries -------------------------------------------------------------</span>
+
+<div class="viewcode-block" id="Registry.get">
+<a class="viewcode-back" href="../../module_docs/xdol/registry.html#xdol.registry.Registry.get">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="n">_MISSING</span><span class="p">):</span>  <span class="c1"># type: ignore[override]</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Like ``dict.get`` but raises :class:`RegistryMissing` if no default given.&quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+        <span class="k">except</span> <span class="n">RegistryMissing</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">default</span> <span class="ow">is</span> <span class="n">_MISSING</span><span class="p">:</span>
+                <span class="k">raise</span>
+            <span class="k">return</span> <span class="n">default</span></div>
+
+
+<div class="viewcode-block" id="Registry.keys_with_tag">
+<a class="viewcode-back" href="../../module_docs/xdol/registry.html#xdol.registry.Registry.keys_with_tag">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">keys_with_tag</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tag</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return canonical keys whose tag set contains ``tag``.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">k</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">tags</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tags</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">tag</span> <span class="ow">in</span> <span class="n">tags</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="Registry.search">
+<a class="viewcode-back" href="../../module_docs/xdol/registry.html#xdol.registry.Registry.search">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">search</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">tags</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="p">())</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">V</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return values whose tag set contains ALL of ``tags`` (empty ``tags`` = all).&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">tags</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+        <span class="n">wanted</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">(</span><span class="n">tags</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">[</span>
+            <span class="bp">self</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">key_tags</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tags</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">wanted</span><span class="o">.</span><span class="n">issubset</span><span class="p">(</span><span class="n">key_tags</span><span class="p">)</span>
+        <span class="p">]</span></div>
+
+
+    <span class="c1"># -- subscription --------------------------------------------------------</span>
+
+<div class="viewcode-block" id="Registry.subscribe">
+<a class="viewcode-back" href="../../module_docs/xdol/registry.html#xdol.registry.Registry.subscribe">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">subscribe</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">callback</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">,</span> <span class="n">V</span><span class="p">],</span> <span class="kc">None</span><span class="p">]</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Subscription</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Call ``callback(key, value)`` on every eager registration.</span>
+
+<span class="sd">        Lazy registrations do NOT fire the callback at registration time;</span>
+<span class="sd">        only when the value is materialized via ``__getitem__``. This</span>
+<span class="sd">        keeps subscribers free of partially-built state.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_subscribers</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">callback</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">Subscription</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">callback</span><span class="p">)</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_notify</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">V</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="c1"># Iterate over a snapshot in case a callback unsubscribes itself.</span>
+        <span class="k">for</span> <span class="n">cb</span> <span class="ow">in</span> <span class="nb">tuple</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_subscribers</span><span class="p">):</span>
+            <span class="n">cb</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright NO COPYRIGHT.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -5,18 +5,18 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>xdol.pystores &mdash; xdol 0.1.9 documentation</title>
+  <title>xdol.pystores &mdash; xdol 0.1.10 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
-      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
       <link rel="stylesheet" type="text/css" href="../../_static/graphviz.css?v=4ae1632d" />
 
   
       <script src="../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../_static/documentation_options.js?v=8618f531"></script>
-      <script src="../../_static/doctools.js?v=9bcbadda"></script>
-      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../_static/documentation_options.js?v=bafade30"></script>
+      <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../../_static/toggleprompt.js?v=d7ede5d2"></script>
       <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
       <script src="../../_static/copybutton.js?v=f281be69"></script>
@@ -49,6 +49,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../module_docs/xdol.html">xdol</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../module_docs/xdol/paths.html">xdol.paths</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../module_docs/xdol/pystores.html">xdol.pystores</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../module_docs/xdol/registry.html">xdol.registry</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../module_docs/xdol/updating.html">xdol.updating</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../module_docs/xdol/util.html">xdol.util</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../module_docs/xdol/x_codecs.html">xdol.x_codecs</a></li>
@@ -83,6 +84,7 @@
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">site</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">functools</span><span class="w"> </span><span class="kn">import</span> <span class="n">wraps</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">dol</span><span class="w"> </span><span class="kn">import</span> <span class="n">wrap_kvs</span><span class="p">,</span> <span class="n">filt_iter</span><span class="p">,</span> <span class="n">KvReader</span><span class="p">,</span> <span class="n">cached_keys</span><span class="p">,</span> <span class="n">Pipe</span><span class="p">,</span> <span class="n">Files</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">dol.filesys</span><span class="w"> </span><span class="kn">import</span> <span class="n">mk_relative_path_store</span><span class="p">,</span> <span class="n">DirCollection</span><span class="p">,</span> <span class="n">FileBytesReader</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">xdol.util</span><span class="w"> </span><span class="kn">import</span> <span class="n">resolve_to_folder</span>
@@ -175,8 +177,186 @@
 <span class="nd">@wrap_kvs</span><span class="p">(</span><span class="n">key_of_id</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">id_of_key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span> <span class="o">+</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">sep</span><span class="p">)</span>
 <span class="nd">@mk_relative_path_store</span><span class="p">(</span><span class="n">prefix_attr</span><span class="o">=</span><span class="s2">&quot;rootdir&quot;</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">PkgReader</span><span class="p">(</span><span class="n">DirCollection</span><span class="p">,</span> <span class="n">KvReader</span><span class="p">):</span>
+    <span class="nd">@wraps</span><span class="p">(</span><span class="n">DirCollection</span><span class="o">.</span><span class="fm">__init__</span><span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rootdir</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">rootdir</span><span class="o">=</span><span class="n">resolve_to_folder</span><span class="p">(</span><span class="n">rootdir</span><span class="p">),</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
     <span class="k">def</span><span class="w"> </span><span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">PyFilesReader</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rootdir</span><span class="p">,</span> <span class="n">k</span><span class="p">))</span></div>
+        <span class="n">k</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rootdir</span><span class="p">,</span> <span class="n">k</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">PyFilesReader</span><span class="p">(</span><span class="n">k</span><span class="p">)</span></div>
+
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_is_setup_cfg</span><span class="p">(</span><span class="n">filepath</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Check if filepath is a setup.cfg file.</span>
+
+<span class="sd">    &gt;&gt;&gt; _is_setup_cfg(&#39;project/setup.cfg&#39;)</span>
+<span class="sd">    True</span>
+<span class="sd">    &gt;&gt;&gt; _is_setup_cfg(&#39;project/pyproject.toml&#39;)</span>
+<span class="sd">    False</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">filepath</span><span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;setup.cfg&#39;</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_is_pyproject_toml</span><span class="p">(</span><span class="n">filepath</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Check if filepath is a pyproject.toml file.</span>
+
+<span class="sd">    &gt;&gt;&gt; _is_pyproject_toml(&#39;project/pyproject.toml&#39;)</span>
+<span class="sd">    True</span>
+<span class="sd">    &gt;&gt;&gt; _is_pyproject_toml(&#39;project/setup.cfg&#39;)</span>
+<span class="sd">    False</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">filepath</span><span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;pyproject.toml&#39;</span>
+
+
+<div class="viewcode-block" id="SetupCfgReader">
+<a class="viewcode-back" href="../../module_docs/xdol/pystores.html#xdol.pystores.SetupCfgReader">[docs]</a>
+<span class="nd">@filt_iter</span><span class="p">(</span><span class="n">filt</span><span class="o">=</span><span class="n">_is_setup_cfg</span><span class="p">)</span>
+<span class="nd">@mk_relative_path_store</span><span class="p">(</span><span class="n">prefix_attr</span><span class="o">=</span><span class="s2">&quot;rootdir&quot;</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">SetupCfgReader</span><span class="p">(</span><span class="n">FileBytesReader</span><span class="p">,</span> <span class="n">KvReader</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Mapping interface to setup.cfg files in a directory tree.</span>
+<span class="sd">    Keys are relative paths to setup.cfg files.</span>
+<span class="sd">    Values are the string contents of the setup.cfg files.</span>
+
+<span class="sd">    &gt;&gt;&gt; import tempfile, os</span>
+<span class="sd">    &gt;&gt;&gt; with tempfile.TemporaryDirectory() as tmpdir:</span>
+<span class="sd">    ...     # Create some setup.cfg files</span>
+<span class="sd">    ...     proj1_dir = os.path.join(tmpdir, &#39;proj1&#39;)</span>
+<span class="sd">    ...     os.makedirs(proj1_dir)</span>
+<span class="sd">    ...     cfg_path = os.path.join(proj1_dir, &#39;setup.cfg&#39;)</span>
+<span class="sd">    ...     with open(cfg_path, &#39;w&#39;) as f:</span>
+<span class="sd">    ...         _ = f.write(&#39;[options]\\ninstall_requires = requests&#39;)</span>
+<span class="sd">    ...</span>
+<span class="sd">    ...     reader = SetupCfgReader(tmpdir)</span>
+<span class="sd">    ...     assert len(reader) == 1</span>
+<span class="sd">    ...     assert &#39;proj1/setup.cfg&#39; in reader</span>
+<span class="sd">    ...     assert &#39;requests&#39; in reader[&#39;proj1/setup.cfg&#39;]</span>
+<span class="sd">    True</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">src</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">max_levels</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize with source directory.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            src: Directory path, module, or any source resolvable to a folder</span>
+<span class="sd">            max_levels: Maximum directory depth to search</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">rootdir</span><span class="o">=</span><span class="n">resolve_to_folder</span><span class="p">(</span><span class="n">src</span><span class="p">),</span> <span class="n">max_levels</span><span class="o">=</span><span class="n">max_levels</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get setup.cfg content as string, handling decode errors gracefully.&quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__getitem__</span><span class="p">(</span><span class="n">key</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">UnicodeDecodeError</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s2">&quot;&quot;</span>  <span class="c1"># Return empty string for undecodable files</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">dependencies_from_all</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Generate all dependencies from all setup.cfg files.</span>
+
+<span class="sd">        Yields:</span>
+<span class="sd">            Individual dependency strings from all setup.cfg files</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">_extract_from_file</span><span class="p">(</span><span class="n">cfg_content</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="c1"># Import here to avoid circular imports if needed</span>
+            <span class="kn">from</span><span class="w"> </span><span class="nn">config2py</span><span class="w"> </span><span class="kn">import</span> <span class="n">ConfigReader</span>
+
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">config</span> <span class="o">=</span> <span class="n">ConfigReader</span><span class="p">(</span><span class="n">cfg_content</span><span class="p">)</span>
+                <span class="n">install_requires</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;options&#39;</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;install_requires&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">install_requires</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">and</span> <span class="n">install_requires</span><span class="p">:</span>
+                    <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">install_requires</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">splitlines</span><span class="p">():</span>
+                        <span class="n">line</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+                        <span class="k">if</span> <span class="n">line</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;#&#39;</span><span class="p">):</span>
+                            <span class="k">yield</span> <span class="n">line</span>
+            <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+                <span class="c1"># Skip malformed config files</span>
+                <span class="k">pass</span>
+
+        <span class="k">for</span> <span class="n">cfg_content</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+            <span class="k">yield from</span> <span class="n">_extract_from_file</span><span class="p">(</span><span class="n">cfg_content</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="PyprojectReader">
+<a class="viewcode-back" href="../../module_docs/xdol/pystores.html#xdol.pystores.PyprojectReader">[docs]</a>
+<span class="nd">@filt_iter</span><span class="p">(</span><span class="n">filt</span><span class="o">=</span><span class="n">_is_pyproject_toml</span><span class="p">)</span>
+<span class="nd">@mk_relative_path_store</span><span class="p">(</span><span class="n">prefix_attr</span><span class="o">=</span><span class="s2">&quot;rootdir&quot;</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">PyprojectReader</span><span class="p">(</span><span class="n">FileBytesReader</span><span class="p">,</span> <span class="n">KvReader</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Mapping interface to pyproject.toml files in a directory tree.</span>
+<span class="sd">    Keys are relative paths to pyproject.toml files.</span>
+<span class="sd">    Values are the string contents of the pyproject.toml files.</span>
+
+<span class="sd">    &gt;&gt;&gt; import tempfile, os</span>
+<span class="sd">    &gt;&gt;&gt; with tempfile.TemporaryDirectory() as tmpdir:</span>
+<span class="sd">    ...     # Create a pyproject.toml file</span>
+<span class="sd">    ...     proj1_dir = os.path.join(tmpdir, &#39;proj1&#39;)</span>
+<span class="sd">    ...     os.makedirs(proj1_dir)</span>
+<span class="sd">    ...     toml_path = os.path.join(proj1_dir, &#39;pyproject.toml&#39;)</span>
+<span class="sd">    ...     with open(toml_path, &#39;w&#39;) as f:</span>
+<span class="sd">    ...         _ = f.write(&#39;[project]\\ndependencies = [&quot;requests&gt;=2.0&quot;]&#39;)</span>
+<span class="sd">    ...</span>
+<span class="sd">    ...     reader = PyprojectReader(tmpdir)</span>
+<span class="sd">    ...     assert len(reader) == 1</span>
+<span class="sd">    ...     assert &#39;proj1/pyproject.toml&#39; in reader</span>
+<span class="sd">    ...     assert &#39;requests&#39; in reader[&#39;proj1/pyproject.toml&#39;]</span>
+<span class="sd">    True</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">src</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">max_levels</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize with source directory.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            src: Directory path, module, or any source resolvable to a folder</span>
+<span class="sd">            max_levels: Maximum directory depth to search</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">rootdir</span><span class="o">=</span><span class="n">resolve_to_folder</span><span class="p">(</span><span class="n">src</span><span class="p">),</span> <span class="n">max_levels</span><span class="o">=</span><span class="n">max_levels</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get pyproject.toml content as string, handling decode errors gracefully.&quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__getitem__</span><span class="p">(</span><span class="n">key</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">UnicodeDecodeError</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s2">&quot;&quot;</span>  <span class="c1"># Return empty string for undecodable files</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">dependencies_from_all</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Generate all dependencies from all pyproject.toml files.</span>
+
+<span class="sd">        Yields:</span>
+<span class="sd">            Individual dependency strings from all pyproject.toml files</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">_extract_from_file</span><span class="p">(</span><span class="n">toml_content</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="kn">import</span><span class="w"> </span><span class="nn">tomli</span>
+            <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="kn">import</span><span class="w"> </span><span class="nn">tomllib</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">tomli</span>  <span class="c1"># Python 3.11+</span>
+                <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+                    <span class="c1"># Skip if no TOML parser available</span>
+                    <span class="k">return</span>
+
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">data</span> <span class="o">=</span> <span class="n">tomli</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">toml_content</span><span class="p">)</span>
+                <span class="c1"># Handle [project] table dependencies</span>
+                <span class="n">dependencies</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;project&#39;</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;dependencies&#39;</span><span class="p">,</span> <span class="p">[])</span>
+                <span class="k">if</span> <span class="n">dependencies</span><span class="p">:</span>
+                    <span class="k">for</span> <span class="n">dep</span> <span class="ow">in</span> <span class="n">dependencies</span><span class="p">:</span>
+                        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">dep</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">and</span> <span class="n">dep</span><span class="o">.</span><span class="n">strip</span><span class="p">():</span>
+                            <span class="k">yield</span> <span class="n">dep</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+
+                <span class="c1"># Handle [build-system] requires</span>
+                <span class="n">build_requires</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;build-system&#39;</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;requires&#39;</span><span class="p">,</span> <span class="p">[])</span>
+                <span class="k">if</span> <span class="n">build_requires</span><span class="p">:</span>
+                    <span class="k">for</span> <span class="n">dep</span> <span class="ow">in</span> <span class="n">build_requires</span><span class="p">:</span>
+                        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">dep</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">and</span> <span class="n">dep</span><span class="o">.</span><span class="n">strip</span><span class="p">():</span>
+                            <span class="k">yield</span> <span class="n">dep</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+            <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+                <span class="c1"># Skip malformed TOML files</span>
+                <span class="k">pass</span>
+
+        <span class="k">for</span> <span class="n">toml_content</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+            <span class="k">yield from</span> <span class="n">_extract_from_file</span><span class="p">(</span><span class="n">toml_content</span><span class="p">)</span></div>
 
 </pre></div>
 
