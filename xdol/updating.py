@@ -46,7 +46,14 @@ from typing import (
     Set,
     Protocol,
 )
-from collections.abc import Mapping, MutableMapping, Iterable, Generator, Callable, Iterator
+from collections.abc import (
+    Mapping,
+    MutableMapping,
+    Iterable,
+    Generator,
+    Callable,
+    Iterator,
+)
 import os
 from collections.abc import Iterable
 from enum import Enum, auto

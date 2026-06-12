@@ -104,7 +104,7 @@ def _is_setup_cfg(filepath: str) -> bool:
     >>> _is_setup_cfg('project/pyproject.toml')
     False
     """
-    return os.path.basename(filepath) == 'setup.cfg'
+    return os.path.basename(filepath) == "setup.cfg"
 
 
 def _is_pyproject_toml(filepath: str) -> bool:
@@ -115,7 +115,7 @@ def _is_pyproject_toml(filepath: str) -> bool:
     >>> _is_pyproject_toml('project/setup.cfg')
     False
     """
-    return os.path.basename(filepath) == 'pyproject.toml'
+    return os.path.basename(filepath) == "pyproject.toml"
 
 
 @filt_iter(filt=_is_setup_cfg)
@@ -153,7 +153,7 @@ class SetupCfgReader(FileBytesReader, KvReader):
     def __getitem__(self, key):
         """Get setup.cfg content as string, handling decode errors gracefully."""
         try:
-            return super().__getitem__(key).decode('utf-8')
+            return super().__getitem__(key).decode("utf-8")
         except UnicodeDecodeError:
             return ""  # Return empty string for undecodable files
 
@@ -170,11 +170,11 @@ class SetupCfgReader(FileBytesReader, KvReader):
 
             try:
                 config = ConfigReader(cfg_content)
-                install_requires = config.get('options', {}).get('install_requires', '')
+                install_requires = config.get("options", {}).get("install_requires", "")
                 if isinstance(install_requires, str) and install_requires:
                     for line in install_requires.strip().splitlines():
                         line = line.strip()
-                        if line and not line.startswith('#'):
+                        if line and not line.startswith("#"):
                             yield line
             except Exception:
                 # Skip malformed config files
@@ -219,7 +219,7 @@ class PyprojectReader(FileBytesReader, KvReader):
     def __getitem__(self, key):
         """Get pyproject.toml content as string, handling decode errors gracefully."""
         try:
-            return super().__getitem__(key).decode('utf-8')
+            return super().__getitem__(key).decode("utf-8")
         except UnicodeDecodeError:
             return ""  # Return empty string for undecodable files
 
@@ -243,14 +243,14 @@ class PyprojectReader(FileBytesReader, KvReader):
             try:
                 data = tomli.loads(toml_content)
                 # Handle [project] table dependencies
-                dependencies = data.get('project', {}).get('dependencies', [])
+                dependencies = data.get("project", {}).get("dependencies", [])
                 if dependencies:
                     for dep in dependencies:
                         if isinstance(dep, str) and dep.strip():
                             yield dep.strip()
 
                 # Handle [build-system] requires
-                build_requires = data.get('build-system', {}).get('requires', [])
+                build_requires = data.get("build-system", {}).get("requires", [])
                 if build_requires:
                     for dep in build_requires:
                         if isinstance(dep, str) and dep.strip():

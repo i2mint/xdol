@@ -214,9 +214,7 @@ class Registry(MutableMapping, Generic[V]):
         """Register ``value`` under ``key``. Returns ``value`` so it can be used inline."""
         if key in self._values or key in self._lazy:
             if self._on_conflict == "error":
-                raise RegistryConflict(
-                    f"{key!r} is already registered in {self!r}"
-                )
+                raise RegistryConflict(f"{key!r} is already registered in {self!r}")
             if self._on_conflict == "keep":
                 return self._values.get(key) or self._lazy[key]()
             # on_conflict == "replace" falls through
@@ -236,9 +234,7 @@ class Registry(MutableMapping, Generic[V]):
         """
         if key in self._values or key in self._lazy:
             if self._on_conflict == "error":
-                raise RegistryConflict(
-                    f"{key!r} is already registered in {self!r}"
-                )
+                raise RegistryConflict(f"{key!r} is already registered in {self!r}")
             if self._on_conflict == "keep":
                 return
         self._lazy[key] = loader
@@ -260,9 +256,11 @@ class Registry(MutableMapping, Generic[V]):
         >>> r["hi"]()
         'hello'
         """
+
         def _wrap(value: V) -> V:
             self.register(key, value, tags=tags)
             return value
+
         return _wrap
 
     def alias(self, alias: str, target: str) -> None:
@@ -304,9 +302,7 @@ class Registry(MutableMapping, Generic[V]):
 
     # -- subscription --------------------------------------------------------
 
-    def subscribe(
-        self, callback: Callable[[str, V], None]
-    ) -> Subscription:
+    def subscribe(self, callback: Callable[[str, V], None]) -> Subscription:
         """Call ``callback(key, value)`` on every eager registration.
 
         Lazy registrations do NOT fire the callback at registration time;
