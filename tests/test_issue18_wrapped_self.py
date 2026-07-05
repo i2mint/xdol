@@ -18,7 +18,8 @@ def test_is_pkg_and_init_file_contents(tmp_path):
     reader = PyFilesReader(str(pkg))
     # is_pkg reads the relativized outer key '__init__.py' (was False under Issue #18)
     assert reader.is_pkg() is True
-    assert reader.init_file_contents() == "VERSION = '1.0'\n"
+    # normalize newlines: Windows text-mode writes CRLF
+    assert reader.init_file_contents().replace("\r\n", "\n") == "VERSION = '1.0'\n"
 
     nonpkg = tmp_path / "nopkg"
     nonpkg.mkdir()
