@@ -3,7 +3,7 @@
 import site
 import os
 from functools import wraps
-from dol import wrap_kvs, filt_iter, KvReader, cached_keys, Pipe, Files
+from dol import wrap_kvs, filt_iter, KvReader, cached_keys, Pipe, Files, wrapped_self
 from dol.filesys import mk_relative_path_store, DirCollection, FileBytesReader
 from xdol.util import resolve_to_folder
 
@@ -60,11 +60,14 @@ class PyFilesReader(FileBytesReader, KvReader):
 
     def init_file_contents(self):
         """Returns the string of contents of the __init__.py file if it exists, and None if not"""
-        return self.get("__init__.py", None)
+        # wrapped_self: inside a wrap_kvs/filt_iter/relative-path-wrapped class, ``self`` is
+        # the inner (unwrapped) store whose keys are absolute paths, so ``self.get`` would
+        # miss the relativized '__init__.py' key (dol Issue #18).
+        return wrapped_self(self).get("__init__.py", None)
 
     def is_pkg(self):
         """Returns True if, and only if, the root is a pkg folder (i.e. has an __init__.py file)"""
-        return "__init__.py" in self
+        return "__init__.py" in wrapped_self(self)
 
 
 # TODO: Make it work
@@ -180,7 +183,9 @@ class SetupCfgReader(FileBytesReader, KvReader):
                 # Skip malformed config files
                 pass
 
-        for cfg_content in self.values():
+        # wrapped_self: iterate the OUTER (filtered + relativized) store; ``self.values()``
+        # here would hit the inner store and bypass the _is_setup_cfg filter (dol Issue #18).
+        for cfg_content in wrapped_self(self).values():
             yield from _extract_from_file(cfg_content)
 
 
@@ -259,5 +264,7 @@ class PyprojectReader(FileBytesReader, KvReader):
                 # Skip malformed TOML files
                 pass
 
-        for toml_content in self.values():
+        # wrapped_self: iterate the OUTER (filtered + relativized) store; ``self.values()``
+        # here would hit the inner store and bypass the _is_pyproject_toml filter (Issue #18).
+        for toml_content in wrapped_self(self).values():
             yield from _extract_from_file(toml_content)

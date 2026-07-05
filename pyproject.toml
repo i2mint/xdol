@@ -13,7 +13,7 @@ requires-python = ">=3.10"
 keywords = []
 authors = []
 dependencies = [
-    "dol",
+    "dol>=0.3.49",
     "config2py",
     "typing_extensions",
     "tomli; python_version < '3.11'",
