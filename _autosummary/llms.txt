@@ -1,0 +1,18 @@
+# xdol
+
+> Extended Data Object Layers - dol-based tools
+
+
+## Pages in this subsection
+
+- [xdol](xdol.html.md): Extended tools for dol (Data Object Layers)
+- [xdol.paths](xdol.paths.html.md): Tools for manipulating paths.
+- [xdol.pystores](xdol.pystores.html.md): Stores for python objects
+- [xdol.registry](xdol.registry.html.md): A typed dict-backed plugin registry.
+- [xdol.updating](xdol.updating.html.md): mapping using customizable policies to determine which items to update. It offers
+- [xdol.util](xdol.util.html.md): Utility functions for xdol.
+- [xdol.x_codecs](xdol.x_codecs.html.md): Extra codecs
+
+## Optional
+
+- [Top-level llms.txt](../llms.txt): Complete documentation index.

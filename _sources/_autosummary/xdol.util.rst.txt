@@ -1,0 +1,14 @@
+xdol.util
+=========
+
+.. automodule:: xdol.util
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      resolve_module_filepath
+      resolve_to_folder
+      save_obj
+   

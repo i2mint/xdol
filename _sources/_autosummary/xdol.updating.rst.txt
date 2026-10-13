@@ -1,0 +1,34 @@
+xdol.updating
+=============
+
+.. automodule:: xdol.updating
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      add_as_attribute_of
+      local_file_timestamp
+      print_all_but_skips
+      union_iter
+      update_all
+      update_by_content_hash
+      update_files_by_timestamp
+      update_if_different
+      update_missing_only
+      update_newer
+      update_with_policy
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      DefaultPolicy
+      KeyDecision
+      KeyInfoExtractor
+      NotRetrieved
+      StringEnum
+      UpdateDecider
+      UpdateStats
+   

@@ -1,0 +1,23 @@
+xdol.pystores
+=============
+
+.. automodule:: xdol.pystores
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      bytes_decoder
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      PkgFilesReader
+      PkgReader
+      PyFilesBytes
+      PyFilesReader
+      PyprojectReader
+      SetupCfgReader
+   

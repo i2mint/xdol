@@ -1,4 +1,0 @@
-xdol.updating
-=============
-.. automodule:: xdol.updating
-   :members:

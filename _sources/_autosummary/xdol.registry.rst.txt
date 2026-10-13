@@ -1,0 +1,21 @@
+xdol.registry
+=============
+
+.. automodule:: xdol.registry
+
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      Registry
+      Subscription
+   
+   .. rubric:: Exceptions
+
+   .. autosummary::
+   
+      RegistryConflict
+      RegistryError
+      RegistryMissing
+   

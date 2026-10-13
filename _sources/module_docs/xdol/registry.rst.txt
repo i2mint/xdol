@@ -1,4 +1,0 @@
-xdol.registry
-=============
-.. automodule:: xdol.registry
-   :members:

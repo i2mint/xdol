@@ -1,4 +1,0 @@
-xdol.paths
-==========
-.. automodule:: xdol.paths
-   :members:

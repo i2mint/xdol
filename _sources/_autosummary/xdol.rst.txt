@@ -1,0 +1,18 @@
+﻿xdol
+====
+
+.. automodule:: xdol
+
+   
+.. rubric:: Modules
+
+.. autosummary::
+   :toctree:
+   :recursive:
+
+   paths
+   pystores
+   registry
+   updating
+   util
+   x_codecs

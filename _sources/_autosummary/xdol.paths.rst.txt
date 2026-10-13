@@ -1,0 +1,12 @@
+xdol.paths
+==========
+
+.. automodule:: xdol.paths
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      extract_path_segments
+   

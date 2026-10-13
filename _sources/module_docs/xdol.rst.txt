@@ -1,4 +1,0 @@
-xdol
-====
-.. automodule:: xdol
-   :members:
