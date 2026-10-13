@@ -171,9 +171,12 @@ class Registry(MutableMapping, Generic[V]):
 
     def __setitem__(self, key: str, value: V) -> None:
         # Setitem bypasses on_conflict ("replace" semantics) — explicit assignment.
-        self._values[key] = value
-        self._lazy.pop(key, None)
-        self._notify(key, value)
+        # Like __getitem__/__delitem__, it resolves aliases first, so writing
+        # through an alias updates the canonical entry instead of shadowing it.
+        canonical = self._aliases.get(key, key)
+        self._values[canonical] = value
+        self._lazy.pop(canonical, None)
+        self._notify(canonical, value)
 
     def __delitem__(self, key: str) -> None:
         canonical = self._aliases.get(key, key)
