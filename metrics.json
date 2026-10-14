@@ -1,7 +1,7 @@
 {
-  "collection_duration_seconds": 3.3144938945770264,
-  "commit_message": "Merge a6ccce83fef692c6857b1df1de90d0fcfcd223d8 into 8d3cdd96de3703ae205589f217dc5c8074ede6b0",
-  "commit_sha": "279180dc247b291fb31199c55292eba817bc7afe",
+  "collection_duration_seconds": 3.433959722518921,
+  "commit_message": "memoize: AtomicFiles only maps a missing file to KeyError; uncopyable results; read legacy paired layout (#3)\n\nCo-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>",
+  "commit_sha": "3bddb98742fef5d2d268439956813a57a311b3a8",
   "metrics": {
     "coverage": {
       "branch_coverage": 0.0,
@@ -11,19 +11,19 @@
       "statements_total": 0
     },
     "umpyre_stats": {
-      "comment_lines": 14705,
-      "comment_lines_ratio": 0.05612424048120668,
-      "docs_lines": 37517,
-      "empty_lines": 33745,
-      "empty_lines_ratio": 0.12879377728924307,
+      "comment_lines": 14707,
+      "comment_lines_ratio": 0.05612480489694361,
+      "docs_lines": 37521,
+      "empty_lines": 33752,
+      "empty_lines_ratio": 0.12880427108734893,
       "files_analyzed": 579,
-      "function_lines": 116011,
-      "function_lines_ratio": 0.4427765564410247,
-      "mean_lines_per_function": 16.689828801611277,
+      "function_lines": 116033,
+      "function_lines_ratio": 0.4428047519281334,
+      "mean_lines_per_function": 16.683393242271748,
       "num_classes": 1667,
-      "num_functions": 6951,
-      "pypi_version": "0.1.15",
-      "total_lines": 262008
+      "num_functions": 6955,
+      "pypi_version": "0.1.14",
+      "total_lines": 262041
     },
     "wily": {
       "cyclomatic_avg": 0.0,
@@ -34,14 +34,14 @@
     },
     "workflow_status": {
       "last_run_status": "success",
-      "last_success_timestamp": "2026-10-14T00:48:54Z",
+      "last_success_timestamp": "2026-10-14T00:52:42Z",
       "recent_failure_count": 0,
-      "run_url": "https://github.com/i2mint/xdol/actions/runs/38492239191",
+      "run_url": "https://github.com/i2mint/xdol/actions/runs/38492509851",
       "total_runs_analyzed": 10
     }
   },
   "python_version": "3.10",
   "schema_version": "1.0",
-  "timestamp": "2026-10-14T00:52:38.164797Z",
+  "timestamp": "2026-10-14T00:56:07.128935Z",
   "workflow_status": {}
 }
