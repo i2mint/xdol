@@ -1,21 +1,23 @@
 metric,value
 schema_version,1.0
-timestamp,2026-10-14T01:03:11.614904Z
-commit_sha,867b75c089a48ca43fa3e36c3b6c85faef93c7c0
-commit_message,Merge 5d3d4e06f99c29d3dd7d57df05de35ef93174e64 into 9c29114a011f37bfa4c6275fc81030702b6bbe3d
+timestamp,2026-10-14T01:03:14.662655Z
+commit_sha,5d3d4e06f99c29d3dd7d57df05de35ef93174e64
+commit_message,"Docs + S3 replay test for the persistent memoizer (#3)
+
+Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>"
 python_version,3.10
-metrics.umpyre_stats.num_functions,6955
-metrics.umpyre_stats.num_classes,1667
-metrics.umpyre_stats.total_lines,262047
-metrics.umpyre_stats.empty_lines,33752
-metrics.umpyre_stats.comment_lines,14709
-metrics.umpyre_stats.docs_lines,37521
-metrics.umpyre_stats.function_lines,116038
-metrics.umpyre_stats.empty_lines_ratio,0.1288013219002698
-metrics.umpyre_stats.comment_lines_ratio,0.05613115204524379
-metrics.umpyre_stats.function_lines_ratio,0.4428136937266979
-metrics.umpyre_stats.mean_lines_per_function,16.68411214953271
-metrics.umpyre_stats.files_analyzed,579
+metrics.umpyre_stats.num_functions,6859
+metrics.umpyre_stats.num_classes,1656
+metrics.umpyre_stats.total_lines,259888
+metrics.umpyre_stats.empty_lines,33419
+metrics.umpyre_stats.comment_lines,14563
+metrics.umpyre_stats.docs_lines,37488
+metrics.umpyre_stats.function_lines,114479
+metrics.umpyre_stats.empty_lines_ratio,0.12859000800344764
+metrics.umpyre_stats.comment_lines_ratio,0.056035676906975314
+metrics.umpyre_stats.function_lines_ratio,0.4404935972418888
+metrics.umpyre_stats.mean_lines_per_function,16.690333867910773
+metrics.umpyre_stats.files_analyzed,569
 metrics.umpyre_stats.pypi_version,0.1.16
 metrics.workflow_status.last_run_status,success
 metrics.workflow_status.last_success_timestamp,2026-10-14T01:02:01Z
@@ -33,4 +35,4 @@ metrics.coverage.branch_coverage,0.0
 metrics.coverage.statements_covered,0
 metrics.coverage.statements_total,0
 metrics.coverage.error,No coverage file found
-collection_duration_seconds,2.256361484527588
+collection_duration_seconds,3.46352219581604
