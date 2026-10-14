@@ -56,6 +56,20 @@ xdol.registry.RegistryConflict: 'k' is already registered in <Registry>
 >>> r2["k"]
 1
 
+Plain assignment replaces; opt in to ``strict_setitem`` to make it honour the policy:
+
+>>> loose = Registry()
+>>> loose["k"] = 1
+>>> loose["k"] = 2  # explicit assignment replaces
+>>> loose["k"]
+2
+>>> strict = Registry(strict_setitem=True)
+>>> strict["k"] = 1
+>>> strict["k"] = 2
+Traceback (most recent call last):
+    ...
+xdol.registry.RegistryConflict: 'k' is already registered in <Registry>
+
 Lazy loading — value is built on first access:
 
 >>> calls = []
@@ -142,14 +156,31 @@ class Registry(MutableMapping, Generic[V]):
         ``'error'`` (default) raises :class:`RegistryConflict` when registering
         a key that already exists. ``'replace'`` silently overwrites.
         ``'keep'`` silently keeps the original.
+    strict_setitem:
+        Opt-in (default ``False``). By default ``reg[k] = v`` is an explicit
+        assignment that replaces whatever is there, bypassing ``on_conflict``.
+        With ``strict_setitem=True`` it follows the ``on_conflict`` policy exactly
+        like :meth:`register` (so ``MutableMapping.update`` and ``setdefault``
+        do too).
+
+    Keys that are aliases resolve to their canonical key everywhere (reading,
+    ``reg[k] = v``, :meth:`register`, :meth:`register_lazy`), so the ``on_conflict``
+    policy always applies to the canonical entry.
 
     Implements ``MutableMapping`` so anything that takes a mapping (``dict(...)``,
     iteration, length checks, ``in`` lookups, ``.items()``) just works.
     """
 
-    def __init__(self, *, name: str = "", on_conflict: OnConflict = "error"):
+    def __init__(
+        self,
+        *,
+        name: str = "",
+        on_conflict: OnConflict = "error",
+        strict_setitem: bool = False,
+    ):
         self._name = name
         self._on_conflict: OnConflict = on_conflict
+        self._strict_setitem = strict_setitem
         self._values: dict[str, V] = {}
         self._aliases: dict[str, str] = {}  # alias -> canonical key
         self._lazy: dict[str, Callable[[], V]] = {}
@@ -170,9 +201,13 @@ class Registry(MutableMapping, Generic[V]):
         raise RegistryMissing(f"{key!r} is not registered in {self!r}")
 
     def __setitem__(self, key: str, value: V) -> None:
-        # Setitem bypasses on_conflict ("replace" semantics) — explicit assignment.
+        # By default setitem bypasses on_conflict ("replace" semantics) — explicit
+        # assignment; with ``strict_setitem=True`` it follows the policy like register().
         # Like __getitem__/__delitem__, it resolves aliases first, so writing
         # through an alias updates the canonical entry instead of shadowing it.
+        if self._strict_setitem:
+            self.register(key, value)
+            return
         canonical = self._aliases.get(key, key)
         self._values[canonical] = value
         self._lazy.pop(canonical, None)
@@ -214,12 +249,15 @@ class Registry(MutableMapping, Generic[V]):
     # -- registration --------------------------------------------------------
 
     def register(self, key: str, value: V, *, tags: tuple[str, ...] = ()) -> V:
-        """Register ``value`` under ``key``. Returns ``value`` so it can be used inline."""
+        """Register ``value`` under ``key``. Returns ``value`` so it can be used inline.
+
+        If ``key`` is an alias, it is resolved to its canonical key first, so the
+        ``on_conflict`` policy applies to that entry (no unreachable shadow entry).
+        """
+        key = self._conflict_free_key(key)
         if key in self._values or key in self._lazy:
-            if self._on_conflict == "error":
-                raise RegistryConflict(f"{key!r} is already registered in {self!r}")
             if self._on_conflict == "keep":
-                return self._values.get(key) or self._lazy[key]()
+                return self[key]
             # on_conflict == "replace" falls through
         self._values[key] = value
         self._lazy.pop(key, None)
@@ -228,16 +266,28 @@ class Registry(MutableMapping, Generic[V]):
         self._notify(key, value)
         return value
 
+    def _conflict_free_key(self, key: str) -> str:
+        """Resolve ``key`` through aliases; raise if the policy is ``'error'`` and it is taken."""
+        canonical = self._aliases.get(key, key)
+        if (
+            canonical in self._values or canonical in self._lazy
+        ) and self._on_conflict == "error":
+            via = "" if canonical == key else f" (as {key!r}, an alias)"
+            raise RegistryConflict(
+                f"{canonical!r} is already registered in {self!r}{via}"
+            )
+        return canonical
+
     def register_lazy(
         self, key: str, loader: Callable[[], V], *, tags: tuple[str, ...] = ()
     ) -> None:
         """Register a no-arg ``loader`` callable; value is built on first ``__getitem__``.
 
         Once built, the result replaces the loader and is cached.
+        Alias keys resolve to their canonical key, as in :meth:`register`.
         """
+        key = self._conflict_free_key(key)
         if key in self._values or key in self._lazy:
-            if self._on_conflict == "error":
-                raise RegistryConflict(f"{key!r} is already registered in {self!r}")
             if self._on_conflict == "keep":
                 return
         self._lazy[key] = loader
