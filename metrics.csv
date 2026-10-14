@@ -1,10 +1,8 @@
 metric,value
 schema_version,1.0
-timestamp,2026-10-14T01:02:43.931190Z
-commit_sha,9c29114a011f37bfa4c6275fc81030702b6bbe3d
-commit_message,"tests: don't assume '/' as the key separator on Windows (#3) (#11)
-
-Co-authored-by: Claude Sonnet 5.5 <noreply@anthropic.com>"
+timestamp,2026-10-14T01:03:11.614904Z
+commit_sha,867b75c089a48ca43fa3e36c3b6c85faef93c7c0
+commit_message,Merge 5d3d4e06f99c29d3dd7d57df05de35ef93174e64 into 9c29114a011f37bfa4c6275fc81030702b6bbe3d
 python_version,3.10
 metrics.umpyre_stats.num_functions,6955
 metrics.umpyre_stats.num_classes,1667
@@ -28,14 +26,11 @@ metrics.wily.cyclomatic_avg,0.0
 metrics.wily.maintainability_index,0.0
 metrics.wily.total_loc,0
 metrics.wily.files_analyzed,0
-metrics.wily.error,"wily report failed: Usage: wily report [OPTIONS] FILE [METRICS]...
-Try 'wily report --help' for help.
-
-Error: Invalid value for '-f' / '--format': 'json' is not one of 'CONSOLE', 'HTML'.
+metrics.wily.error,"wily build failed: [31mFailed to setup archiver: 'Dirty repository, make sure you commit/stash files first'[0m
 "
 metrics.coverage.line_coverage,0.0
 metrics.coverage.branch_coverage,0.0
 metrics.coverage.statements_covered,0
 metrics.coverage.statements_total,0
 metrics.coverage.error,No coverage file found
-collection_duration_seconds,4.12077784538269
+collection_duration_seconds,2.256361484527588
