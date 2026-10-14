@@ -1,0 +1,47 @@
+{
+  "collection_duration_seconds": 3.1843063831329346,
+  "commit_message": "Docs + S3 replay test for the persistent memoizer (#3)\n\nCo-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>",
+  "commit_sha": "5d3d4e06f99c29d3dd7d57df05de35ef93174e64",
+  "metrics": {
+    "coverage": {
+      "branch_coverage": 0.0,
+      "error": "No coverage file found",
+      "line_coverage": 0.0,
+      "statements_covered": 0,
+      "statements_total": 0
+    },
+    "umpyre_stats": {
+      "comment_lines": 14709,
+      "comment_lines_ratio": 0.05613115204524379,
+      "docs_lines": 37521,
+      "empty_lines": 33752,
+      "empty_lines_ratio": 0.1288013219002698,
+      "files_analyzed": 579,
+      "function_lines": 116038,
+      "function_lines_ratio": 0.4428136937266979,
+      "mean_lines_per_function": 16.68411214953271,
+      "num_classes": 1667,
+      "num_functions": 6955,
+      "pypi_version": "0.1.16",
+      "total_lines": 262047
+    },
+    "wily": {
+      "cyclomatic_avg": 0.0,
+      "error": "wily build failed: \u001b[31mFailed to setup archiver: 'Dirty repository, make sure you commit/stash files first'\u001b[0m\n",
+      "files_analyzed": 0,
+      "maintainability_index": 0.0,
+      "total_loc": 0
+    },
+    "workflow_status": {
+      "last_run_status": "success",
+      "last_success_timestamp": "2026-10-14T01:02:01Z",
+      "recent_failure_count": 0,
+      "run_url": "https://github.com/i2mint/xdol/actions/runs/38493431473",
+      "total_runs_analyzed": 10
+    }
+  },
+  "python_version": "3.10",
+  "schema_version": "1.0",
+  "timestamp": "2026-10-14T01:03:18.965551Z",
+  "workflow_status": {}
+}
