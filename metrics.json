@@ -1,7 +1,7 @@
 {
-  "collection_duration_seconds": 3.6359024047851562,
-  "commit_message": "keys: lossless pandas/numpy, bound builtins, mocks; reject overlapping suffixes (#3)\n\nCo-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>",
-  "commit_sha": "82557c8f1389c7fbd582d826a9c2e873ea718470",
+  "collection_duration_seconds": 3.2455556392669678,
+  "commit_message": "Merge 82557c8f1389c7fbd582d826a9c2e873ea718470 into b4e13c5ec62614944871c322473e9ec49815fd8c",
+  "commit_sha": "cac9eb833e1026f81fef3426f015af753ab8021d",
   "metrics": {
     "coverage": {
       "branch_coverage": 0.0,
@@ -42,6 +42,6 @@
   },
   "python_version": "3.10",
   "schema_version": "1.0",
-  "timestamp": "2026-10-14T00:44:16.623456Z",
+  "timestamp": "2026-10-14T00:44:23.894963Z",
   "workflow_status": {}
 }
