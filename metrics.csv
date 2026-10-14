@@ -1,51 +1,38 @@
 metric,value
 schema_version,1.0
-timestamp,2026-10-14T00:12:51.800563Z
-commit_sha,4f264a78d74cb8dea6077670ff9ee6974dba94e3
-commit_message,"Registry: opt-in strict_setitem; register() resolves aliases (#6) (#8)
+timestamp,2026-10-14T00:37:15.793710Z
+commit_sha,80f1947d28b8377bb3e36cb76fbfc4b53074f69e
+commit_message,"Add xdol.keys (stable robust cache keys) and codecs + paired .json/.bin store (#3)
 
-* feat(registry): opt-in strict_setitem; register()/register_lazy() resolve aliases (#6)
-
-Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>
-
-* fix(registry): review hardening (class-level default, keep skips lazy loader) (#6)
-
-Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>
-
----------
-
-Co-authored-by: Claude Sonnet 5.5 <noreply@anthropic.com>"
+Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>"
 python_version,3.10
-metrics.umpyre_stats.num_functions,6806
-metrics.umpyre_stats.num_classes,1648
-metrics.umpyre_stats.total_lines,258846
-metrics.umpyre_stats.empty_lines,33233
-metrics.umpyre_stats.comment_lines,14531
-metrics.umpyre_stats.docs_lines,37291
-metrics.umpyre_stats.function_lines,113623
-metrics.umpyre_stats.empty_lines_ratio,0.12838908076616984
-metrics.umpyre_stats.comment_lines_ratio,0.05613762623335883
-metrics.umpyre_stats.function_lines_ratio,0.43895984484983347
-metrics.umpyre_stats.mean_lines_per_function,16.69453423449897
-metrics.umpyre_stats.files_analyzed,567
-metrics.umpyre_stats.pypi_version,0.1.13
+metrics.umpyre_stats.num_functions,6921
+metrics.umpyre_stats.num_classes,1662
+metrics.umpyre_stats.total_lines,261434
+metrics.umpyre_stats.empty_lines,33643
+metrics.umpyre_stats.comment_lines,14689
+metrics.umpyre_stats.docs_lines,37414
+metrics.umpyre_stats.function_lines,115450
+metrics.umpyre_stats.empty_lines_ratio,0.12868639886166297
+metrics.umpyre_stats.comment_lines_ratio,0.05618626498466152
+metrics.umpyre_stats.function_lines_ratio,0.4416028519626368
+metrics.umpyre_stats.mean_lines_per_function,16.681115445744833
+metrics.umpyre_stats.files_analyzed,578
+metrics.umpyre_stats.pypi_version,0.1.14
 metrics.workflow_status.last_run_status,success
-metrics.workflow_status.last_success_timestamp,2026-10-14T00:11:39Z
+metrics.workflow_status.last_success_timestamp,2026-10-14T00:13:53Z
 metrics.workflow_status.recent_failure_count,0
-metrics.workflow_status.run_url,https://github.com/i2mint/xdol/actions/runs/38488624825
+metrics.workflow_status.run_url,https://github.com/i2mint/xdol/actions/runs/38488914822
 metrics.workflow_status.total_runs_analyzed,10
 metrics.wily.cyclomatic_avg,0.0
 metrics.wily.maintainability_index,0.0
 metrics.wily.total_loc,0
 metrics.wily.files_analyzed,0
-metrics.wily.error,"wily report failed: Usage: wily report [OPTIONS] FILE [METRICS]...
-Try 'wily report --help' for help.
-
-Error: Invalid value for '-f' / '--format': 'json' is not one of 'CONSOLE', 'HTML'.
+metrics.wily.error,"wily build failed: [31mFailed to setup archiver: 'Dirty repository, make sure you commit/stash files first'[0m
 "
 metrics.coverage.line_coverage,0.0
 metrics.coverage.branch_coverage,0.0
 metrics.coverage.statements_covered,0
 metrics.coverage.statements_total,0
 metrics.coverage.error,No coverage file found
-collection_duration_seconds,2.982037305831909
+collection_duration_seconds,3.0714833736419678
