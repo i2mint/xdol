@@ -1,7 +1,7 @@
 {
-  "collection_duration_seconds": 3.433959722518921,
-  "commit_message": "memoize: AtomicFiles only maps a missing file to KeyError; uncopyable results; read legacy paired layout (#3)\n\nCo-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>",
-  "commit_sha": "3bddb98742fef5d2d268439956813a57a311b3a8",
+  "collection_duration_seconds": 3.226166248321533,
+  "commit_message": "Merge 3bddb98742fef5d2d268439956813a57a311b3a8 into 8d3cdd96de3703ae205589f217dc5c8074ede6b0",
+  "commit_sha": "0a14ee678c016d38087ab954dcc8bc8c9293772b",
   "metrics": {
     "coverage": {
       "branch_coverage": 0.0,
@@ -11,19 +11,19 @@
       "statements_total": 0
     },
     "umpyre_stats": {
-      "comment_lines": 14707,
-      "comment_lines_ratio": 0.05612480489694361,
-      "docs_lines": 37521,
-      "empty_lines": 33752,
-      "empty_lines_ratio": 0.12880427108734893,
-      "files_analyzed": 579,
-      "function_lines": 116033,
-      "function_lines_ratio": 0.4428047519281334,
-      "mean_lines_per_function": 16.683393242271748,
-      "num_classes": 1667,
-      "num_functions": 6955,
-      "pypi_version": "0.1.14",
-      "total_lines": 262041
+      "comment_lines": 14561,
+      "comment_lines_ratio": 0.056029274824728144,
+      "docs_lines": 37488,
+      "empty_lines": 33419,
+      "empty_lines_ratio": 0.12859297681255338,
+      "files_analyzed": 569,
+      "function_lines": 114474,
+      "function_lines_ratio": 0.4404845275932923,
+      "mean_lines_per_function": 16.689604898673277,
+      "num_classes": 1656,
+      "num_functions": 6859,
+      "pypi_version": "0.1.15",
+      "total_lines": 259882
     },
     "wily": {
       "cyclomatic_avg": 0.0,
@@ -42,6 +42,6 @@
   },
   "python_version": "3.10",
   "schema_version": "1.0",
-  "timestamp": "2026-10-14T00:56:07.128935Z",
+  "timestamp": "2026-10-14T00:56:12.990187Z",
   "workflow_status": {}
 }
