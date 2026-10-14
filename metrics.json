@@ -1,5 +1,5 @@
 {
-  "collection_duration_seconds": 3.2208120822906494,
+  "collection_duration_seconds": 3.2188756465911865,
   "commit_message": "keys/codecs: fix adversarial-review findings (dict-key stability and collisions, crash-safe overwrite, bytes-only codec, lambdas/methods/pandas, suffix validation) (#3)\n\nCo-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>",
   "commit_sha": "e4ed61ebcabd69e5bc01a1d29e2c47f9a7bcf82f",
   "metrics": {
@@ -11,19 +11,19 @@
       "statements_total": 0
     },
     "umpyre_stats": {
-      "comment_lines": 14693,
-      "comment_lines_ratio": 0.05618329834543571,
-      "docs_lines": 37423,
-      "empty_lines": 33655,
-      "empty_lines_ratio": 0.1286904584370543,
-      "files_analyzed": 578,
-      "function_lines": 115537,
-      "function_lines_ratio": 0.44179199216882903,
-      "mean_lines_per_function": 16.681634421022235,
-      "num_classes": 1662,
-      "num_functions": 6926,
+      "comment_lines": 14547,
+      "comment_lines_ratio": 0.05608806292412091,
+      "docs_lines": 37390,
+      "empty_lines": 33322,
+      "empty_lines_ratio": 0.12847779148673658,
+      "files_analyzed": 568,
+      "function_lines": 113978,
+      "function_lines_ratio": 0.4394586674892042,
+      "mean_lines_per_function": 16.687847730600293,
+      "num_classes": 1651,
+      "num_functions": 6830,
       "pypi_version": "0.1.14",
-      "total_lines": 261519
+      "total_lines": 259360
     },
     "wily": {
       "cyclomatic_avg": 0.0,
@@ -34,14 +34,14 @@
     },
     "workflow_status": {
       "last_run_status": "success",
-      "last_success_timestamp": "2026-10-14T00:37:42Z",
+      "last_success_timestamp": "2026-10-14T00:40:34Z",
       "recent_failure_count": 0,
-      "run_url": "https://github.com/i2mint/xdol/actions/runs/38491136587",
+      "run_url": "https://github.com/i2mint/xdol/actions/runs/38491413380",
       "total_runs_analyzed": 10
     }
   },
   "python_version": "3.10",
   "schema_version": "1.0",
-  "timestamp": "2026-10-14T00:40:27.568366Z",
+  "timestamp": "2026-10-14T00:40:37.373463Z",
   "workflow_status": {}
 }

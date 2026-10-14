@@ -1,28 +1,28 @@
 metric,value
 schema_version,1.0
-timestamp,2026-10-14T00:40:27.568366Z
+timestamp,2026-10-14T00:40:37.373463Z
 commit_sha,e4ed61ebcabd69e5bc01a1d29e2c47f9a7bcf82f
 commit_message,"keys/codecs: fix adversarial-review findings (dict-key stability and collisions, crash-safe overwrite, bytes-only codec, lambdas/methods/pandas, suffix validation) (#3)
 
 Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>"
 python_version,3.10
-metrics.umpyre_stats.num_functions,6926
-metrics.umpyre_stats.num_classes,1662
-metrics.umpyre_stats.total_lines,261519
-metrics.umpyre_stats.empty_lines,33655
-metrics.umpyre_stats.comment_lines,14693
-metrics.umpyre_stats.docs_lines,37423
-metrics.umpyre_stats.function_lines,115537
-metrics.umpyre_stats.empty_lines_ratio,0.1286904584370543
-metrics.umpyre_stats.comment_lines_ratio,0.05618329834543571
-metrics.umpyre_stats.function_lines_ratio,0.44179199216882903
-metrics.umpyre_stats.mean_lines_per_function,16.681634421022235
-metrics.umpyre_stats.files_analyzed,578
+metrics.umpyre_stats.num_functions,6830
+metrics.umpyre_stats.num_classes,1651
+metrics.umpyre_stats.total_lines,259360
+metrics.umpyre_stats.empty_lines,33322
+metrics.umpyre_stats.comment_lines,14547
+metrics.umpyre_stats.docs_lines,37390
+metrics.umpyre_stats.function_lines,113978
+metrics.umpyre_stats.empty_lines_ratio,0.12847779148673658
+metrics.umpyre_stats.comment_lines_ratio,0.05608806292412091
+metrics.umpyre_stats.function_lines_ratio,0.4394586674892042
+metrics.umpyre_stats.mean_lines_per_function,16.687847730600293
+metrics.umpyre_stats.files_analyzed,568
 metrics.umpyre_stats.pypi_version,0.1.14
 metrics.workflow_status.last_run_status,success
-metrics.workflow_status.last_success_timestamp,2026-10-14T00:37:42Z
+metrics.workflow_status.last_success_timestamp,2026-10-14T00:40:34Z
 metrics.workflow_status.recent_failure_count,0
-metrics.workflow_status.run_url,https://github.com/i2mint/xdol/actions/runs/38491136587
+metrics.workflow_status.run_url,https://github.com/i2mint/xdol/actions/runs/38491413380
 metrics.workflow_status.total_runs_analyzed,10
 metrics.wily.cyclomatic_avg,0.0
 metrics.wily.maintainability_index,0.0
@@ -35,4 +35,4 @@ metrics.coverage.branch_coverage,0.0
 metrics.coverage.statements_covered,0
 metrics.coverage.statements_total,0
 metrics.coverage.error,No coverage file found
-collection_duration_seconds,3.2208120822906494
+collection_duration_seconds,3.2188756465911865
