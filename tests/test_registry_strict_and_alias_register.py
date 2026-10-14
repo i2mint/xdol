@@ -104,3 +104,19 @@ def test_keep_policy_returns_falsy_and_lazy_existing_values():
     assert reg.register("zero", 5) == 0
     reg.register_lazy("lz", lambda: "built")
     assert reg.register("lz", "other") == "built"
+
+
+def test_strict_keep_does_not_run_lazy_loader():
+    calls = []
+    reg = Registry(on_conflict="keep", strict_setitem=True)
+    reg.register_lazy("lz", lambda: calls.append(1) or "built")
+    reg["lz"] = "other"
+    assert calls == [] and reg["lz"] == "built"
+
+
+def test_setitem_works_without_init_state():
+    reg = Registry.__new__(Registry)
+    reg.__dict__.update(Registry().__dict__)
+    del reg.__dict__["_strict_setitem"]
+    reg["k"] = 1
+    assert reg["k"] == 1

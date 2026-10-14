@@ -161,7 +161,7 @@ class Registry(MutableMapping, Generic[V]):
         assignment that replaces whatever is there, bypassing ``on_conflict``.
         With ``strict_setitem=True`` it follows the ``on_conflict`` policy exactly
         like :meth:`register` (so ``MutableMapping.update`` and ``setdefault``
-        do too).
+        do too; note ``update`` is not atomic: entries before the first conflict stay).
 
     Keys that are aliases resolve to their canonical key everywhere (reading,
     ``reg[k] = v``, :meth:`register`, :meth:`register_lazy`), so the ``on_conflict``
@@ -170,6 +170,8 @@ class Registry(MutableMapping, Generic[V]):
     Implements ``MutableMapping`` so anything that takes a mapping (``dict(...)``,
     iteration, length checks, ``in`` lookups, ``.items()``) just works.
     """
+
+    _strict_setitem = False  # class-level default: instances built without __init__
 
     def __init__(
         self,
@@ -206,7 +208,12 @@ class Registry(MutableMapping, Generic[V]):
         # Like __getitem__/__delitem__, it resolves aliases first, so writing
         # through an alias updates the canonical entry instead of shadowing it.
         if self._strict_setitem:
-            self.register(key, value)
+            canonical = self._conflict_free_key(key)  # raises under 'error'
+            if self._on_conflict == "keep" and (
+                canonical in self._values or canonical in self._lazy
+            ):
+                return  # keep the original; don't run a lazy loader for nothing
+            self.register(canonical, value)
             return
         canonical = self._aliases.get(key, key)
         self._values[canonical] = value
