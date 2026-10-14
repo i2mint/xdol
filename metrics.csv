@@ -1,8 +1,10 @@
 metric,value
 schema_version,1.0
-timestamp,2026-10-14T00:52:26.943196Z
-commit_sha,279180dc247b291fb31199c55292eba817bc7afe
-commit_message,Merge a6ccce83fef692c6857b1df1de90d0fcfcd223d8 into 8d3cdd96de3703ae205589f217dc5c8074ede6b0
+timestamp,2026-10-14T00:52:29.415072Z
+commit_sha,a6ccce83fef692c6857b1df1de90d0fcfcd223d8
+commit_message,"memoize: review fixes (store failures never cost a call, record==replay, no aliasing, torn-pair detection, root-escape guard, coroutine results)  (#3)
+
+Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>"
 python_version,3.10
 metrics.umpyre_stats.num_functions,6855
 metrics.umpyre_stats.num_classes,1656
@@ -16,7 +18,7 @@ metrics.umpyre_stats.comment_lines_ratio,0.05602869358742962
 metrics.umpyre_stats.function_lines_ratio,0.44045580317799954
 metrics.umpyre_stats.mean_lines_per_function,16.696134208606857
 metrics.umpyre_stats.files_analyzed,569
-metrics.umpyre_stats.pypi_version,0.1.15
+metrics.umpyre_stats.pypi_version,0.1.14
 metrics.workflow_status.last_run_status,success
 metrics.workflow_status.last_success_timestamp,2026-10-14T00:48:54Z
 metrics.workflow_status.recent_failure_count,0
@@ -33,4 +35,4 @@ metrics.coverage.branch_coverage,0.0
 metrics.coverage.statements_covered,0
 metrics.coverage.statements_total,0
 metrics.coverage.error,No coverage file found
-collection_duration_seconds,3.1051077842712402
+collection_duration_seconds,3.2073686122894287

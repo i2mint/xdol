@@ -1,7 +1,7 @@
 {
-  "collection_duration_seconds": 3.1051077842712402,
-  "commit_message": "Merge a6ccce83fef692c6857b1df1de90d0fcfcd223d8 into 8d3cdd96de3703ae205589f217dc5c8074ede6b0",
-  "commit_sha": "279180dc247b291fb31199c55292eba817bc7afe",
+  "collection_duration_seconds": 3.2073686122894287,
+  "commit_message": "memoize: review fixes (store failures never cost a call, record==replay, no aliasing, torn-pair detection, root-escape guard, coroutine results)  (#3)\n\nCo-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>",
+  "commit_sha": "a6ccce83fef692c6857b1df1de90d0fcfcd223d8",
   "metrics": {
     "coverage": {
       "branch_coverage": 0.0,
@@ -22,7 +22,7 @@
       "mean_lines_per_function": 16.696134208606857,
       "num_classes": 1656,
       "num_functions": 6855,
-      "pypi_version": "0.1.15",
+      "pypi_version": "0.1.14",
       "total_lines": 259849
     },
     "wily": {
@@ -42,6 +42,6 @@
   },
   "python_version": "3.10",
   "schema_version": "1.0",
-  "timestamp": "2026-10-14T00:52:26.943196Z",
+  "timestamp": "2026-10-14T00:52:29.415072Z",
   "workflow_status": {}
 }
