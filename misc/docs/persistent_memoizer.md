@@ -8,13 +8,18 @@
 from pathlib import Path
 from xdol import memoize_calls
 
-CASSETTES = Path(__file__).parent / "cassettes"   # anchored: see "Where the folder is" below
+CASSETTES = (
+    Path(__file__).parent / "cassettes"
+)  # anchored: see "Where the folder is" below
 
-@memoize_calls(store=CASSETTES)                # a stable folder you commit
-def plan_video(prompt: str, *, logger=None) -> dict:
-    ...  # calls an LLM, then an image API, then downloads the asset
 
-plan_video("a cat on a skateboard")            # replay-only by default: a miss raises CacheMiss
+@memoize_calls(store=CASSETTES)  # a stable folder you commit
+def plan_video(
+    prompt: str, *, logger=None
+) -> dict: ...  # calls an LLM, then an image API, then downloads the asset
+
+
+plan_video("a cat on a skateboard")  # replay-only by default: a miss raises CacheMiss
 ```
 
 Where the folder is: a relative path such as `"tests/cassettes"` is resolved against the working directory *when the function is decorated* (import time). Running pytest from another directory then looks in, and in record mode creates, a different folder. Anchor it on `__file__` as above.
@@ -54,7 +59,10 @@ Results are returned exactly as replay would return them, also on the recording 
 ```python
 import s3dol
 
-store = s3dol.s3_store("my-ci-cassettes", prefix="myproj/")   # MutableMapping[str, bytes]
+store = s3dol.s3_store(
+    "my-ci-cassettes", prefix="myproj/"
+)  # MutableMapping[str, bytes]
+
 
 @memoize_calls(store=store, codec="json")
 def plan_video(prompt): ...
@@ -70,13 +78,20 @@ A store failure (network down, access denied, an archived object) is never mista
 # conftest.py
 import os
 
+
 def pytest_addoption(parser):
-    parser.addoption("--record-cassettes", action="store_true",
-                     help="let cache misses call the real (paid) API and record the result")
+    parser.addoption(
+        "--record-cassettes",
+        action="store_true",
+        help="let cache misses call the real (paid) API and record the result",
+    )
+
 
 def pytest_configure(config):
     if config.getoption("--record-cassettes"):
-        os.environ["XDOL_MEMOIZE_RECORD"] = "1"      # read at call time, so this is early enough
+        os.environ["XDOL_MEMOIZE_RECORD"] = (
+            "1"  # read at call time, so this is early enough
+        )
 ```
 
 Then `pytest` replays, and `pytest --record-cassettes` records the misses. In the test module, wrap the real function once (`live_plan = memoize_calls(real_plan, store=CASSETTES, drop=[...])`) and call `live_plan` from the tests.
