@@ -18,4 +18,4 @@ def slow_square(x):
     return {"result": x * x}
 ```
 
-Stable keys (`xdol.keys`), text / JSON / binary / paired `.json`+`.bin` codecs, any `MutableMapping` as the store (a folder, S3), spend-safe replay by default. See [docs/persistent_memoizer.md](docs/persistent_memoizer.md).
+Stable keys (`xdol.keys`), text / JSON / binary / paired `.json`+`.bin` codecs, any `MutableMapping` as the store (a folder, S3), spend-safe replay by default. See [misc/docs/persistent_memoizer.md](docs/persistent_memoizer.md).
