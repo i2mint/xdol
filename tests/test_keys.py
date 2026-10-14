@@ -225,3 +225,43 @@ def test_drop_names_entries_of_var_keyword():
 
     k = make_key_func(h, drop=["logger"])
     assert k(1, logger=print, x=2) == k(1, x=2) != k(1, x=3)
+
+
+# --- regressions from the second review of PR #9 ---
+
+
+def test_pandas_is_lossless():
+    pd = pytest.importorskip("pandas")
+    a = pd.DataFrame({"a": [0.12345678901234]})
+    b = pd.DataFrame({"a": [0.12345678901299]})
+    assert robust_key(a) != robust_key(b) and robust_key(a) == robust_key(a.copy())
+    assert robust_key(pd.Series([0, 1000])) != robust_key(
+        pd.Series(pd.to_datetime([0, 1000], unit="ms"))
+    )
+    assert robust_key(pd.DataFrame({"x": [1]})) != robust_key(pd.DataFrame({"y": [1]}))
+
+
+def test_numpy_arrays_by_content_and_fast():
+    np = pytest.importorskip("numpy")
+    assert robust_key(np.arange(6).reshape(2, 3)) != robust_key(np.arange(6).reshape(3, 2))
+    assert robust_key(np.arange(3)) != robust_key(np.arange(3.0))
+    assert robust_key(np.arange(3)) == robust_key(np.arange(3))
+    assert robust_key(np.array(["a", None], dtype=object)) == robust_key(
+        np.array(["a", None], dtype=object)
+    )
+    robust_key(np.zeros(2_000_000))  # tolist() element-wise would take seconds
+
+
+def test_mocks_are_unstable_not_recursive():
+    from unittest import mock
+
+    with pytest.raises(UnstableKeyError):
+        robust_key(mock.Mock())
+    with pytest.raises(UnstableKeyError):
+        make_key_func(lambda a: a)(mock.MagicMock())
+
+
+def test_builtin_bound_methods_include_their_instance():
+    assert robust_key([1].append) != robust_key([2].append)
+    assert robust_key([1].append) == robust_key([1].append)
+    assert robust_key([].append) != robust_key([0].append)  # falsy instance

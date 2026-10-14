@@ -171,8 +171,16 @@ class PairedStore(MutableMapping):
         meta_suffix: str = ".json",
         asset_suffix: str = ".bin",
     ):
-        if not meta_suffix or not asset_suffix or meta_suffix == asset_suffix:
-            raise ValueError("meta_suffix and asset_suffix must be non-empty and differ")
+        if (
+            not meta_suffix
+            or not asset_suffix
+            or meta_suffix.endswith(asset_suffix)
+            or asset_suffix.endswith(meta_suffix)
+        ):
+            raise ValueError(
+                "meta_suffix and asset_suffix must be non-empty and neither may end "
+                "with the other (the entries of different keys would overlap)"
+            )
         self.store = store
         self.meta_codec = get_codec(meta_codec)
         self.meta_suffix = meta_suffix

@@ -109,3 +109,8 @@ def test_suffixes_are_validated():
         paired_store({}, meta_suffix="")
     with pytest.raises(ValueError):
         paired_store({}, meta_suffix=".x", asset_suffix=".x")
+
+
+def test_overlapping_suffixes_rejected():
+    with pytest.raises(ValueError, match="overlap"):
+        paired_store({}, meta_suffix=".json", asset_suffix=".x.json")

@@ -49,7 +49,7 @@ DFLT_ON_UNSTABLE = "raise"
 UnstablePolicy = Literal["raise", "warn", "ignore"]
 
 #: What Python's default ``object.__repr__`` looks like: tied to a memory address.
-_ADDRESS_REPR = re.compile(r" at 0x[0-9a-fA-F]+")
+_ADDRESS_REPR = re.compile(r" at 0x[0-9a-fA-F]+|<\w*Mock id='\d+'>")
 
 
 class UnstableKeyError(TypeError):
@@ -142,16 +142,17 @@ def normalize(
         fields = {f.name: getattr(obj, f.name) for f in dataclasses.fields(obj)}
         return {"__dataclass__": type(obj).__qualname__, "fields": rec(fields)}
     root = type(obj).__module__.split(".")[0]
-    if root == "pandas" and callable(getattr(obj, "to_json", None)):
-        # Full content, index and columns included (repr truncates large frames).
-        return {"__pandas__": type(obj).__qualname__, "json": obj.to_json(orient="split")}
+    if root == "pandas" and (hasattr(obj, "index") or hasattr(obj, "dtype")):
+        return _normalize_pandas(obj, rec)
     if root == "numpy" and hasattr(obj, "tolist") and hasattr(obj, "dtype"):
-        return {"__array__": str(obj.dtype), "value": rec(obj.tolist())}
-    if callable(getattr(obj, "model_dump", None)):  # pydantic v2, without importing it
+        return _normalize_numpy(obj, rec)
+    # Looked up on the type, so duck-typed mocks (which invent attributes) don't match.
+    if callable(getattr(type(obj), "model_dump", None)):  # pydantic v2
         return {"__model__": type(obj).__qualname__, "fields": rec(obj.model_dump())}
-    if inspect.ismethod(obj):  # a bound method is its function *and* its instance
+    if inspect.isroutine(obj) and _is_bound(obj):
+        # A bound method (Python or builtin) is its function *and* its instance.
         return {
-            "__method__": _callable_name(obj.__func__),
+            "__method__": _callable_name(getattr(obj, "__func__", obj)),
             "self": rec(obj.__self__),
         }
     if inspect.isroutine(obj) or inspect.isclass(obj):
@@ -160,6 +161,44 @@ def normalize(
             _unstable_name(name, on_unstable)
         return {"__callable__": name}
     return _unstable(obj, on_unstable)
+
+
+def _normalize_pandas(obj: Any, rec: Callable) -> dict:
+    """Content digest (lossless, unlike ``to_json``), plus dtypes, columns and shape."""
+    import pandas as pd
+
+    try:
+        digest = _digest_hex(pd.util.hash_pandas_object(obj, index=True).values.tobytes())
+    except TypeError as e:  # unhashable cell values
+        raise UnstableKeyError(f"Cannot hash pandas content: {e}") from e
+    dtypes = obj.dtypes.astype(str).to_dict() if hasattr(obj, "columns") else str(obj.dtype)
+    return {
+        "__pandas__": type(obj).__qualname__,
+        "digest": digest,
+        "shape": list(obj.shape),
+        "dtypes": rec(dtypes),
+        "columns": rec(list(map(str, getattr(obj, "columns", [])))),
+        "names": rec([str(n) for n in getattr(obj.index, "names", [])]),
+    }
+
+
+def _normalize_numpy(obj: Any, rec: Callable) -> dict:
+    """Arrays by dtype, shape and raw bytes digest (fast); object arrays element-wise."""
+    if obj.dtype.kind == "O":  # bytes would be pointers
+        return {"__array__": "object", "value": rec(obj.tolist())}
+    import numpy as np
+
+    raw = np.ascontiguousarray(obj).tobytes()
+    return {
+        "__array__": str(obj.dtype),
+        "shape": list(getattr(obj, "shape", ())),
+        "digest": _digest_hex(raw),
+    }
+
+
+def _is_bound(routine: Any) -> bool:
+    owner = getattr(routine, "__self__", None)
+    return owner is not None and not inspect.ismodule(owner)
 
 
 def _callable_name(obj: Any) -> str:
