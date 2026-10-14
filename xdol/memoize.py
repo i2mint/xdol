@@ -47,6 +47,7 @@ supports coroutine functions. Exceptions raised by the function are never cached
 
 from __future__ import annotations
 
+import copy
 import functools
 import inspect
 import os
@@ -59,7 +60,7 @@ from typing import Any, Literal
 from dol import Files
 
 from xdol.keys import make_key_func, robust_key
-from xdol.x_codecs import get_codec, paired_store, with_codec
+from xdol.x_codecs import CodecDecodeError, get_codec, paired_store, with_codec
 
 Mode = Literal["replay", "record", "refresh", "off"]
 
@@ -78,7 +79,7 @@ TRUTHY_ENV_VALUES = frozenset({"1", "true", "yes", "on"})
 
 #: Errors that mean "this stored entry cannot be decoded" (as opposed to a store/network
 #: failure, which must never be mistaken for a missing entry and cost a real call).
-DFLT_CORRUPT_ERRORS = (ValueError, EOFError)
+DFLT_CORRUPT_ERRORS = (CodecDecodeError,)
 
 
 class CacheMiss(LookupError):
@@ -138,6 +139,13 @@ class AtomicFiles(Files):
         # Cached results are derived data: deleting one should not leave a copy in the trash.
         super().__init__(*args, delete_func=delete_func, **kwargs)
 
+    def _id_of_key(self, key):
+        path = super()._id_of_key(key)
+        root = os.path.abspath(self.rootdir)
+        if os.path.commonpath([root, os.path.abspath(path)]) != root:
+            raise KeyError(f"Key {key!r} points outside the store's root")
+        return path
+
     def __setitem__(self, key, value):
         path = Path(self._id_of_key(key))
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -188,6 +196,17 @@ def _resolve_store(store, codec) -> MutableMapping:
     return _apply_codec(store, codec)
 
 
+def _is_miss(store: MutableMapping, key: str, error: KeyError) -> bool:
+    """Was this ``KeyError`` a plain absent key, rather than a failure shaped like one?
+
+    Some stores raise ``KeyError`` subclasses for failures (an archived object, a missing
+    bucket). A real miss means the store also says the key is not there.
+    """
+    if type(error) is KeyError:
+        return True
+    return key not in store
+
+
 # ---------------------------------------------------------------------------
 # The memoizer
 # ---------------------------------------------------------------------------
@@ -233,6 +252,8 @@ def memoize_calls(
     record_env: str = RECORD_ENV,
     corrupt_errors: tuple[type[BaseException], ...] = DFLT_CORRUPT_ERRORS,
     on_write_error: Literal["raise", "warn"] = "raise",
+    copy_results: bool | None = None,
+    reread_after_write: bool = True,
 ) -> Callable:
     """Persistently memoize ``func`` into ``store`` (record/replay).
 
@@ -257,9 +278,19 @@ def memoize_calls(
         default_mode: what ``mode=None`` means when the environment does not opt in.
             ``"replay"`` (default) makes spending an explicit act.
         record_env: name of the opt-in environment variable.
-        corrupt_errors: exception types raised by reading an entry that mean "undecodable".
-            In replay mode they raise :class:`CacheCorrupt`; when recording, the entry is
-            recomputed and overwritten, with a warning. Any other error propagates.
+        corrupt_errors: exception types raised by reading an entry that mean "undecodable"
+            (default: :class:`xdol.x_codecs.CodecDecodeError`, which the codecs raise;
+            add your own for an object-valued store that can fail to load). In replay
+            mode they raise :class:`CacheCorrupt`; when recording, the entry is recomputed
+            and overwritten, with a warning. Any other error -- a network failure, a
+            misconfigured store -- propagates and never costs a real call.
+        copy_results: deep-copy values read from the store, so callers cannot mutate the
+            cache. ``None`` (default) means: yes when ``store`` is an object-valued
+            mapping used as is (a codec makes a fresh object per read anyway).
+        reread_after_write: after recording, return the value as read back from the store,
+            so a recording run and a replay run return *the same thing* (JSON turns tuples
+            into lists and int keys into strings). Turn off to skip the extra read of a
+            large asset.
         on_write_error: what to do if a fresh result cannot be stored: ``"raise"``
             :class:`CacheWriteError` (carrying the result) or ``"warn"`` and return it.
 
@@ -271,6 +302,8 @@ def memoize_calls(
     if on_write_error not in ("raise", "warn"):
         raise ValueError("on_write_error must be 'raise' or 'warn'")
     cache = _resolve_store(store, codec)
+    if copy_results is None:
+        copy_results = codec is None and not isinstance(store, (str, os.PathLike))
 
     def decorator(f: Callable) -> Callable:
         kf = key_func or (make_key_func(f, drop=drop) if drop else robust_key)
@@ -278,8 +311,11 @@ def memoize_calls(
         def lookup(key: str, mode_now: str):
             """(hit, value). Raises on replay-mode corruption."""
             try:
-                return True, cache[key]
-            except KeyError:
+                value = cache[key]
+                return True, copy.deepcopy(value) if copy_results else value
+            except KeyError as e:
+                if not _is_miss(cache, key, e):
+                    raise
                 return False, None
             except corrupt_errors as e:
                 if mode_now == "replay":
@@ -294,8 +330,14 @@ def memoize_calls(
                 return False, None
 
         def record(key: str, result):
+            if inspect.isawaitable(result) or inspect.isgenerator(result):
+                raise TypeError(
+                    f"{_name(f)!r} returned {type(result).__name__}, which cannot be "
+                    "cached. Memoize the async function itself (not a sync wrapper "
+                    "returning a coroutine), and return a concrete value."
+                )
             try:
-                cache[key] = result
+                cache[key] = copy.deepcopy(result) if copy_results else result
             except Exception as e:
                 msg = (
                     f"{_name(f)!r} ran but its result could not be stored under "
@@ -304,7 +346,17 @@ def memoize_calls(
                 if on_write_error == "raise":
                     raise CacheWriteError(msg, result) from e
                 warnings.warn(msg, stacklevel=3)
+                return result
+            if reread_after_write:
+                try:
+                    return lookup_stored(key)
+                except Exception as e:  # the write succeeded; don't lose the result
+                    warnings.warn(f"Could not re-read {key!r} after writing: {e}")
             return result
+
+        def lookup_stored(key: str):
+            value = cache[key]
+            return copy.deepcopy(value) if copy_results else value
 
         def plan(args, kwargs):
             """-> (mode, key, replayed?, value)"""

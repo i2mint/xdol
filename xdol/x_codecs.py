@@ -24,6 +24,7 @@ persistent memoizer (:mod:`xdol.memoize`):
 """
 
 from collections.abc import Callable, Iterable, Iterator, MutableMapping
+import hashlib
 import json
 from typing import Any, NamedTuple
 from dol import wrap_kvs
@@ -70,6 +71,15 @@ resolve_values_to_bytes.__doc__ = (
 # ---------------------------------------------------------------------------
 # Codecs: object <-> bytes
 # ---------------------------------------------------------------------------
+
+
+class CodecDecodeError(ValueError):
+    """A stored value could not be decoded (corrupt or truncated entry, wrong codec).
+
+    Raised by :func:`with_codec` and :class:`PairedStore` in place of whatever the
+    decoder raised (chained as ``__cause__``), so callers can tell "this entry is
+    undecodable" apart from store, network or configuration failures.
+    """
 
 
 class Codec(NamedTuple):
@@ -142,10 +152,25 @@ def get_codec(codec: "Codec | str | tuple[Callable, Callable]") -> Codec:
     return codec if isinstance(codec, Codec) else Codec(*codec)
 
 
+def _safe_decode(codec: Codec) -> Callable[[bytes], Any]:
+    def decode(data: bytes):
+        try:
+            return codec.decode(data)
+        except Exception as e:
+            raise CodecDecodeError(f"{type(e).__name__}: {e}") from e
+
+    return decode
+
+
 def with_codec(store: MutableMapping, codec="json") -> MutableMapping:
-    """Wrap a bytes ``store`` so its values are objects, encoded/decoded by ``codec``."""
+    """Wrap a bytes ``store`` so its values are objects, encoded/decoded by ``codec``.
+
+    A value that fails to decode raises :class:`CodecDecodeError`.
+    """
     codec = get_codec(codec)
-    return wrap_kvs(store, value_encoder=codec.encode, value_decoder=codec.decode)
+    return wrap_kvs(
+        store, value_encoder=codec.encode, value_decoder=_safe_decode(codec)
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -156,11 +181,13 @@ def with_codec(store: MutableMapping, codec="json") -> MutableMapping:
 class PairedStore(MutableMapping):
     """Values are ``(metadata, asset_bytes)`` pairs, kept as two entries in a bytes store.
 
-    ``store[k] = (meta, blob)`` writes ``k + meta_suffix`` (``meta`` through
-    ``meta_codec``) and ``k + asset_suffix`` (``blob`` verbatim). The metadata entry is
-    written *last* and is what makes a key exist, so a crash mid-write leaves no
-    half-entry that reads back as valid; ``in``/iteration/``len`` only see keys whose
-    both halves are present.
+    ``store[k] = (meta, blob)`` writes ``k + asset_suffix`` (``blob`` verbatim) and
+    ``k + meta_suffix`` (``{"asset_sha256": ..., "meta": meta}`` through ``meta_codec``).
+    The metadata entry is written *last* and is what makes a key exist, so a crash
+    mid-write leaves no half-entry that reads back as valid; ``in``/iteration/``len``
+    only see keys whose both halves are present. The digest guards against two writers
+    of the same key interleaving (A's metadata with B's asset): such a pair raises
+    :class:`CodecDecodeError` on read instead of returning the chimera.
     """
 
     def __init__(
@@ -196,8 +223,17 @@ class PairedStore(MutableMapping):
     def __getitem__(self, key):
         if key not in self:
             raise KeyError(key)
-        meta = self.meta_codec.decode(self.store[key + self.meta_suffix])
-        return meta, self.store[key + self.asset_suffix]
+        envelope = _safe_decode(self.meta_codec)(self.store[key + self.meta_suffix])
+        asset = self.store[key + self.asset_suffix]
+        if (
+            not isinstance(envelope, dict)
+            or envelope.get("asset_sha256") != hashlib.sha256(asset).hexdigest()
+        ):
+            raise CodecDecodeError(
+                f"metadata and asset of {key!r} do not belong together "
+                "(interrupted or concurrent write)"
+            )
+        return envelope["meta"], asset
 
     def __setitem__(self, key, value):
         try:
@@ -208,7 +244,8 @@ class PairedStore(MutableMapping):
                 "A paired store holds (metadata, asset_bytes) pairs; "
                 f"got {type(value).__name__}"
             ) from None
-        encoded_meta = self.meta_codec.encode(meta)  # fail before writing anything
+        envelope = {"asset_sha256": hashlib.sha256(asset).hexdigest(), "meta": meta}
+        encoded_meta = self.meta_codec.encode(envelope)  # fail before writing anything
         if (meta_key := key + self.meta_suffix) in self.store:
             del self.store[meta_key]  # un-commit first: a failed write below must not
             # leave the old metadata paired with the new asset

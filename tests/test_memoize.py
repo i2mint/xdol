@@ -254,3 +254,97 @@ def test_method_needs_drop_self(tmp_path):
         bad(c, 1)
     good = memoize_calls(Client.call, store=tmp_path, mode="record", drop=["self"])
     assert good(c, 1) == good(Client(), 1) == 1 and c.n == 1
+
+
+# --- regressions from the adversarial review of PR #10 ---
+
+
+def test_failures_shaped_like_keyerror_or_valueerror_never_cost_a_call():
+    class Archived(KeyError):
+        pass
+
+    class Misconfigured(ValueError):
+        pass
+
+    class Store(dict):
+        def __getitem__(self, k):
+            raise self.error(k)
+
+        def __contains__(self, k):  # the entry *is* there, just unreadable now
+            return True
+
+    for err in (Archived, Misconfigured):
+        s = Store()
+        s.error = err
+        f = Counter()
+        with pytest.raises(err):
+            memoize_calls(f, store=s, mode="record")(1)
+        with pytest.raises(err):
+            memoize_calls(f, store=s)(1)  # replay: not CacheCorrupt either
+        assert f.n == 0
+
+
+def test_keyerror_subclass_is_a_miss_when_the_store_agrees():
+    class NotFound(KeyError):
+        pass
+
+    class Store(dict):
+        def __getitem__(self, k):
+            if k not in self.keys():
+                raise NotFound(k)
+            return super().__getitem__(k)
+
+    f = Counter()
+    m = memoize_calls(f, store=Store(), mode="record")
+    assert m(1) == m(1) and f.n == 1
+
+
+def test_record_returns_what_replay_returns(tmp_path):
+    f = lambda: (1, {1: "a"})  # noqa: E731
+    rec = memoize_calls(f, store=tmp_path, mode="record")()
+    rep = memoize_calls(f, store=tmp_path)()
+    assert rec == rep == [1, {"1": "a"}]
+    raw = memoize_calls(f, store=tmp_path / "x", mode="record", reread_after_write=False)()
+    assert raw == (1, {1: "a"})
+
+
+def test_object_mapping_store_does_not_alias_results():
+    cache = {}
+    m = memoize_calls(lambda x: {"v": [x]}, store=cache, mode="record")
+    r = m(1)
+    r["v"].append("MUTATED")
+    m(1)["v"].append("MUTATED2")
+    assert m(1) == {"v": [1]}
+
+
+@pytest.mark.filterwarnings("ignore::RuntimeWarning")
+def test_sync_function_returning_a_coroutine_is_rejected(tmp_path):
+    async def inner():
+        return 1
+
+    def outer():
+        return inner()
+
+    m = memoize_calls(outer, store=tmp_path, mode="record")
+    with pytest.raises(TypeError, match="cannot be cached"):
+        m()
+
+
+def test_atomic_files_cannot_escape_root(tmp_path):
+    root = tmp_path / "root"
+    store = AtomicFiles(str(root))
+    root.mkdir(exist_ok=True)
+    with pytest.raises(KeyError, match="outside"):
+        store["../escaped"] = b"x"
+    assert not (tmp_path / "escaped").exists()
+    store["ok/inside"] = b"y"
+    assert store["ok/inside"] == b"y"
+
+
+def test_corrupt_paired_entry_is_corrupt_not_a_chimera(tmp_path):
+    f = lambda: ({"seed": "A"}, b"asset-A")  # noqa: E731
+    memoize_calls(f, store=tmp_path, codec="paired", mode="record")()
+    (bin_path,) = [p for p in tmp_path.iterdir() if p.suffix == ".bin"]
+    bin_path.write_bytes(b"asset-B")  # another writer's asset under A's metadata
+    with pytest.raises(CacheCorrupt, match="do not belong together"):
+        memoize_calls(f, store=tmp_path, codec="paired")()
