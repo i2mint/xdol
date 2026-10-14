@@ -1,26 +1,28 @@
 metric,value
 schema_version,1.0
-timestamp,2026-10-14T00:56:16.723626Z
-commit_sha,0a14ee678c016d38087ab954dcc8bc8c9293772b
-commit_message,Merge 3bddb98742fef5d2d268439956813a57a311b3a8 into 8d3cdd96de3703ae205589f217dc5c8074ede6b0
+timestamp,2026-10-14T00:59:08.543718Z
+commit_sha,956663600096f60145042e927e89e517e8ad43e7
+commit_message,"memoize: paired reads surface store failures; EACCES is not absence; pin relative store path (#3)
+
+Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>"
 python_version,3.10
-metrics.umpyre_stats.num_functions,6955
-metrics.umpyre_stats.num_classes,1667
-metrics.umpyre_stats.total_lines,262041
-metrics.umpyre_stats.empty_lines,33752
-metrics.umpyre_stats.comment_lines,14707
-metrics.umpyre_stats.docs_lines,37521
-metrics.umpyre_stats.function_lines,116033
-metrics.umpyre_stats.empty_lines_ratio,0.12880427108734893
-metrics.umpyre_stats.comment_lines_ratio,0.05612480489694361
-metrics.umpyre_stats.function_lines_ratio,0.4428047519281334
-metrics.umpyre_stats.mean_lines_per_function,16.683393242271748
-metrics.umpyre_stats.files_analyzed,579
-metrics.umpyre_stats.pypi_version,0.1.15
+metrics.umpyre_stats.num_functions,6859
+metrics.umpyre_stats.num_classes,1656
+metrics.umpyre_stats.total_lines,259888
+metrics.umpyre_stats.empty_lines,33419
+metrics.umpyre_stats.comment_lines,14563
+metrics.umpyre_stats.docs_lines,37488
+metrics.umpyre_stats.function_lines,114479
+metrics.umpyre_stats.empty_lines_ratio,0.12859000800344764
+metrics.umpyre_stats.comment_lines_ratio,0.056035676906975314
+metrics.umpyre_stats.function_lines_ratio,0.4404935972418888
+metrics.umpyre_stats.mean_lines_per_function,16.690333867910773
+metrics.umpyre_stats.files_analyzed,569
+metrics.umpyre_stats.pypi_version,0.1.14
 metrics.workflow_status.last_run_status,success
-metrics.workflow_status.last_success_timestamp,2026-10-14T00:56:12Z
+metrics.workflow_status.last_success_timestamp,2026-10-14T00:56:21Z
 metrics.workflow_status.recent_failure_count,0
-metrics.workflow_status.run_url,https://github.com/i2mint/xdol/actions/runs/38492839049
+metrics.workflow_status.run_url,https://github.com/i2mint/xdol/actions/runs/38492844605
 metrics.workflow_status.total_runs_analyzed,10
 metrics.wily.cyclomatic_avg,0.0
 metrics.wily.maintainability_index,0.0
@@ -33,4 +35,4 @@ metrics.coverage.branch_coverage,0.0
 metrics.coverage.statements_covered,0
 metrics.coverage.statements_total,0
 metrics.coverage.error,No coverage file found
-collection_duration_seconds,3.1883718967437744
+collection_duration_seconds,3.6895673274993896

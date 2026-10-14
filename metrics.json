@@ -1,7 +1,7 @@
 {
-  "collection_duration_seconds": 3.1883718967437744,
-  "commit_message": "Merge 3bddb98742fef5d2d268439956813a57a311b3a8 into 8d3cdd96de3703ae205589f217dc5c8074ede6b0",
-  "commit_sha": "0a14ee678c016d38087ab954dcc8bc8c9293772b",
+  "collection_duration_seconds": 3.6895673274993896,
+  "commit_message": "memoize: paired reads surface store failures; EACCES is not absence; pin relative store path (#3)\n\nCo-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>",
+  "commit_sha": "956663600096f60145042e927e89e517e8ad43e7",
   "metrics": {
     "coverage": {
       "branch_coverage": 0.0,
@@ -11,19 +11,19 @@
       "statements_total": 0
     },
     "umpyre_stats": {
-      "comment_lines": 14707,
-      "comment_lines_ratio": 0.05612480489694361,
-      "docs_lines": 37521,
-      "empty_lines": 33752,
-      "empty_lines_ratio": 0.12880427108734893,
-      "files_analyzed": 579,
-      "function_lines": 116033,
-      "function_lines_ratio": 0.4428047519281334,
-      "mean_lines_per_function": 16.683393242271748,
-      "num_classes": 1667,
-      "num_functions": 6955,
-      "pypi_version": "0.1.15",
-      "total_lines": 262041
+      "comment_lines": 14563,
+      "comment_lines_ratio": 0.056035676906975314,
+      "docs_lines": 37488,
+      "empty_lines": 33419,
+      "empty_lines_ratio": 0.12859000800344764,
+      "files_analyzed": 569,
+      "function_lines": 114479,
+      "function_lines_ratio": 0.4404935972418888,
+      "mean_lines_per_function": 16.690333867910773,
+      "num_classes": 1656,
+      "num_functions": 6859,
+      "pypi_version": "0.1.14",
+      "total_lines": 259888
     },
     "wily": {
       "cyclomatic_avg": 0.0,
@@ -34,14 +34,14 @@
     },
     "workflow_status": {
       "last_run_status": "success",
-      "last_success_timestamp": "2026-10-14T00:56:12Z",
+      "last_success_timestamp": "2026-10-14T00:56:21Z",
       "recent_failure_count": 0,
-      "run_url": "https://github.com/i2mint/xdol/actions/runs/38492839049",
+      "run_url": "https://github.com/i2mint/xdol/actions/runs/38492844605",
       "total_runs_analyzed": 10
     }
   },
   "python_version": "3.10",
   "schema_version": "1.0",
-  "timestamp": "2026-10-14T00:56:16.723626Z",
+  "timestamp": "2026-10-14T00:59:08.543718Z",
   "workflow_status": {}
 }
