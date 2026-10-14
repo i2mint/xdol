@@ -1,24 +1,22 @@
 metric,value
 schema_version,1.0
-timestamp,2026-10-14T00:52:25.139413Z
-commit_sha,a6ccce83fef692c6857b1df1de90d0fcfcd223d8
-commit_message,"memoize: review fixes (store failures never cost a call, record==replay, no aliasing, torn-pair detection, root-escape guard, coroutine results)  (#3)
-
-Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>"
+timestamp,2026-10-14T00:52:26.943196Z
+commit_sha,279180dc247b291fb31199c55292eba817bc7afe
+commit_message,Merge a6ccce83fef692c6857b1df1de90d0fcfcd223d8 into 8d3cdd96de3703ae205589f217dc5c8074ede6b0
 python_version,3.10
-metrics.umpyre_stats.num_functions,6951
-metrics.umpyre_stats.num_classes,1667
-metrics.umpyre_stats.total_lines,262008
-metrics.umpyre_stats.empty_lines,33745
-metrics.umpyre_stats.comment_lines,14705
-metrics.umpyre_stats.docs_lines,37517
-metrics.umpyre_stats.function_lines,116011
-metrics.umpyre_stats.empty_lines_ratio,0.12879377728924307
-metrics.umpyre_stats.comment_lines_ratio,0.05612424048120668
-metrics.umpyre_stats.function_lines_ratio,0.4427765564410247
-metrics.umpyre_stats.mean_lines_per_function,16.689828801611277
-metrics.umpyre_stats.files_analyzed,579
-metrics.umpyre_stats.pypi_version,0.1.14
+metrics.umpyre_stats.num_functions,6855
+metrics.umpyre_stats.num_classes,1656
+metrics.umpyre_stats.total_lines,259849
+metrics.umpyre_stats.empty_lines,33412
+metrics.umpyre_stats.comment_lines,14559
+metrics.umpyre_stats.docs_lines,37484
+metrics.umpyre_stats.function_lines,114452
+metrics.umpyre_stats.empty_lines_ratio,0.12858236899122183
+metrics.umpyre_stats.comment_lines_ratio,0.05602869358742962
+metrics.umpyre_stats.function_lines_ratio,0.44045580317799954
+metrics.umpyre_stats.mean_lines_per_function,16.696134208606857
+metrics.umpyre_stats.files_analyzed,569
+metrics.umpyre_stats.pypi_version,0.1.15
 metrics.workflow_status.last_run_status,success
 metrics.workflow_status.last_success_timestamp,2026-10-14T00:48:54Z
 metrics.workflow_status.recent_failure_count,0
@@ -35,4 +33,4 @@ metrics.coverage.branch_coverage,0.0
 metrics.coverage.statements_covered,0
 metrics.coverage.statements_total,0
 metrics.coverage.error,No coverage file found
-collection_duration_seconds,2.982567071914673
+collection_duration_seconds,3.1051077842712402
