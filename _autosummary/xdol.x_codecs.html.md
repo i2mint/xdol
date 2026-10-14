@@ -3,7 +3,7 @@
 Extra codecs: object <-> bytes pairs, and stores that apply them.
 
 Besides `resolve_values_to_bytes()`, this module holds the value-encoding half of the
-persistent memoizer (`xdol.memoize`):
+persistent memoizer ([`xdol.memoize`](xdol.memoize.html.md#module-xdol.memoize)):
 
 - [`Codec`](#xdol.x_codecs.Codec) – an `encode`/`decode` pair, with ready-made [`JSON_CODEC`](#xdol.x_codecs.JSON_CODEC)
   (human-readable, diff-friendly), [`TEXT_CODEC`](#xdol.x_codecs.TEXT_CODEC) and [`BYTES_CODEC`](#xdol.x_codecs.BYTES_CODEC)
@@ -48,6 +48,11 @@ persistent memoizer (`xdol.memoize`):
 |--------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------|
 | [`PairedStore`](#xdol.x_codecs.PairedStore)(store, \*[, meta_codec, ...]) | Values are `(metadata, asset_bytes)` pairs, kept as two entries in a bytes store. |
 
+### Exceptions
+
+| [`CodecDecodeError`](#xdol.x_codecs.CodecDecodeError)   | A stored value could not be decoded (corrupt or truncated entry, wrong codec).   |
+|---------------------------------------------------------------------|----------------------------------------------------------------------------------|
+
 ### xdol.x_codecs.BYTES_CODEC *= (<function \_as_bytes>, <function <lambda>>)*
 
 Pass-through, for binary assets (image / audio bytes).
@@ -73,6 +78,16 @@ Alias for field number 1
 
 Alias for field number 0
 
+### *exception* xdol.x_codecs.CodecDecodeError
+
+Bases: [`ValueError`](https://docs.python.org/3/builtins/exceptions.html#ValueError)
+
+A stored value could not be decoded (corrupt or truncated entry, wrong codec).
+
+Raised by [`with_codec()`](#xdol.x_codecs.with_codec) and [`PairedStore`](#xdol.x_codecs.PairedStore) in place of whatever the
+decoder raised (chained as `__cause__`), so callers can tell “this entry is
+undecodable” apart from store, network or configuration failures.
+
 ### xdol.x_codecs.JSON_CODEC *= (<function json_codec.<locals>.encode>, <function json_codec.<locals>.<lambda>>)*
 
 Text / JSON results, stored human-readably so a committed cache is reviewable.
@@ -83,11 +98,14 @@ Bases: [`MutableMapping`](https://docs.python.org/3/library/collections.abc.html
 
 Values are `(metadata, asset_bytes)` pairs, kept as two entries in a bytes store.
 
-`store[k] = (meta, blob)` writes `k + meta_suffix` (`meta` through
-`meta_codec`) and `k + asset_suffix` (`blob` verbatim). The metadata entry is
-written *last* and is what makes a key exist, so a crash mid-write leaves no
-half-entry that reads back as valid; `in`/iteration/`len` only see keys whose
-both halves are present.
+`store[k] = (meta, blob)` writes `k + asset_suffix` (`blob` verbatim) and
+`k + meta_suffix` (`{"asset_sha256": ..., "meta": meta}` through `meta_codec`).
+The metadata entry is written *last* and is what makes a key exist, so a crash
+mid-write leaves no half-entry that reads back as valid; `in`/iteration/`len`
+only see keys whose both halves are present. The digest guards against two writers
+of the same key interleaving (A’s metadata with B’s asset): such a pair raises
+[`CodecDecodeError`](#xdol.x_codecs.CodecDecodeError) on read instead of returning the chimera. Entries in the
+older bare-metadata layout are still read (unverified).
 
 ### xdol.x_codecs.TEXT_CODEC *= (<function <lambda>>, <function <lambda>>)*
 
@@ -135,6 +153,8 @@ See [`PairedStore`](#xdol.x_codecs.PairedStore). `store` is a bytes `MutableMapp
 ### xdol.x_codecs.with_codec(store, codec='json')
 
 Wrap a bytes `store` so its values are objects, encoded/decoded by `codec`.
+
+A value that fails to decode raises [`CodecDecodeError`](#xdol.x_codecs.CodecDecodeError).
 
 * **Return type:**
   [`MutableMapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping)

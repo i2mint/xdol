@@ -2,7 +2,7 @@
 
 Robust, stable cache keys: turn a call’s inputs into a short, filesystem-safe string.
 
-A persistent cache (see `xdol.memoize`) is only as good as its keys. A key must be
+A persistent cache (see [`xdol.memoize`](xdol.memoize.html.md#module-xdol.memoize)) is only as good as its keys. A key must be
 
 - **stable across runs and machines** – never derived from a memory address, set
   iteration order or dict insertion order;

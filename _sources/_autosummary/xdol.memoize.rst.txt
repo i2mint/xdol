@@ -1,0 +1,36 @@
+xdol.memoize
+============
+
+.. automodule:: xdol.memoize
+
+   
+   .. rubric:: Module Attributes
+
+   .. autosummary::
+   
+      RECORD_ENV
+      TRUTHY_ENV_VALUES
+      DFLT_CORRUPT_ERRORS
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      file_cache_store
+      memoize_calls
+      recording_enabled
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      AtomicFiles
+   
+   .. rubric:: Exceptions
+
+   .. autosummary::
+   
+      CacheCorrupt
+      CacheMiss
+      CacheWriteError
+   

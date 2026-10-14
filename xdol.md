@@ -1,4 +1,4 @@
-> built 2026-10-14 00:48 UTC from b152320 (master) · xdol 0.1.14. Details: build_info.json
+> built 2026-10-14 01:01 UTC from 7ee406b (master) · xdol 0.1.15. Details: build_info.json
 
 # index.html.md
 
@@ -25,6 +25,7 @@ Extended tools for dol (Data Object Layers)
 
 | [`keys`](_autosummary/xdol.keys.html.md#module-xdol.keys)         | Robust, stable cache keys: turn a call's inputs into a short, filesystem-safe string.   |
 |--------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------|
+| [`memoize`](_autosummary/xdol.memoize.html.md#module-xdol.memoize)   | Persistent memoization with record/replay modes, for costly calls.                      |
 | [`paths`](_autosummary/xdol.paths.html.md#module-xdol.paths)       | Tools for manipulating paths.                                                           |
 | [`pystores`](_autosummary/xdol.pystores.html.md#module-xdol.pystores) | Stores for python objects                                                               |
 | [`registry`](_autosummary/xdol.registry.html.md#module-xdol.registry) | A typed dict-backed plugin registry.                                                    |
@@ -39,7 +40,7 @@ Extended tools for dol (Data Object Layers)
 
 Robust, stable cache keys: turn a call’s inputs into a short, filesystem-safe string.
 
-A persistent cache (see `xdol.memoize`) is only as good as its keys. A key must be
+A persistent cache (see [`xdol.memoize`](_autosummary/xdol.memoize.html.md#module-xdol.memoize)) is only as good as its keys. A key must be
 
 - **stable across runs and machines** – never derived from a memory address, set
   iteration order or dict insertion order;
@@ -173,6 +174,215 @@ surrounding whitespace – get the same key.
 >>> robust_key("a", n=1) == robust_key("a ", n=1)
 True
 >>> robust_key("a", n=1) == robust_key("a", n=2)
+False
+```
+
+
+# _autosummary/xdol.memoize.html.md
+
+# xdol.memoize
+
+Persistent memoization with record/replay modes, for costly calls.
+
+A transparent wrapper that persists a function’s results in a `MutableMapping` keyed by
+a stable hash of the call. It is a VCR cassette for *any* function, not just HTTP: the
+first run records, every later run replays from the store – no call, no cost, no network.
+The driving use is tests of code that calls paid APIs (LLMs, image/video generation),
+which must stay free and fast, but it serves any expensive, deterministic-enough call.
+
+```pycon
+>>> import tempfile
+>>> calls = []
+>>> @memoize_calls(store=tempfile.mkdtemp(), mode="record")
+... def slow_square(x):
+...     calls.append(x)
+...     return {"result": x * x}
+>>> slow_square(3), slow_square(3)
+({'result': 9}, {'result': 9})
+>>> calls
+[3]
+```
+
+**Replay is the default; recording is an opt-in.** Under the default `mode=None` a call
+whose key is not in the store raises [`CacheMiss`](_autosummary/xdol.memoize.html.md#xdol.memoize.CacheMiss) instead of calling the function,
+unless the run sets the `XDOL_MEMOIZE_RECORD` environment variable (see
+[`recording_enabled()`](_autosummary/xdol.memoize.html.md#xdol.memoize.recording_enabled)). A key that quietly moved would otherwise read as a normal,
+billable test run. Spending is an act that carries a flag. For a plain memoizer that
+records on a miss, pass `mode="record"` (as above).
+
+Four pieces, each a keyword argument with a good default (a *seam*):
+
+- `key_func` – input to key; default [`xdol.keys.robust_key()`](_autosummary/xdol.keys.html.md#xdol.keys.robust_key) (see also `drop=`);
+- `codec` – result to bytes; `"json"` (default), `"text"`, `"bytes"` for binary
+  assets, or `"paired"` for a `(metadata, asset_bytes)` result stored as
+  `<key>.json` + `<key>.bin` (see [`xdol.x_codecs`](_autosummary/xdol.x_codecs.html.md#module-xdol.x_codecs));
+- `store` – a directory path (a stable, committable folder: see
+  [`file_cache_store()`](_autosummary/xdol.memoize.html.md#xdol.memoize.file_cache_store)), or any `MutableMapping`. Pass a bytes store such as
+  > `s3dol.s3_store(bucket)` and the codec is applied on top, so swapping the filesystem
+  > for S3 changes nothing at the call site;
+- `mode` – `"replay"`, `"record"`, `"refresh"` or `"off"`; see `MODES`.
+
+**Cache the top-level composite**: wrap the whole `prompt -> JSON -> asset URL ->
+downloaded bytes` pipeline, not each intermediate API step, so one intent maps to one
+final result. Nothing enforces this; it keeps the surface area (and the number of
+cassettes to review) small.
+
+The wrapper preserves the function’s signature and metadata (`functools.wraps`) and
+supports coroutine functions. Exceptions raised by the function are never cached.
+
+### Module Attributes
+
+| [`RECORD_ENV`](_autosummary/xdol.memoize.html.md#xdol.memoize.RECORD_ENV)          | Set to a truthy value to let `mode=None` calls record on a miss.                                                                                                       |
+|----------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| [`TRUTHY_ENV_VALUES`](_autosummary/xdol.memoize.html.md#xdol.memoize.TRUTHY_ENV_VALUES)   | Environment-variable spellings that count as "on".                                                                                                                     |
+| [`DFLT_CORRUPT_ERRORS`](_autosummary/xdol.memoize.html.md#xdol.memoize.DFLT_CORRUPT_ERRORS) | Errors that mean "this stored entry cannot be decoded" (as opposed to a store/network failure, which must never be mistaken for a missing entry and cost a real call). |
+
+### Functions
+
+| [`file_cache_store`](_autosummary/xdol.memoize.html.md#xdol.memoize.file_cache_store)(rootdir, \*[, codec])            | A persistent, atomic, codec-aware `MutableMapping` over a directory.   |
+|----------------------------------------------------------------------------------------------------|------------------------------------------------------------------------|
+| [`memoize_calls`](_autosummary/xdol.memoize.html.md#xdol.memoize.memoize_calls)([func, codec, key_func, drop, ...]) | Persistently memoize `func` into `store` (record/replay).              |
+| [`recording_enabled`](_autosummary/xdol.memoize.html.md#xdol.memoize.recording_enabled)([env])                          | True when the environment variable `env` is set to a truthy value.     |
+
+### Classes
+
+| [`AtomicFiles`](_autosummary/xdol.memoize.html.md#xdol.memoize.AtomicFiles)(\*args[, delete_func])   | A bytes store over a directory whose writes are atomic.   |
+|---------------------------------------------------------------------------------------|-----------------------------------------------------------|
+
+### Exceptions
+
+| [`CacheCorrupt`](_autosummary/xdol.memoize.html.md#xdol.memoize.CacheCorrupt)                     | A stored entry exists but cannot be decoded (replay mode refuses to guess).       |
+|-----------------------------------------------------------------------------------|-----------------------------------------------------------------------------------|
+| [`CacheMiss`](_autosummary/xdol.memoize.html.md#xdol.memoize.CacheMiss)                        | A memoized call missed its store while recording was disabled.                    |
+| [`CacheWriteError`](_autosummary/xdol.memoize.html.md#xdol.memoize.CacheWriteError)(message, result) | The function ran but its result could not be stored (e.g. not JSON-serializable). |
+
+### *class* xdol.memoize.AtomicFiles(\*args, delete_func=<built-in function remove>, \*\*kwargs)
+
+Bases: `Files`
+
+A bytes store over a directory whose writes are atomic.
+
+Plain file writes can leave a truncated cassette if the process dies mid-write, which
+then fails to decode (or worse, decodes). Here each value is written to a temporary
+sibling and renamed into place (`os.replace`), and temporary files are invisible to
+iteration. Missing sub-directories of a key (`"a/b"`) are created.
+
+### *exception* xdol.memoize.CacheCorrupt
+
+Bases: [`RuntimeError`](https://docs.python.org/3/builtins/exceptions.html#RuntimeError)
+
+A stored entry exists but cannot be decoded (replay mode refuses to guess).
+
+### *exception* xdol.memoize.CacheMiss
+
+Bases: [`LookupError`](https://docs.python.org/3/builtins/exceptions.html#LookupError)
+
+A memoized call missed its store while recording was disabled.
+
+The alternative to this exception is a real, possibly billable call nobody asked
+for. Two things cause it: an input the store has genuinely never seen, and a cache
+**key** that moved under an unchanged input – usually because the key was computed
+over something incidental (a rendered global registry, a timestamp, a path).
+
+### *exception* xdol.memoize.CacheWriteError(message, result)
+
+Bases: [`RuntimeError`](https://docs.python.org/3/builtins/exceptions.html#RuntimeError)
+
+The function ran but its result could not be stored (e.g. not JSON-serializable).
+
+The result is not lost: it is the `result` attribute.
+
+### xdol.memoize.DFLT_CORRUPT_ERRORS *= (<class 'xdol.x_codecs.CodecDecodeError'>,)*
+
+Errors that mean “this stored entry cannot be decoded” (as opposed to a store/network
+failure, which must never be mistaken for a missing entry and cost a real call).
+
+### xdol.memoize.RECORD_ENV *= 'XDOL_MEMOIZE_RECORD'*
+
+Set to a truthy value to let `mode=None` calls record on a miss.
+
+### xdol.memoize.TRUTHY_ENV_VALUES *= frozenset({'1', 'on', 'true', 'yes'})*
+
+Environment-variable spellings that count as “on”.
+
+### xdol.memoize.file_cache_store(rootdir, , codec='json')
+
+A persistent, atomic, codec-aware `MutableMapping` over a directory.
+
+Keys are filenames, values are decoded objects. `rootdir` is
+created if missing and is meant to be a stable folder you commit (a cassette
+directory), not a temp dir. `codec="paired"` stores `(metadata, asset_bytes)`
+values as `<key>.json` + `<key>.bin`.
+
+* **Return type:**
+  [`MutableMapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping)
+
+```pycon
+>>> import tempfile
+>>> store = file_cache_store(tempfile.mkdtemp())
+>>> store["k"] = {"a": 1}
+>>> store["k"], list(store)
+({'a': 1}, ['k'])
+```
+
+### xdol.memoize.memoize_calls(func=None, \*, store, codec=None, key_func=None, drop=(), mode=None, default_mode='replay', record_env='XDOL_MEMOIZE_RECORD', corrupt_errors=(<class 'xdol.x_codecs.CodecDecodeError'>, ), on_write_error='raise', copy_results=None, reread_after_write=True)
+
+Persistently memoize `func` into `store` (record/replay).
+
+Usable as `memoize_calls(fn, store=...)` or as a decorator
+`@memoize_calls(store=...)`.
+
+* **Parameters:**
+  * **func** ([`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable) | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – the (costly) function; wrap the *composite* top-level call.
+  * **store** – a directory path (-> [`file_cache_store()`](_autosummary/xdol.memoize.html.md#xdol.memoize.file_cache_store)), or a `MutableMapping`.
+  * **codec** – `None` (default) means a path gets `"json"` and a mapping is used as
+    it is (its values are the results). Otherwise `store` is a *bytes* mapping
+    and this is applied on top: `"json"`, `"text"`, `"bytes"`,
+    `"paired"`, a [`xdol.x_codecs.Codec`](_autosummary/xdol.x_codecs.html.md#xdol.x_codecs.Codec), or an `(encode, decode)` pair.
+  * **key_func** ([`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[`...`](https://docs.python.org/3/builtins/constants.html#Ellipsis), [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)] | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – input to key. Default [`xdol.keys.robust_key()`](_autosummary/xdol.keys.html.md#xdol.keys.robust_key).
+  * **drop** ([`Iterable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterable)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]) – parameter names of `func` to leave out of the key (callbacks, loggers,
+    `self`); builds the key with [`xdol.keys.make_key_func()`](_autosummary/xdol.keys.html.md#xdol.keys.make_key_func), which also
+    binds calls to the signature. Not combinable with `key_func`.
+  * **mode** (`Union`[[`Literal`](https://docs.python.org/3/library/typing.html#typing.Literal)[`'replay'`, `'record'`, `'refresh'`, `'off'`], [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[], [`Literal`](https://docs.python.org/3/library/typing.html#typing.Literal)[`'replay'`, `'record'`, `'refresh'`, `'off'`]], [`None`](https://docs.python.org/3/builtins/constants.html#None)]) – one of `MODES`, a zero-argument callable returning one (evaluated on
+    every call), or `None` (default) for: `"record"` if the `record_env`
+    variable is truthy, else `default_mode`. Read at call time, so setting the
+    variable after import (e.g. in a pytest hook) works.
+  * **default_mode** ([`Literal`](https://docs.python.org/3/library/typing.html#typing.Literal)[`'replay'`, `'record'`, `'refresh'`, `'off'`]) – what `mode=None` means when the environment does not opt in.
+    `"replay"` (default) makes spending an explicit act.
+  * **record_env** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str)) – name of the opt-in environment variable.
+  * **corrupt_errors** ([`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[`type`](https://docs.python.org/3/builtins/functions.html#type)[[`BaseException`](https://docs.python.org/3/builtins/exceptions.html#BaseException)], [`...`](https://docs.python.org/3/builtins/constants.html#Ellipsis)]) – exception types raised by reading an entry that mean “undecodable”
+    (default: [`xdol.x_codecs.CodecDecodeError`](_autosummary/xdol.x_codecs.html.md#xdol.x_codecs.CodecDecodeError), which the codecs raise;
+    add your own for an object-valued store that can fail to load). In replay
+    mode they raise [`CacheCorrupt`](_autosummary/xdol.memoize.html.md#xdol.memoize.CacheCorrupt); when recording, the entry is recomputed
+    and overwritten, with a warning. Any other error – a network failure, a
+    misconfigured store – propagates and never costs a real call.
+  * **copy_results** ([`bool`](https://docs.python.org/3/builtins/functions.html#bool) | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – deep-copy values read from the store, so callers cannot mutate the
+    cache. `None` (default) means: yes when `store` is an object-valued
+    mapping used as is (a codec makes a fresh object per read anyway).
+  * **reread_after_write** ([`bool`](https://docs.python.org/3/builtins/functions.html#bool)) – after recording, return the value as read back from the store,
+    so a recording run and a replay run return *the same thing* (JSON turns tuples
+    into lists and int keys into strings). Turn off to skip the extra read of a
+    large asset.
+  * **on_write_error** ([`Literal`](https://docs.python.org/3/library/typing.html#typing.Literal)[`'raise'`, `'warn'`]) – what to do if a fresh result cannot be stored: `"raise"`
+    [`CacheWriteError`](_autosummary/xdol.memoize.html.md#xdol.memoize.CacheWriteError) (carrying the result) or `"warn"` and return it.
+* **Return type:**
+  [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)
+
+The returned wrapper has attributes `cache_store`, `key_func`, `cache_key(\*args,
+\*\*kwargs)` and `cache_mode()` (the mode that would apply now).
+
+### xdol.memoize.recording_enabled(env='XDOL_MEMOIZE_RECORD')
+
+True when the environment variable `env` is set to a truthy value.
+
+The opt-in is environment-level rather than per-call, so “this run may spend” is one
+visible fact about the run instead of a property of each test.
+
+* **Return type:**
+  [`bool`](https://docs.python.org/3/builtins/functions.html#bool)
+
+```pycon
+>>> recording_enabled("XDOL_SURELY_UNSET_VARIABLE")
 False
 ```
 
@@ -1181,7 +1391,7 @@ True
 Extra codecs: object <-> bytes pairs, and stores that apply them.
 
 Besides `resolve_values_to_bytes()`, this module holds the value-encoding half of the
-persistent memoizer (`xdol.memoize`):
+persistent memoizer ([`xdol.memoize`](_autosummary/xdol.memoize.html.md#module-xdol.memoize)):
 
 - [`Codec`](_autosummary/xdol.x_codecs.html.md#xdol.x_codecs.Codec) – an `encode`/`decode` pair, with ready-made [`JSON_CODEC`](_autosummary/xdol.x_codecs.html.md#xdol.x_codecs.JSON_CODEC)
   (human-readable, diff-friendly), [`TEXT_CODEC`](_autosummary/xdol.x_codecs.html.md#xdol.x_codecs.TEXT_CODEC) and [`BYTES_CODEC`](_autosummary/xdol.x_codecs.html.md#xdol.x_codecs.BYTES_CODEC)
@@ -1226,6 +1436,11 @@ persistent memoizer (`xdol.memoize`):
 |--------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------|
 | [`PairedStore`](_autosummary/xdol.x_codecs.html.md#xdol.x_codecs.PairedStore)(store, \*[, meta_codec, ...]) | Values are `(metadata, asset_bytes)` pairs, kept as two entries in a bytes store. |
 
+### Exceptions
+
+| [`CodecDecodeError`](_autosummary/xdol.x_codecs.html.md#xdol.x_codecs.CodecDecodeError)   | A stored value could not be decoded (corrupt or truncated entry, wrong codec).   |
+|---------------------------------------------------------------------|----------------------------------------------------------------------------------|
+
 ### xdol.x_codecs.BYTES_CODEC *= (<function \_as_bytes>, <function <lambda>>)*
 
 Pass-through, for binary assets (image / audio bytes).
@@ -1251,6 +1466,16 @@ Alias for field number 1
 
 Alias for field number 0
 
+### *exception* xdol.x_codecs.CodecDecodeError
+
+Bases: [`ValueError`](https://docs.python.org/3/builtins/exceptions.html#ValueError)
+
+A stored value could not be decoded (corrupt or truncated entry, wrong codec).
+
+Raised by [`with_codec()`](_autosummary/xdol.x_codecs.html.md#xdol.x_codecs.with_codec) and [`PairedStore`](_autosummary/xdol.x_codecs.html.md#xdol.x_codecs.PairedStore) in place of whatever the
+decoder raised (chained as `__cause__`), so callers can tell “this entry is
+undecodable” apart from store, network or configuration failures.
+
 ### xdol.x_codecs.JSON_CODEC *= (<function json_codec.<locals>.encode>, <function json_codec.<locals>.<lambda>>)*
 
 Text / JSON results, stored human-readably so a committed cache is reviewable.
@@ -1261,11 +1486,14 @@ Bases: [`MutableMapping`](https://docs.python.org/3/library/collections.abc.html
 
 Values are `(metadata, asset_bytes)` pairs, kept as two entries in a bytes store.
 
-`store[k] = (meta, blob)` writes `k + meta_suffix` (`meta` through
-`meta_codec`) and `k + asset_suffix` (`blob` verbatim). The metadata entry is
-written *last* and is what makes a key exist, so a crash mid-write leaves no
-half-entry that reads back as valid; `in`/iteration/`len` only see keys whose
-both halves are present.
+`store[k] = (meta, blob)` writes `k + asset_suffix` (`blob` verbatim) and
+`k + meta_suffix` (`{"asset_sha256": ..., "meta": meta}` through `meta_codec`).
+The metadata entry is written *last* and is what makes a key exist, so a crash
+mid-write leaves no half-entry that reads back as valid; `in`/iteration/`len`
+only see keys whose both halves are present. The digest guards against two writers
+of the same key interleaving (A’s metadata with B’s asset): such a pair raises
+[`CodecDecodeError`](_autosummary/xdol.x_codecs.html.md#xdol.x_codecs.CodecDecodeError) on read instead of returning the chimera. Entries in the
+older bare-metadata layout are still read (unverified).
 
 ### xdol.x_codecs.TEXT_CODEC *= (<function <lambda>>, <function <lambda>>)*
 
@@ -1314,6 +1542,8 @@ See [`PairedStore`](_autosummary/xdol.x_codecs.html.md#xdol.x_codecs.PairedStore
 
 Wrap a bytes `store` so its values are objects, encoded/decoded by `codec`.
 
+A value that fails to decode raises [`CodecDecodeError`](_autosummary/xdol.x_codecs.html.md#xdol.x_codecs.CodecDecodeError).
+
 * **Return type:**
   [`MutableMapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping)
 
@@ -1324,16 +1554,18 @@ Wrap a bytes `store` so its values are objects, encoded/decoded by `codec`.
 
 # About this build
 
-This documentation was built on **2026-10-14 00:48 UTC** from commit <a href="https://github.com/i2mint/xdol/commit/b1523208e1626cd7bca32788ef41747d06993831"><code>b152320</code></a> on branch <code>master</code>, for **xdol 0.1.14** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-10-14 01:01 UTC** from commit <a href="https://github.com/i2mint/xdol/commit/7ee406bc1a46ae1a5865f4b2defed77393732c49"><code>7ee406b</code></a> on branch <code>master</code>, for **xdol 0.1.15** (from <code>pyproject.toml</code>).
 
-#### NOTE
-Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
+#### WARNING
+The documentation and the package may be misaligned:
+
+- The documented version (0.1.15) is behind the latest release on PyPI (0.1.16): `pip install xdol` gives newer code than these docs describe.
 
 ## Source
 
 |                     |                                                                                                                                                    |
 |---------------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/i2mint/xdol/commit/b1523208e1626cd7bca32788ef41747d06993831"><code>b1523208e1626cd7bca32788ef41747d06993831</code></a> |
+| Commit              | <a href="https://github.com/i2mint/xdol/commit/7ee406bc1a46ae1a5865f4b2defed77393732c49"><code>7ee406bc1a46ae1a5865f4b2defed77393732c49</code></a> |
 | Branch              | <code>master</code>                                                                                                                                |
 | Tags at this commit | none                                                                                                                                               |
 | Working tree        | clean                                                                                                                                              |
@@ -1344,9 +1576,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>i2mint/xdol</code>                                                                   |
-| Run          | <a href="https://github.com/i2mint/xdol/actions/runs/38492078281">38492078281</a>          |
+| Run          | <a href="https://github.com/i2mint/xdol/actions/runs/38493260797">38493260797</a>          |
 | Ref          | <code>refs/heads/master</code>                                                             |
-| Event commit | <code>b1523208e1626cd7bca32788ef41747d06993831</code> (in the history of the built commit) |
+| Event commit | <code>7ee406bc1a46ae1a5865f4b2defed77393732c49</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -1371,13 +1603,13 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/xdol/0.1.14/">0.1.14</a>, the same as the documented version.
+Latest release: <a href="https://pypi.org/project/xdol/0.1.16/">0.1.16</a>, newer than the documented version (0.1.15).
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/i2mint/xdol && cd xdol
-git checkout b1523208e1626cd7bca32788ef41747d06993831
+git checkout 7ee406bc1a46ae1a5865f4b2defed77393732c49
 pip install "epythet==0.2.17"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```

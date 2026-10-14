@@ -7,6 +7,7 @@
 
 - [xdol](xdol.html.md): Extended tools for dol (Data Object Layers)
 - [xdol.keys](xdol.keys.html.md): Robust, stable cache keys: turn a call’s inputs into a short, filesystem-safe string.
+- [xdol.memoize](xdol.memoize.html.md): Persistent memoization with record/replay modes, for costly calls.
 - [xdol.paths](xdol.paths.html.md): Tools for manipulating paths.
 - [xdol.pystores](xdol.pystores.html.md): Stores for python objects
 - [xdol.registry](xdol.registry.html.md): A typed dict-backed plugin registry.

@@ -43,7 +43,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../_static/documentation_options.js?v=468bc497"></script>
+    <script src="../_static/documentation_options.js?v=e2f3408e"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -52,12 +52,12 @@
     <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="xdol.paths" href="xdol.paths.html" />
+    <link rel="next" title="xdol.memoize" href="xdol.memoize.html" />
     <link rel="prev" title="xdol" href="xdol.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.14" />
+  <meta name="docsearch:version" content="0.1.15" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -306,6 +306,7 @@
   <div class="bd-toc-item navbar-nav"><ul class="current nav bd-sidenav">
 <li class="toctree-l1 current active has-children"><a class="reference internal" href="xdol.html">xdol</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
 <li class="toctree-l2 current active"><a aria-current="page" class="current reference internal" href="#">xdol.keys</a></li>
+<li class="toctree-l2"><a class="reference internal" href="xdol.memoize.html">xdol.memoize</a></li>
 <li class="toctree-l2"><a class="reference internal" href="xdol.paths.html">xdol.paths</a></li>
 <li class="toctree-l2"><a class="reference internal" href="xdol.pystores.html">xdol.pystores</a></li>
 <li class="toctree-l2"><a class="reference internal" href="xdol.registry.html">xdol.registry</a></li>
@@ -380,7 +381,7 @@
   <section id="module-xdol.keys">
 <span id="xdol-keys"></span><h1>xdol.keys<a class="headerlink" href="#module-xdol.keys" title="Link to this heading">#</a></h1>
 <p>Robust, stable cache keys: turn a call’s inputs into a short, filesystem-safe string.</p>
-<p>A persistent cache (see <code class="xref py py-mod docutils literal notranslate"><span class="pre">xdol.memoize</span></code>) is only as good as its keys. A key must be</p>
+<p>A persistent cache (see <a class="reference internal" href="xdol.memoize.html#module-xdol.memoize" title="xdol.memoize"><code class="xref py py-mod docutils literal notranslate"><span class="pre">xdol.memoize</span></code></a>) is only as good as its keys. A key must be</p>
 <ul class="simple">
 <li><p><strong>stable across runs and machines</strong> – never derived from a memory address, set
 iteration order or dict insertion order;</p></li>
@@ -567,11 +568,11 @@ surrounding whitespace – get the same key.</p>
       </div>
     </a>
     <a class="right-next"
-       href="xdol.paths.html"
+       href="xdol.memoize.html"
        title="next page">
       <div class="prev-next-info">
         <p class="prev-next-subtitle">next</p>
-        <p class="prev-next-title">xdol.paths</p>
+        <p class="prev-next-title">xdol.memoize</p>
       </div>
       <i class="fa-solid fa-angle-right"></i>
     </a>

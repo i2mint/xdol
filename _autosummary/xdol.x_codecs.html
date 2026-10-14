@@ -43,7 +43,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../_static/documentation_options.js?v=468bc497"></script>
+    <script src="../_static/documentation_options.js?v=e2f3408e"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -56,7 +56,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.14" />
+  <meta name="docsearch:version" content="0.1.15" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -305,6 +305,7 @@
   <div class="bd-toc-item navbar-nav"><ul class="current nav bd-sidenav">
 <li class="toctree-l1 current active has-children"><a class="reference internal" href="xdol.html">xdol</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="xdol.keys.html">xdol.keys</a></li>
+<li class="toctree-l2"><a class="reference internal" href="xdol.memoize.html">xdol.memoize</a></li>
 <li class="toctree-l2"><a class="reference internal" href="xdol.paths.html">xdol.paths</a></li>
 <li class="toctree-l2"><a class="reference internal" href="xdol.pystores.html">xdol.pystores</a></li>
 <li class="toctree-l2"><a class="reference internal" href="xdol.registry.html">xdol.registry</a></li>
@@ -380,7 +381,7 @@
 <span id="xdol-x-codecs"></span><h1>xdol.x_codecs<a class="headerlink" href="#module-xdol.x_codecs" title="Link to this heading">#</a></h1>
 <p>Extra codecs: object &lt;-&gt; bytes pairs, and stores that apply them.</p>
 <p>Besides <code class="xref py py-func docutils literal notranslate"><span class="pre">resolve_values_to_bytes()</span></code>, this module holds the value-encoding half of the
-persistent memoizer (<code class="xref py py-mod docutils literal notranslate"><span class="pre">xdol.memoize</span></code>):</p>
+persistent memoizer (<a class="reference internal" href="xdol.memoize.html#module-xdol.memoize" title="xdol.memoize"><code class="xref py py-mod docutils literal notranslate"><span class="pre">xdol.memoize</span></code></a>):</p>
 <ul class="simple">
 <li><p><a class="reference internal" href="#xdol.x_codecs.Codec" title="xdol.x_codecs.Codec"><code class="xref py py-class docutils literal notranslate"><span class="pre">Codec</span></code></a> – an <code class="docutils literal notranslate"><span class="pre">encode</span></code>/<code class="docutils literal notranslate"><span class="pre">decode</span></code> pair, with ready-made <a class="reference internal" href="#xdol.x_codecs.JSON_CODEC" title="xdol.x_codecs.JSON_CODEC"><code class="xref py py-data docutils literal notranslate"><span class="pre">JSON_CODEC</span></code></a>
 (human-readable, diff-friendly), <a class="reference internal" href="#xdol.x_codecs.TEXT_CODEC" title="xdol.x_codecs.TEXT_CODEC"><code class="xref py py-data docutils literal notranslate"><span class="pre">TEXT_CODEC</span></code></a> and <a class="reference internal" href="#xdol.x_codecs.BYTES_CODEC" title="xdol.x_codecs.BYTES_CODEC"><code class="xref py py-data docutils literal notranslate"><span class="pre">BYTES_CODEC</span></code></a>
@@ -450,6 +451,15 @@ whose value is <code class="docutils literal notranslate"><span class="pre">(met
 </tbody>
 </table>
 </div>
+<p class="rubric">Exceptions</p>
+<div class="pst-scrollable-table-container"><table class="autosummary longtable table">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#xdol.x_codecs.CodecDecodeError" title="xdol.x_codecs.CodecDecodeError"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CodecDecodeError</span></code></a></p></td>
+<td><p>A stored value could not be decoded (corrupt or truncated entry, wrong codec).</p></td>
+</tr>
+</tbody>
+</table>
+</div>
 <dl class="py data">
 <dt class="sig sig-object py" id="xdol.x_codecs.BYTES_CODEC">
 <span class="sig-prename descclassname"><span class="pre">xdol.x_codecs.</span></span><span class="sig-name descname"><span class="pre">BYTES_CODEC</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">(&lt;function</span> <span class="pre">_as_bytes&gt;,</span> <span class="pre">&lt;function</span> <span class="pre">&lt;lambda&gt;&gt;)</span></span><a class="headerlink" href="#xdol.x_codecs.BYTES_CODEC" title="Link to this definition">#</a></dt>
@@ -488,6 +498,16 @@ whose value is <code class="docutils literal notranslate"><span class="pre">(met
 
 </dd></dl>
 
+<dl class="py exception">
+<dt class="sig sig-object py" id="xdol.x_codecs.CodecDecodeError">
+<span class="property"><span class="k"><span class="pre">exception</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">xdol.x_codecs.</span></span><span class="sig-name descname"><span class="pre">CodecDecodeError</span></span><a class="reference internal" href="../_modules/xdol/x_codecs.html#CodecDecodeError"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xdol.x_codecs.CodecDecodeError" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/builtins/exceptions.html#ValueError" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">ValueError</span></code></a></p>
+<p>A stored value could not be decoded (corrupt or truncated entry, wrong codec).</p>
+<p>Raised by <a class="reference internal" href="#xdol.x_codecs.with_codec" title="xdol.x_codecs.with_codec"><code class="xref py py-func docutils literal notranslate"><span class="pre">with_codec()</span></code></a> and <a class="reference internal" href="#xdol.x_codecs.PairedStore" title="xdol.x_codecs.PairedStore"><code class="xref py py-class docutils literal notranslate"><span class="pre">PairedStore</span></code></a> in place of whatever the
+decoder raised (chained as <code class="docutils literal notranslate"><span class="pre">__cause__</span></code>), so callers can tell “this entry is
+undecodable” apart from store, network or configuration failures.</p>
+</dd></dl>
+
 <dl class="py data">
 <dt class="sig sig-object py" id="xdol.x_codecs.JSON_CODEC">
 <span class="sig-prename descclassname"><span class="pre">xdol.x_codecs.</span></span><span class="sig-name descname"><span class="pre">JSON_CODEC</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">(&lt;function</span> <span class="pre">json_codec.&lt;locals&gt;.encode&gt;,</span> <span class="pre">&lt;function</span> <span class="pre">json_codec.&lt;locals&gt;.&lt;lambda&gt;&gt;)</span></span><a class="headerlink" href="#xdol.x_codecs.JSON_CODEC" title="Link to this definition">#</a></dt>
@@ -499,11 +519,14 @@ whose value is <code class="docutils literal notranslate"><span class="pre">(met
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">xdol.x_codecs.</span></span><span class="sig-name descname"><span class="pre">PairedStore</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">store</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">meta_codec</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'json'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">meta_suffix</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'.json'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">asset_suffix</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'.bin'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xdol/x_codecs.html#PairedStore"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xdol.x_codecs.PairedStore" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">MutableMapping</span></code></a></p>
 <p>Values are <code class="docutils literal notranslate"><span class="pre">(metadata,</span> <span class="pre">asset_bytes)</span></code> pairs, kept as two entries in a bytes store.</p>
-<p><code class="docutils literal notranslate"><span class="pre">store[k]</span> <span class="pre">=</span> <span class="pre">(meta,</span> <span class="pre">blob)</span></code> writes <code class="docutils literal notranslate"><span class="pre">k</span> <span class="pre">+</span> <span class="pre">meta_suffix</span></code> (<code class="docutils literal notranslate"><span class="pre">meta</span></code> through
-<code class="docutils literal notranslate"><span class="pre">meta_codec</span></code>) and <code class="docutils literal notranslate"><span class="pre">k</span> <span class="pre">+</span> <span class="pre">asset_suffix</span></code> (<code class="docutils literal notranslate"><span class="pre">blob</span></code> verbatim). The metadata entry is
-written <em>last</em> and is what makes a key exist, so a crash mid-write leaves no
-half-entry that reads back as valid; <code class="docutils literal notranslate"><span class="pre">in</span></code>/iteration/<code class="docutils literal notranslate"><span class="pre">len</span></code> only see keys whose
-both halves are present.</p>
+<p><code class="docutils literal notranslate"><span class="pre">store[k]</span> <span class="pre">=</span> <span class="pre">(meta,</span> <span class="pre">blob)</span></code> writes <code class="docutils literal notranslate"><span class="pre">k</span> <span class="pre">+</span> <span class="pre">asset_suffix</span></code> (<code class="docutils literal notranslate"><span class="pre">blob</span></code> verbatim) and
+<code class="docutils literal notranslate"><span class="pre">k</span> <span class="pre">+</span> <span class="pre">meta_suffix</span></code> (<code class="docutils literal notranslate"><span class="pre">{&quot;asset_sha256&quot;:</span> <span class="pre">...,</span> <span class="pre">&quot;meta&quot;:</span> <span class="pre">meta}</span></code> through <code class="docutils literal notranslate"><span class="pre">meta_codec</span></code>).
+The metadata entry is written <em>last</em> and is what makes a key exist, so a crash
+mid-write leaves no half-entry that reads back as valid; <code class="docutils literal notranslate"><span class="pre">in</span></code>/iteration/<code class="docutils literal notranslate"><span class="pre">len</span></code>
+only see keys whose both halves are present. The digest guards against two writers
+of the same key interleaving (A’s metadata with B’s asset): such a pair raises
+<a class="reference internal" href="#xdol.x_codecs.CodecDecodeError" title="xdol.x_codecs.CodecDecodeError"><code class="xref py py-class docutils literal notranslate"><span class="pre">CodecDecodeError</span></code></a> on read instead of returning the chimera. Entries in the
+older bare-metadata layout are still read (unverified).</p>
 <dl class="field-list simple">
 </dl>
 </dd></dl>
@@ -566,6 +589,7 @@ being silently stringified. Pass <code class="docutils literal notranslate"><spa
 <dt class="sig sig-object py" id="xdol.x_codecs.with_codec">
 <span class="sig-prename descclassname"><span class="pre">xdol.x_codecs.</span></span><span class="sig-name descname"><span class="pre">with_codec</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">store</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">codec</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'json'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xdol/x_codecs.html#with_codec"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xdol.x_codecs.with_codec" title="Link to this definition">#</a></dt>
 <dd><p>Wrap a bytes <code class="docutils literal notranslate"><span class="pre">store</span></code> so its values are objects, encoded/decoded by <code class="docutils literal notranslate"><span class="pre">codec</span></code>.</p>
+<p>A value that fails to decode raises <a class="reference internal" href="#xdol.x_codecs.CodecDecodeError" title="xdol.x_codecs.CodecDecodeError"><code class="xref py py-class docutils literal notranslate"><span class="pre">CodecDecodeError</span></code></a>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">MutableMapping</span></code></a></span></p>
@@ -620,6 +644,7 @@ being silently stringified. Pass <code class="docutils literal notranslate"><spa
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xdol.x_codecs.Codec.encode"><code class="docutils literal notranslate"><span class="pre">Codec.encode</span></code></a></li>
 </ul>
 </li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#xdol.x_codecs.CodecDecodeError"><code class="docutils literal notranslate"><span class="pre">CodecDecodeError</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#xdol.x_codecs.JSON_CODEC"><code class="docutils literal notranslate"><span class="pre">JSON_CODEC</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#xdol.x_codecs.PairedStore"><code class="docutils literal notranslate"><span class="pre">PairedStore</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#xdol.x_codecs.TEXT_CODEC"><code class="docutils literal notranslate"><span class="pre">TEXT_CODEC</span></code></a></li>

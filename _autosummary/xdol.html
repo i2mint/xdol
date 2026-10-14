@@ -43,7 +43,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../_static/documentation_options.js?v=468bc497"></script>
+    <script src="../_static/documentation_options.js?v=e2f3408e"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -57,7 +57,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.14" />
+  <meta name="docsearch:version" content="0.1.15" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -306,6 +306,7 @@
   <div class="bd-toc-item navbar-nav"><ul class="current nav bd-sidenav">
 <li class="toctree-l1 current active has-children"><a aria-current="page" class="current reference internal" href="#">xdol</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
 <li class="toctree-l2"><a class="reference internal" href="xdol.keys.html">xdol.keys</a></li>
+<li class="toctree-l2"><a class="reference internal" href="xdol.memoize.html">xdol.memoize</a></li>
 <li class="toctree-l2"><a class="reference internal" href="xdol.paths.html">xdol.paths</a></li>
 <li class="toctree-l2"><a class="reference internal" href="xdol.pystores.html">xdol.pystores</a></li>
 <li class="toctree-l2"><a class="reference internal" href="xdol.registry.html">xdol.registry</a></li>
@@ -383,22 +384,25 @@
 <tr class="row-odd"><td><p><a class="reference internal" href="xdol.keys.html#module-xdol.keys" title="xdol.keys"><code class="xref py py-obj docutils literal notranslate"><span class="pre">keys</span></code></a></p></td>
 <td><p>Robust, stable cache keys: turn a call's inputs into a short, filesystem-safe string.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="xdol.paths.html#module-xdol.paths" title="xdol.paths"><code class="xref py py-obj docutils literal notranslate"><span class="pre">paths</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="xdol.memoize.html#module-xdol.memoize" title="xdol.memoize"><code class="xref py py-obj docutils literal notranslate"><span class="pre">memoize</span></code></a></p></td>
+<td><p>Persistent memoization with record/replay modes, for costly calls.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="xdol.paths.html#module-xdol.paths" title="xdol.paths"><code class="xref py py-obj docutils literal notranslate"><span class="pre">paths</span></code></a></p></td>
 <td><p>Tools for manipulating paths.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="xdol.pystores.html#module-xdol.pystores" title="xdol.pystores"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pystores</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="xdol.pystores.html#module-xdol.pystores" title="xdol.pystores"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pystores</span></code></a></p></td>
 <td><p>Stores for python objects</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="xdol.registry.html#module-xdol.registry" title="xdol.registry"><code class="xref py py-obj docutils literal notranslate"><span class="pre">registry</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="xdol.registry.html#module-xdol.registry" title="xdol.registry"><code class="xref py py-obj docutils literal notranslate"><span class="pre">registry</span></code></a></p></td>
 <td><p>A typed dict-backed plugin registry.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="xdol.updating.html#module-xdol.updating" title="xdol.updating"><code class="xref py py-obj docutils literal notranslate"><span class="pre">updating</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="xdol.updating.html#module-xdol.updating" title="xdol.updating"><code class="xref py py-obj docutils literal notranslate"><span class="pre">updating</span></code></a></p></td>
 <td><p>mapping using customizable policies to determine which items to update.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="xdol.util.html#module-xdol.util" title="xdol.util"><code class="xref py py-obj docutils literal notranslate"><span class="pre">util</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="xdol.util.html#module-xdol.util" title="xdol.util"><code class="xref py py-obj docutils literal notranslate"><span class="pre">util</span></code></a></p></td>
 <td><p>Utility functions for xdol.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="xdol.x_codecs.html#module-xdol.x_codecs" title="xdol.x_codecs"><code class="xref py py-obj docutils literal notranslate"><span class="pre">x_codecs</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="xdol.x_codecs.html#module-xdol.x_codecs" title="xdol.x_codecs"><code class="xref py py-obj docutils literal notranslate"><span class="pre">x_codecs</span></code></a></p></td>
 <td><p>Extra codecs: object &lt;-&gt; bytes pairs, and stores that apply them.</p></td>
 </tr>
 </tbody>

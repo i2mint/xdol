@@ -29,3 +29,9 @@ xdol.x\_codecs
       Codec
       PairedStore
    
+   .. rubric:: Exceptions
+
+   .. autosummary::
+   
+      CodecDecodeError
+   
