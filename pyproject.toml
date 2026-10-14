@@ -26,6 +26,9 @@ text = "Apache-2.0"
 Homepage = "https://github.com/i2mint/xdol"
 
 [project.optional-dependencies]
+s3 = [
+    "s3dol>=1.0",
+]
 dev = [
     "pytest>=7.0",
     "pytest-cov>=4.0",
