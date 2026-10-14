@@ -1,0 +1,256 @@
+"""Tests for xdol.memoize: record/replay persistent memoization."""
+
+import asyncio
+import inspect
+import json
+import warnings
+
+import pytest
+
+from xdol.memoize import (
+    AtomicFiles, CacheCorrupt, CacheMiss, CacheWriteError, file_cache_store,
+    memoize_calls, recording_enabled,
+)
+
+
+@pytest.fixture(autouse=True)
+def _no_ambient_record(monkeypatch):
+    monkeypatch.delenv("XDOL_MEMOIZE_RECORD", raising=False)
+
+
+class Counter:
+    def __init__(self):
+        self.n = 0
+
+    def __call__(self, x, *, tag="t"):
+        """Doc."""
+        self.n += 1
+        return {"x": x, "tag": tag}
+
+
+def test_replay_is_default_and_a_miss_calls_nothing(tmp_path):
+    f = Counter()
+    m = memoize_calls(f, store=tmp_path)
+    with pytest.raises(CacheMiss, match="replay-only"):
+        m(1)
+    assert f.n == 0
+
+
+def test_record_then_replay_across_instances(tmp_path):
+    f = Counter()
+    rec = memoize_calls(f, store=tmp_path, mode="record")
+    assert rec(1) == rec(1) == {"x": 1, "tag": "t"}
+    assert f.n == 1
+    g = Counter()
+    replay = memoize_calls(g, store=tmp_path)  # fresh process, default mode
+    assert replay(1) == {"x": 1, "tag": "t"} and g.n == 0
+
+
+def test_env_opt_in_is_read_at_call_time(tmp_path, monkeypatch):
+    f = Counter()
+    m = memoize_calls(f, store=tmp_path)  # decorated before the env is set
+    monkeypatch.setenv("XDOL_MEMOIZE_RECORD", "1")
+    assert recording_enabled() and m.cache_mode() == "record"
+    m(1)
+    monkeypatch.delenv("XDOL_MEMOIZE_RECORD")
+    assert m(1) == {"x": 1, "tag": "t"} and f.n == 1
+
+
+def test_modes_refresh_and_off(tmp_path):
+    f = Counter()
+    memoize_calls(f, store=tmp_path, mode="record")(1)
+    memoize_calls(f, store=tmp_path, mode="refresh")(1)
+    assert f.n == 2
+    memoize_calls(f, store=tmp_path, mode="off")(1)
+    assert f.n == 3
+    off = memoize_calls(f, store=tmp_path / "other", mode="off")
+    off(1)
+    assert not (tmp_path / "other").exists() or not list((tmp_path / "other").iterdir())
+    with pytest.raises(ValueError, match="Unknown mode"):
+        memoize_calls(f, store=tmp_path, mode="nope")(1)
+
+
+def test_callable_mode(tmp_path):
+    state = {"mode": "replay"}
+    f = Counter()
+    m = memoize_calls(f, store=tmp_path, mode=lambda: state["mode"])
+    with pytest.raises(CacheMiss):
+        m(1)
+    state["mode"] = "record"
+    m(1)
+    state["mode"] = "replay"
+    assert m(1)["x"] == 1
+
+
+def test_wraps_preserves_signature_and_metadata(tmp_path):
+    def add(a: int, b: int = 2) -> int:
+        """Adds."""
+        return a + b
+
+    m = memoize_calls(add, store=tmp_path, mode="record")
+    assert m.__name__ == "add" and m.__doc__ == "Adds."
+    assert inspect.signature(m) == inspect.signature(add)
+    assert m.__wrapped__ is add
+
+
+def test_decorator_form_and_drop(tmp_path):
+    seen = []
+
+    @memoize_calls(store=tmp_path, mode="record", drop=["logger"])
+    def f(prompt, logger=None):
+        seen.append(prompt)
+        return prompt.upper()
+
+    assert f("a", logger=print) == f("a", logger=None) == f(prompt="a") == "A"
+    assert seen == ["a"]
+
+
+def test_key_func_and_drop_are_exclusive(tmp_path):
+    with pytest.raises(ValueError, match="either"):
+        memoize_calls(lambda a: a, store=tmp_path, key_func=str, drop=["a"])
+
+
+def test_exceptions_are_not_cached(tmp_path):
+    calls = []
+
+    def flaky(x):
+        calls.append(x)
+        if len(calls) == 1:
+            raise RuntimeError("boom")
+        return x
+
+    m = memoize_calls(flaky, store=tmp_path, mode="record")
+    with pytest.raises(RuntimeError):
+        m(1)
+    assert m(1) == 1 and calls == [1, 1]
+
+
+def test_none_and_falsy_results_are_cached(tmp_path):
+    n = []
+
+    def f(x):
+        n.append(x)
+
+    m = memoize_calls(f, store=tmp_path, mode="record")
+    assert m(1) is None and m(1) is None and n == [1]
+
+
+def test_binary_codec_and_paired_codec(tmp_path):
+    img = memoize_calls(lambda s: s.encode(), store=tmp_path / "b", codec="bytes", mode="record")
+    assert img("x") == b"x"
+    assert img("x") == b"x"
+
+    n = []
+
+    def render(prompt):
+        n.append(prompt)
+        return {"prompt": prompt}, b"\x89PNG\x00"
+
+    m = memoize_calls(render, store=tmp_path / "p", codec="paired", mode="record")
+    assert m("cat") == m("cat") == ({"prompt": "cat"}, b"\x89PNG\x00")
+    assert n == ["cat"]
+    names = sorted(p.suffix for p in (tmp_path / "p").iterdir())
+    assert names == [".bin", ".json"]
+
+
+def test_bytes_store_gets_codec_applied_on_top():
+    raw = {}  # stands in for S3
+    m = memoize_calls(lambda x: [x], store=raw, codec="json", mode="record")
+    m(1)
+    (key,) = raw
+    assert json.loads(raw[key]) == [1]
+    # an object-valued mapping needs no codec
+    objs = {}
+    memoize_calls(lambda x: [x], store=objs, mode="record")(1)
+    assert list(objs.values()) == [[1]]
+
+
+def test_unserializable_result_raises_with_result_attached_or_warns(tmp_path):
+    m = memoize_calls(lambda: {1, 2}, store=tmp_path, mode="record")
+    with pytest.raises(CacheWriteError) as ei:
+        m()
+    assert ei.value.result == {1, 2}
+    w = memoize_calls(lambda: {1, 2}, store=tmp_path, mode="record", on_write_error="warn")
+    with pytest.warns(UserWarning, match="could not be stored"):
+        assert w() == {1, 2}
+    assert list(tmp_path.iterdir()) == []  # nothing half-written
+
+
+def test_corrupt_entry(tmp_path):
+    f = Counter()
+    m = memoize_calls(f, store=tmp_path, mode="record")
+    m(1)
+    (path,) = tmp_path.iterdir()
+    path.write_bytes(b"{truncated")
+    with pytest.raises(CacheCorrupt):
+        memoize_calls(f, store=tmp_path)(1)
+    with pytest.warns(UserWarning, match="undecodable"):
+        assert m(1)["x"] == 1  # recording heals it
+    assert memoize_calls(f, store=tmp_path)(1)["x"] == 1
+
+
+def test_store_failures_are_not_mistaken_for_misses():
+    class Flaky(dict):
+        def __getitem__(self, k):
+            raise ConnectionError("network down")
+
+    f = Counter()
+    m = memoize_calls(f, store=Flaky(), mode="record")
+    with pytest.raises(ConnectionError):
+        m(1)
+    assert f.n == 0  # no real call (no spend) because the store was unreachable
+
+
+def test_async_functions(tmp_path):
+    n = []
+
+    async def f(x):
+        n.append(x)
+        return x * 2
+
+    m = memoize_calls(f, store=tmp_path, mode="record")
+    assert inspect.iscoroutinefunction(m)
+    assert asyncio.run(m(2)) == asyncio.run(m(2)) == 4 and n == [2]
+    with pytest.raises(CacheMiss):
+        asyncio.run(memoize_calls(f, store=tmp_path / "x")(2))
+
+
+def test_atomic_files_hides_temp_and_cleans_up_on_failure(tmp_path):
+    store = AtomicFiles(str(tmp_path))
+    store["a"] = b"1"
+    store["sub/b"] = b"2"
+    (tmp_path / "c.123.xdol-tmp").write_bytes(b"stale")
+    assert sorted(store) == ["a", "sub/b"]
+    with pytest.raises(TypeError):
+        store["d"] = 123  # not bytes
+    assert not [p for p in tmp_path.iterdir() if p.name.startswith("d")]
+
+
+def test_file_cache_store_is_reviewable_json(tmp_path):
+    store = file_cache_store(tmp_path / "cassettes")
+    store["k"] = {"b": 1, "a": "é"}
+    text = (tmp_path / "cassettes" / "k").read_text(encoding="utf-8")
+    assert text.index('"a"') < text.index('"b"') and "é" in text
+
+
+def test_method_needs_drop_self(tmp_path):
+    class Client:
+        @staticmethod
+        def make():
+            return Client()
+
+        def __init__(self):
+            self.n = 0
+
+        def call(self, x):
+            self.n += 1
+            return x
+
+    c = Client()
+    from xdol.keys import UnstableKeyError
+
+    bad = memoize_calls(Client.call, store=tmp_path, mode="record")
+    with pytest.raises(UnstableKeyError):
+        bad(c, 1)
+    good = memoize_calls(Client.call, store=tmp_path, mode="record", drop=["self"])
+    assert good(c, 1) == good(Client(), 1) == 1 and c.n == 1

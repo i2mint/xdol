@@ -12,3 +12,10 @@ from xdol.registry import (
     RegistryMissing,
     Subscription,
 )
+from xdol.memoize import (
+    memoize_calls,
+    file_cache_store,
+    CacheMiss,
+    CacheCorrupt,
+    CacheWriteError,
+)
