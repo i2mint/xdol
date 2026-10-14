@@ -1,0 +1,21 @@
+xdol.keys
+=========
+
+.. automodule:: xdol.keys
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      hash_payload
+      make_key_func
+      normalize
+      robust_key
+   
+   .. rubric:: Exceptions
+
+   .. autosummary::
+   
+      UnstableKeyError
+   

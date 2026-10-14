@@ -4,3 +4,28 @@ xdol.x\_codecs
 .. automodule:: xdol.x_codecs
 
    
+   .. rubric:: Module Attributes
+
+   .. autosummary::
+   
+      JSON_CODEC
+      TEXT_CODEC
+      BYTES_CODEC
+      CODECS
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      get_codec
+      json_codec
+      paired_store
+      with_codec
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      Codec
+      PairedStore
+   

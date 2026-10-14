@@ -1,32 +1,32 @@
 {
   "schema_version": 1,
-  "built_at": "2026-10-14T00:13:14Z",
+  "built_at": "2026-10-14T00:48:21Z",
   "package": {
     "name": "xdol",
-    "version": "0.1.13",
+    "version": "0.1.14",
     "display_name": "xdol",
     "source": "pyproject.toml"
   },
   "git": {
     "available": true,
-    "commit": "4f264a78d74cb8dea6077670ff9ee6974dba94e3",
-    "short_commit": "4f264a7",
+    "commit": "b1523208e1626cd7bca32788ef41747d06993831",
+    "short_commit": "b152320",
     "branch": "master",
     "tags": [],
     "dirty": false,
     "remote_url": "https://github.com/i2mint/xdol",
-    "commit_url": "https://github.com/i2mint/xdol/commit/4f264a78d74cb8dea6077670ff9ee6974dba94e3",
+    "commit_url": "https://github.com/i2mint/xdol/commit/b1523208e1626cd7bca32788ef41747d06993831",
     "error": null
   },
   "ci": {
     "provider": "github",
     "repository": "i2mint/xdol",
-    "sha": "4f264a78d74cb8dea6077670ff9ee6974dba94e3",
+    "sha": "b1523208e1626cd7bca32788ef41747d06993831",
     "sha_in_history": true,
     "ref": "refs/heads/master",
     "ref_name": "master",
-    "run_id": "38488756424",
-    "run_url": "https://github.com/i2mint/xdol/actions/runs/38488756424",
+    "run_id": "38492078281",
+    "run_url": "https://github.com/i2mint/xdol/actions/runs/38492078281",
     "server_url": "https://github.com"
   },
   "tools": {
@@ -55,16 +55,16 @@
     "docs_dir": "docsrc"
   },
   "site": {
-    "modules_documented": 7,
-    "objects_documented": 54
+    "modules_documented": 8,
+    "objects_documented": 71
   },
   "pypi": {
     "checked": true,
-    "latest": "0.1.13",
+    "latest": "0.1.14",
     "relation": "same",
     "error": null
   },
-  "reproduce": "git clone https://github.com/i2mint/xdol && cd xdol\ngit checkout 4f264a78d74cb8dea6077670ff9ee6974dba94e3\npip install \"epythet==0.2.17\"\nepythet quickstart . --ignore tests/ scrap/ examples/",
+  "reproduce": "git clone https://github.com/i2mint/xdol && cd xdol\ngit checkout b1523208e1626cd7bca32788ef41747d06993831\npip install \"epythet==0.2.17\"\nepythet quickstart . --ignore tests/ scrap/ examples/",
   "warnings": [],
   "alignment": {
     "aligned": true,

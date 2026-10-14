@@ -1,4 +1,4 @@
-> built 2026-10-14 00:13 UTC from 4f264a7 (master) · xdol 0.1.13. Details: build_info.json
+> built 2026-10-14 00:48 UTC from b152320 (master) · xdol 0.1.14. Details: build_info.json
 
 # index.html.md
 
@@ -23,13 +23,158 @@ Extended tools for dol (Data Object Layers)
 
 ### Modules
 
-| [`paths`](_autosummary/xdol.paths.html.md#module-xdol.paths)       | Tools for manipulating paths.                                           |
-|--------------------------------------------------------------------------------|-------------------------------------------------------------------------|
-| [`pystores`](_autosummary/xdol.pystores.html.md#module-xdol.pystores) | Stores for python objects                                               |
-| [`registry`](_autosummary/xdol.registry.html.md#module-xdol.registry) | A typed dict-backed plugin registry.                                    |
-| [`updating`](_autosummary/xdol.updating.html.md#module-xdol.updating) | mapping using customizable policies to determine which items to update. |
-| [`util`](_autosummary/xdol.util.html.md#module-xdol.util)         | Utility functions for xdol.                                             |
-| [`x_codecs`](_autosummary/xdol.x_codecs.html.md#module-xdol.x_codecs) | Extra codecs                                                            |
+| [`keys`](_autosummary/xdol.keys.html.md#module-xdol.keys)         | Robust, stable cache keys: turn a call's inputs into a short, filesystem-safe string.   |
+|--------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------|
+| [`paths`](_autosummary/xdol.paths.html.md#module-xdol.paths)       | Tools for manipulating paths.                                                           |
+| [`pystores`](_autosummary/xdol.pystores.html.md#module-xdol.pystores) | Stores for python objects                                                               |
+| [`registry`](_autosummary/xdol.registry.html.md#module-xdol.registry) | A typed dict-backed plugin registry.                                                    |
+| [`updating`](_autosummary/xdol.updating.html.md#module-xdol.updating) | mapping using customizable policies to determine which items to update.                 |
+| [`util`](_autosummary/xdol.util.html.md#module-xdol.util)         | Utility functions for xdol.                                                             |
+| [`x_codecs`](_autosummary/xdol.x_codecs.html.md#module-xdol.x_codecs) | Extra codecs: object <-> bytes pairs, and stores that apply them.                       |
+
+
+# _autosummary/xdol.keys.html.md
+
+# xdol.keys
+
+Robust, stable cache keys: turn a call’s inputs into a short, filesystem-safe string.
+
+A persistent cache (see `xdol.memoize`) is only as good as its keys. A key must be
+
+- **stable across runs and machines** – never derived from a memory address, set
+  iteration order or dict insertion order;
+- **insensitive to superficial differences** – dict key order, surrounding whitespace;
+- **loud about what it cannot make stable** – an object whose only description is
+  `<Foo object at 0x7f...>` would give a *different key every run* (a cache that
+  never hits, or, in replay-only mode, a spurious miss), so it raises
+  [`UnstableKeyError`](_autosummary/xdol.keys.html.md#xdol.keys.UnstableKeyError) instead of silently hashing the address.
+
+```pycon
+>>> robust_key({"b": 1, "a": 2}, prompt="  hi ") == robust_key({"a": 2, "b": 1}, prompt="hi")
+True
+>>> len(robust_key(1, 2, x=3))
+32
+```
+
+Keys are a **stability contract**: committed caches (e.g. cassette directories) are keyed
+by these hashes, so the output for JSON-able inputs does not change between releases.
+
+Customize with [`make_key_func()`](_autosummary/xdol.keys.html.md#xdol.keys.make_key_func) – drop non-semantic arguments (callbacks, loggers),
+bind to the wrapped function’s signature, pick the digest, or teach it your own types
+with a `__cache_key__` method.
+
+```pycon
+>>> def f(prompt, *, logger=None, retries=3): ...
+>>> key = make_key_func(f, drop=["logger", "retries"])
+>>> key("hi", logger=print) == key(prompt="hi", retries=9)
+True
+```
+
+### Functions
+
+| [`hash_payload`](_autosummary/xdol.keys.html.md#xdol.keys.hash_payload)(payload, \*[, digest, length])      | Hash an already-normalized JSON-able `payload` to a short hex string.              |
+|---------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------|
+| [`make_key_func`](_autosummary/xdol.keys.html.md#xdol.keys.make_key_func)([func, drop, apply_defaults, ...]) | Build a key function `(*args, **kwargs) -> str`, customized.                       |
+| [`normalize`](_autosummary/xdol.keys.html.md#xdol.keys.normalize)(obj, \*[, collapse_whitespace, ...])   | Recursively reduce `obj` to a JSON-able structure that is equal for equal meaning. |
+| [`robust_key`](_autosummary/xdol.keys.html.md#xdol.keys.robust_key)(\*args, \*\*kwargs)                   | The default key function: a stable SHA-256 (32 hex chars) of the normalized call.  |
+
+### Exceptions
+
+| [`UnstableKeyError`](_autosummary/xdol.keys.html.md#xdol.keys.UnstableKeyError)   | An input has no run-stable description, so no stable key can be made from it.   |
+|---------------------------------------------------------------------|---------------------------------------------------------------------------------|
+
+### *exception* xdol.keys.UnstableKeyError
+
+Bases: [`TypeError`](https://docs.python.org/3/builtins/exceptions.html#TypeError)
+
+An input has no run-stable description, so no stable key can be made from it.
+
+Fix it by giving the object a `__cache_key__()` method, dropping the argument from
+the key (`make_key_func(f, drop=[...])`), or passing `on_unstable="ignore"` if
+you accept a key that may change between runs.
+
+### xdol.keys.hash_payload(payload, , digest='sha256', length=32)
+
+Hash an already-normalized JSON-able `payload` to a short hex string.
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
+
+### xdol.keys.make_key_func(func=None, , drop=(), apply_defaults=False, collapse_whitespace=False, on_unstable='raise', digest='sha256', length=32, prefix='')
+
+Build a key function `(*args, **kwargs) -> str`, customized.
+
+* **Parameters:**
+  * **func** ([`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable) | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – if given, calls are bound to its signature first, so `f(1, 2)`,
+    `f(1, b=2)` and `f(a=1, b=2)` share a key. Required for `drop`.
+  * **drop** ([`Iterable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterable)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]) – names of parameters of `func` to leave out of the key – the
+    non-semantic ones (callbacks, loggers, timeouts, `self`).
+  * **apply_defaults** ([`bool`](https://docs.python.org/3/builtins/functions.html#bool)) – with `func`, also hash default values, so `f(x)` equals
+    `f(x, y=<default>)`. Off by default: adding a defaulted parameter later
+    then does not invalidate existing caches (changing a default does not
+    either – turn this on if that matters to you).
+  * **collapse_whitespace** ([`bool`](https://docs.python.org/3/builtins/functions.html#bool)) – see [`normalize()`](_autosummary/xdol.keys.html.md#xdol.keys.normalize).
+  * **on_unstable** ([`Literal`](https://docs.python.org/3/library/typing.html#typing.Literal)[`'raise'`, `'warn'`, `'ignore'`]) – see [`normalize()`](_autosummary/xdol.keys.html.md#xdol.keys.normalize).
+  * **digest** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str)) – hash algorithm (any [`hashlib`](https://docs.python.org/3/library/hashlib.html#module-hashlib) name) and key length in hex chars.
+  * **length** ([`int`](https://docs.python.org/3/builtins/functions.html#int)) – hash algorithm (any [`hashlib`](https://docs.python.org/3/library/hashlib.html#module-hashlib) name) and key length in hex chars.
+  * **prefix** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str)) – prepended to every key (e.g. a namespace or version: `"v2-"`).
+* **Return type:**
+  [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[`...`](https://docs.python.org/3/builtins/constants.html#Ellipsis), [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
+
+With no arguments this is [`robust_key()`](_autosummary/xdol.keys.html.md#xdol.keys.robust_key).
+
+```pycon
+>>> make_key_func()("x") == robust_key("x")
+True
+>>> def f(a, b=1, *, log=None): ...
+>>> k = make_key_func(f, drop=["log"], apply_defaults=True)
+>>> k(1) == k(1, 1) == k(a=1, log=print)
+True
+```
+
+### xdol.keys.normalize(obj, , collapse_whitespace=False, on_unstable='raise')
+
+Recursively reduce `obj` to a JSON-able structure that is equal for equal meaning.
+
+- strings are stripped (and, with `collapse_whitespace`, inner runs of whitespace
+  become one space – off by default since whitespace can be meaningful in code or
+  markdown);
+- mappings get string keys, sorted; lists and tuples become lists;
+- sets are sorted; bytes are replaced by their digest; paths, enums, dates,
+  dataclasses, numpy-like arrays and callables get a tagged, stable description;
+- an object with a `__cache_key__()` method is described by what it returns;
+- pandas objects are described by their full content; bound methods by function and
+  instance; lambdas raise (indistinguishable);
+- anything else falls back to `repr`, vetted by `on_unstable` (see
+  [`UnstableKeyError`](_autosummary/xdol.keys.html.md#xdol.keys.UnstableKeyError)). A `repr` can still be lossy (truncated, or leaving out
+  > state): for such types define `__cache_key__`.
+
+```pycon
+>>> normalize({"b": " x ", "a": (1, 2)})
+{'a': [1, 2], 'b': 'x'}
+>>> normalize({3, 1, 2})
+{'__set__': [1, 2, 3]}
+```
+
+* **Return type:**
+  [`Any`](https://docs.python.org/3/library/typing.html#typing.Any)
+
+### xdol.keys.robust_key(\*args, \*\*kwargs)
+
+The default key function: a stable SHA-256 (32 hex chars) of the normalized call.
+
+Calls whose arguments are semantically equal – same values up to dict key order and
+surrounding whitespace – get the same key.
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
+
+```pycon
+>>> robust_key("a", n=1) == robust_key("a ", n=1)
+True
+>>> robust_key("a", n=1) == robust_key("a", n=2)
+False
+```
 
 
 # _autosummary/xdol.paths.html.md
@@ -1033,7 +1178,144 @@ True
 
 # xdol.x_codecs
 
-Extra codecs
+Extra codecs: object <-> bytes pairs, and stores that apply them.
+
+Besides `resolve_values_to_bytes()`, this module holds the value-encoding half of the
+persistent memoizer (`xdol.memoize`):
+
+- [`Codec`](_autosummary/xdol.x_codecs.html.md#xdol.x_codecs.Codec) – an `encode`/`decode` pair, with ready-made [`JSON_CODEC`](_autosummary/xdol.x_codecs.html.md#xdol.x_codecs.JSON_CODEC)
+  (human-readable, diff-friendly), [`TEXT_CODEC`](_autosummary/xdol.x_codecs.html.md#xdol.x_codecs.TEXT_CODEC) and [`BYTES_CODEC`](_autosummary/xdol.x_codecs.html.md#xdol.x_codecs.BYTES_CODEC)
+  (pass-through, for images/audio), looked up by name through [`get_codec()`](_autosummary/xdol.x_codecs.html.md#xdol.x_codecs.get_codec);
+- [`with_codec()`](_autosummary/xdol.x_codecs.html.md#xdol.x_codecs.with_codec) – apply a codec to the values of a bytes store;
+- [`paired_store()`](_autosummary/xdol.x_codecs.html.md#xdol.x_codecs.paired_store) – for a result that mixes metadata and a binary asset, a store
+  whose value is `(metadata, asset_bytes)`, persisted as `<key>.json` + `<key>.bin`.
+
+```pycon
+>>> store = with_codec({}, "json")
+>>> store["k"] = {"b": 1, "a": [1, 2]}
+>>> store["k"]
+{'a': [1, 2], 'b': 1}
+>>> raw = {}
+>>> pairs = paired_store(raw)
+>>> pairs["img1"] = ({"prompt": "a cat"}, b"PNGDATA")
+>>> sorted(raw)
+['img1.bin', 'img1.json']
+>>> pairs["img1"]
+({'prompt': 'a cat'}, b'PNGDATA')
+```
+
+### Module Attributes
+
+| [`JSON_CODEC`](_autosummary/xdol.x_codecs.html.md#xdol.x_codecs.JSON_CODEC)   | Text / JSON results, stored human-readably so a committed cache is reviewable.   |
+|---------------------------------------------------------------|----------------------------------------------------------------------------------|
+| [`TEXT_CODEC`](_autosummary/xdol.x_codecs.html.md#xdol.x_codecs.TEXT_CODEC)   | `str` results, stored as UTF-8.                                                  |
+| [`BYTES_CODEC`](_autosummary/xdol.x_codecs.html.md#xdol.x_codecs.BYTES_CODEC)  | Pass-through, for binary assets (image / audio bytes).                           |
+| [`CODECS`](_autosummary/xdol.x_codecs.html.md#xdol.x_codecs.CODECS)       | `CODECS["pickle"] = Codec(pickle.dumps, pickle.loads)`.                          |
+
+### Functions
+
+| [`get_codec`](_autosummary/xdol.x_codecs.html.md#xdol.x_codecs.get_codec)(codec)                  | Resolve a [`Codec`](_autosummary/xdol.x_codecs.html.md#xdol.x_codecs.Codec), a name in [`CODECS`](_autosummary/xdol.x_codecs.html.md#xdol.x_codecs.CODECS), or an `(encode, decode)` pair.   |
+|------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| [`json_codec`](_autosummary/xdol.x_codecs.html.md#xdol.x_codecs.json_codec)(\*[, indent, default]) | A JSON [`Codec`](_autosummary/xdol.x_codecs.html.md#xdol.x_codecs.Codec): keys sorted, non-ASCII kept, so stored files diff well.                                                |
+| [`paired_store`](_autosummary/xdol.x_codecs.html.md#xdol.x_codecs.paired_store)(store, \*\*kwargs)   | See [`PairedStore`](_autosummary/xdol.x_codecs.html.md#xdol.x_codecs.PairedStore).                                                                                                     |
+| [`with_codec`](_autosummary/xdol.x_codecs.html.md#xdol.x_codecs.with_codec)(store[, codec])        | Wrap a bytes `store` so its values are objects, encoded/decoded by `codec`.                                                                                           |
+
+### Classes
+
+| [`Codec`](_autosummary/xdol.x_codecs.html.md#xdol.x_codecs.Codec)(encode, decode)                     | An object <-> bytes pair, for the values of a store.                              |
+|--------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------|
+| [`PairedStore`](_autosummary/xdol.x_codecs.html.md#xdol.x_codecs.PairedStore)(store, \*[, meta_codec, ...]) | Values are `(metadata, asset_bytes)` pairs, kept as two entries in a bytes store. |
+
+### xdol.x_codecs.BYTES_CODEC *= (<function \_as_bytes>, <function <lambda>>)*
+
+Pass-through, for binary assets (image / audio bytes).
+
+### xdol.x_codecs.CODECS *: [dict](https://docs.python.org/3/builtins/stdtypes.html#dict)[[str](https://docs.python.org/3/builtins/stdtypes.html#str), [Codec](_autosummary/xdol.x_codecs.html.md#xdol.x_codecs.Codec)]* *= {'bytes': (<function \_as_bytes>, <function <lambda>>), 'json': (<function json_codec.<locals>.encode>, <function json_codec.<locals>.<lambda>>), 'text': (<function <lambda>>, <function <lambda>>)}*
+
+`CODECS["pickle"] = Codec(pickle.dumps, pickle.loads)`.
+
+* **Type:**
+  Named codecs. Register your own
+
+### *class* xdol.x_codecs.Codec(encode, decode)
+
+Bases: [`NamedTuple`](https://docs.python.org/3/library/typing.html#typing.NamedTuple)
+
+An object <-> bytes pair, for the values of a store.
+
+#### decode *: [Callable](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[[bytes](https://docs.python.org/3/builtins/stdtypes.html#bytes)], [Any](https://docs.python.org/3/library/typing.html#typing.Any)]*
+
+Alias for field number 1
+
+#### encode *: [Callable](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[[Any](https://docs.python.org/3/library/typing.html#typing.Any)], [bytes](https://docs.python.org/3/builtins/stdtypes.html#bytes)]*
+
+Alias for field number 0
+
+### xdol.x_codecs.JSON_CODEC *= (<function json_codec.<locals>.encode>, <function json_codec.<locals>.<lambda>>)*
+
+Text / JSON results, stored human-readably so a committed cache is reviewable.
+
+### *class* xdol.x_codecs.PairedStore(store, , meta_codec='json', meta_suffix='.json', asset_suffix='.bin')
+
+Bases: [`MutableMapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping)
+
+Values are `(metadata, asset_bytes)` pairs, kept as two entries in a bytes store.
+
+`store[k] = (meta, blob)` writes `k + meta_suffix` (`meta` through
+`meta_codec`) and `k + asset_suffix` (`blob` verbatim). The metadata entry is
+written *last* and is what makes a key exist, so a crash mid-write leaves no
+half-entry that reads back as valid; `in`/iteration/`len` only see keys whose
+both halves are present.
+
+### xdol.x_codecs.TEXT_CODEC *= (<function <lambda>>, <function <lambda>>)*
+
+`str` results, stored as UTF-8.
+
+### xdol.x_codecs.get_codec(codec)
+
+Resolve a [`Codec`](_autosummary/xdol.x_codecs.html.md#xdol.x_codecs.Codec), a name in [`CODECS`](_autosummary/xdol.x_codecs.html.md#xdol.x_codecs.CODECS), or an `(encode, decode)` pair.
+
+* **Return type:**
+  [`Codec`](_autosummary/xdol.x_codecs.html.md#xdol.x_codecs.Codec)
+
+```pycon
+>>> get_codec("json") is JSON_CODEC
+True
+>>> get_codec((str.encode, bytes.decode)).decode(b"x")
+'x'
+```
+
+### xdol.x_codecs.json_codec(, indent=2, default=None)
+
+A JSON [`Codec`](_autosummary/xdol.x_codecs.html.md#xdol.x_codecs.Codec): keys sorted, non-ASCII kept, so stored files diff well.
+
+Strict by default: a value JSON cannot represent raises `TypeError` rather than
+being silently stringified. Pass `default=` (as in [`json.dumps()`](https://docs.python.org/3/library/json.html#json.dumps)) to opt in.
+
+* **Return type:**
+  [`Codec`](_autosummary/xdol.x_codecs.html.md#xdol.x_codecs.Codec)
+
+```pycon
+>>> c = json_codec(indent=None)
+>>> c.decode(c.encode({"b": "é", "a": 1}))
+{'a': 1, 'b': 'é'}
+>>> c.encode({"b": 1, "a": 2})
+b'{"a": 2, "b": 1}'
+```
+
+### xdol.x_codecs.paired_store(store, \*\*kwargs)
+
+See [`PairedStore`](_autosummary/xdol.x_codecs.html.md#xdol.x_codecs.PairedStore). `store` is a bytes `MutableMapping` (files, S3, …).
+
+* **Return type:**
+  [`PairedStore`](_autosummary/xdol.x_codecs.html.md#xdol.x_codecs.PairedStore)
+
+### xdol.x_codecs.with_codec(store, codec='json')
+
+Wrap a bytes `store` so its values are objects, encoded/decoded by `codec`.
+
+* **Return type:**
+  [`MutableMapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping)
 
 
 # about-this-build.html.md
@@ -1042,7 +1324,7 @@ Extra codecs
 
 # About this build
 
-This documentation was built on **2026-10-14 00:13 UTC** from commit <a href="https://github.com/i2mint/xdol/commit/4f264a78d74cb8dea6077670ff9ee6974dba94e3"><code>4f264a7</code></a> on branch <code>master</code>, for **xdol 0.1.13** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-10-14 00:48 UTC** from commit <a href="https://github.com/i2mint/xdol/commit/b1523208e1626cd7bca32788ef41747d06993831"><code>b152320</code></a> on branch <code>master</code>, for **xdol 0.1.14** (from <code>pyproject.toml</code>).
 
 #### NOTE
 Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
@@ -1051,7 +1333,7 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 |                     |                                                                                                                                                    |
 |---------------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/i2mint/xdol/commit/4f264a78d74cb8dea6077670ff9ee6974dba94e3"><code>4f264a78d74cb8dea6077670ff9ee6974dba94e3</code></a> |
+| Commit              | <a href="https://github.com/i2mint/xdol/commit/b1523208e1626cd7bca32788ef41747d06993831"><code>b1523208e1626cd7bca32788ef41747d06993831</code></a> |
 | Branch              | <code>master</code>                                                                                                                                |
 | Tags at this commit | none                                                                                                                                               |
 | Working tree        | clean                                                                                                                                              |
@@ -1062,9 +1344,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>i2mint/xdol</code>                                                                   |
-| Run          | <a href="https://github.com/i2mint/xdol/actions/runs/38488756424">38488756424</a>          |
+| Run          | <a href="https://github.com/i2mint/xdol/actions/runs/38492078281">38492078281</a>          |
 | Ref          | <code>refs/heads/master</code>                                                             |
-| Event commit | <code>4f264a78d74cb8dea6077670ff9ee6974dba94e3</code> (in the history of the built commit) |
+| Event commit | <code>b1523208e1626cd7bca32788ef41747d06993831</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -1089,13 +1371,13 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/xdol/0.1.13/">0.1.13</a>, the same as the documented version.
+Latest release: <a href="https://pypi.org/project/xdol/0.1.14/">0.1.14</a>, the same as the documented version.
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/i2mint/xdol && cd xdol
-git checkout 4f264a78d74cb8dea6077670ff9ee6974dba94e3
+git checkout b1523208e1626cd7bca32788ef41747d06993831
 pip install "epythet==0.2.17"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```
