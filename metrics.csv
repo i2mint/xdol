@@ -1,8 +1,28 @@
 metric,value
 schema_version,1.0
-timestamp,2026-10-14T00:59:19.754624Z
-commit_sha,ba0f2da7811f14d02da6d9069c81eab705147274
-commit_message,Merge 956663600096f60145042e927e89e517e8ad43e7 into 8d3cdd96de3703ae205589f217dc5c8074ede6b0
+timestamp,2026-10-14T01:00:43.063146Z
+commit_sha,7ee406bc1a46ae1a5865f4b2defed77393732c49
+commit_message,"xdol.memoize: persistent record/replay memoizer (2/3 of #3) (#10)
+
+* Add xdol.memoize: persistent record/replay memoizer with atomic file store (#3)
+
+Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>
+
+* memoize: review fixes (store failures never cost a call, record==replay, no aliasing, torn-pair detection, root-escape guard, coroutine results)  (#3)
+
+Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>
+
+* memoize: AtomicFiles only maps a missing file to KeyError; uncopyable results; read legacy paired layout (#3)
+
+Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>
+
+* memoize: paired reads surface store failures; EACCES is not absence; pin relative store path (#3)
+
+Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>
+
+---------
+
+Co-authored-by: Claude Sonnet 5.5 <noreply@anthropic.com>"
 python_version,3.10
 metrics.umpyre_stats.num_functions,6859
 metrics.umpyre_stats.num_classes,1656
@@ -18,9 +38,9 @@ metrics.umpyre_stats.mean_lines_per_function,16.690333867910773
 metrics.umpyre_stats.files_analyzed,569
 metrics.umpyre_stats.pypi_version,0.1.15
 metrics.workflow_status.last_run_status,success
-metrics.workflow_status.last_success_timestamp,2026-10-14T00:56:21Z
+metrics.workflow_status.last_success_timestamp,2026-10-14T00:59:25Z
 metrics.workflow_status.recent_failure_count,0
-metrics.workflow_status.run_url,https://github.com/i2mint/xdol/actions/runs/38492844605
+metrics.workflow_status.run_url,https://github.com/i2mint/xdol/actions/runs/38493130356
 metrics.workflow_status.total_runs_analyzed,10
 metrics.wily.cyclomatic_avg,0.0
 metrics.wily.maintainability_index,0.0
@@ -33,4 +53,4 @@ metrics.coverage.branch_coverage,0.0
 metrics.coverage.statements_covered,0
 metrics.coverage.statements_total,0
 metrics.coverage.error,No coverage file found
-collection_duration_seconds,3.3344004154205322
+collection_duration_seconds,3.1816258430480957
