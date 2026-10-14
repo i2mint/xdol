@@ -114,3 +114,29 @@ def test_suffixes_are_validated():
 def test_overlapping_suffixes_rejected():
     with pytest.raises(ValueError, match="overlap"):
         paired_store({}, meta_suffix=".json", asset_suffix=".x.json")
+
+
+def test_decode_failures_are_codec_decode_errors():
+    from xdol.x_codecs import CodecDecodeError
+
+    s = with_codec({"k": b"{oops"}, "json")
+    with pytest.raises(CodecDecodeError):
+        s["k"]
+    with pytest.raises(KeyError):  # a missing key stays a plain KeyError
+        s["absent"]
+
+
+def test_paired_store_detects_a_torn_pair():
+    from xdol.x_codecs import CodecDecodeError
+
+    raw = {}
+    p = paired_store(raw)
+    p["k"] = ({"seed": "A"}, b"A")
+    raw["k.bin"] = b"B"
+    with pytest.raises(CodecDecodeError, match="belong together"):
+        p["k"]
+
+
+def test_legacy_bare_metadata_layout_is_still_read():
+    raw = {"k.json": b'{"prompt": "cat"}', "k.bin": b"A"}
+    assert paired_store(raw)["k"] == ({"prompt": "cat"}, b"A")
