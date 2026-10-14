@@ -1,8 +1,10 @@
 metric,value
 schema_version,1.0
-timestamp,2026-10-14T00:59:13.023223Z
-commit_sha,ba0f2da7811f14d02da6d9069c81eab705147274
-commit_message,Merge 956663600096f60145042e927e89e517e8ad43e7 into 8d3cdd96de3703ae205589f217dc5c8074ede6b0
+timestamp,2026-10-14T00:59:16.549775Z
+commit_sha,956663600096f60145042e927e89e517e8ad43e7
+commit_message,"memoize: paired reads surface store failures; EACCES is not absence; pin relative store path (#3)
+
+Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>"
 python_version,3.10
 metrics.umpyre_stats.num_functions,6955
 metrics.umpyre_stats.num_classes,1667
@@ -16,7 +18,7 @@ metrics.umpyre_stats.comment_lines_ratio,0.05613115204524379
 metrics.umpyre_stats.function_lines_ratio,0.4428136937266979
 metrics.umpyre_stats.mean_lines_per_function,16.68411214953271
 metrics.umpyre_stats.files_analyzed,579
-metrics.umpyre_stats.pypi_version,0.1.15
+metrics.umpyre_stats.pypi_version,0.1.14
 metrics.workflow_status.last_run_status,success
 metrics.workflow_status.last_success_timestamp,2026-10-14T00:56:21Z
 metrics.workflow_status.recent_failure_count,0
@@ -33,4 +35,4 @@ metrics.coverage.branch_coverage,0.0
 metrics.coverage.statements_covered,0
 metrics.coverage.statements_total,0
 metrics.coverage.error,No coverage file found
-collection_duration_seconds,3.2265031337738037
+collection_duration_seconds,3.292424201965332
