@@ -168,10 +168,14 @@ def _normalize_pandas(obj: Any, rec: Callable) -> dict:
     import pandas as pd
 
     try:
-        digest = _digest_hex(pd.util.hash_pandas_object(obj, index=True).values.tobytes())
+        digest = _digest_hex(
+            pd.util.hash_pandas_object(obj, index=True).values.tobytes()
+        )
     except TypeError as e:  # unhashable cell values
         raise UnstableKeyError(f"Cannot hash pandas content: {e}") from e
-    dtypes = obj.dtypes.astype(str).to_dict() if hasattr(obj, "columns") else str(obj.dtype)
+    dtypes = (
+        obj.dtypes.astype(str).to_dict() if hasattr(obj, "columns") else str(obj.dtype)
+    )
     return {
         "__pandas__": type(obj).__qualname__,
         "digest": digest,

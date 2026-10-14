@@ -109,6 +109,7 @@ JSON_CODEC = json_codec()
 TEXT_CODEC = Codec(lambda s: s.encode("utf-8"), lambda b: b.decode("utf-8"))
 """``str`` results, stored as UTF-8."""
 
+
 def _as_bytes(obj) -> bytes:
     if not isinstance(obj, (bytes, bytearray, memoryview)):
         raise TypeError(f"Expected bytes-like, got {type(obj).__name__}")
@@ -138,7 +139,9 @@ def get_codec(codec: "Codec | str | tuple[Callable, Callable]") -> Codec:
         try:
             return CODECS[codec]
         except KeyError:
-            raise KeyError(f"Unknown codec {codec!r}; known: {sorted(CODECS)}") from None
+            raise KeyError(
+                f"Unknown codec {codec!r}; known: {sorted(CODECS)}"
+            ) from None
     return codec if isinstance(codec, Codec) else Codec(*codec)
 
 
@@ -224,7 +227,10 @@ class PairedStore(MutableMapping):
     def __iter__(self) -> Iterator[str]:
         n = len(self.meta_suffix)
         for k in list(self.store):
-            if k.endswith(self.meta_suffix) and (k[:-n] + self.asset_suffix) in self.store:
+            if (
+                k.endswith(self.meta_suffix)
+                and (k[:-n] + self.asset_suffix) in self.store
+            ):
                 yield k[:-n]
 
     def __len__(self) -> int:
