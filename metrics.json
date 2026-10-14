@@ -1,7 +1,7 @@
 {
-  "collection_duration_seconds": 3.2455556392669678,
-  "commit_message": "Merge 82557c8f1389c7fbd582d826a9c2e873ea718470 into b4e13c5ec62614944871c322473e9ec49815fd8c",
-  "commit_sha": "cac9eb833e1026f81fef3426f015af753ab8021d",
+  "collection_duration_seconds": 2.370479106903076,
+  "commit_message": "xdol.keys + codecs + paired .json/.bin store (1/3 of #3) (#9)\n\n* Add xdol.keys (stable robust cache keys) and codecs + paired .json/.bin store (#3)\n\nCo-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>\n\n* keys/codecs: fix adversarial-review findings (dict-key stability and collisions, crash-safe overwrite, bytes-only codec, lambdas/methods/pandas, suffix validation) (#3)\n\nCo-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>\n\n* keys: lossless pandas/numpy, bound builtins, mocks; reject overlapping suffixes (#3)\n\nCo-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>\n\n---------\n\nCo-authored-by: Claude Sonnet 5.5 <noreply@anthropic.com>",
+  "commit_sha": "b1523208e1626cd7bca32788ef41747d06993831",
   "metrics": {
     "coverage": {
       "branch_coverage": 0.0,
@@ -34,14 +34,14 @@
     },
     "workflow_status": {
       "last_run_status": "success",
-      "last_success_timestamp": "2026-10-14T00:40:34Z",
+      "last_success_timestamp": "2026-10-14T00:44:29Z",
       "recent_failure_count": 0,
-      "run_url": "https://github.com/i2mint/xdol/actions/runs/38491413380",
+      "run_url": "https://github.com/i2mint/xdol/actions/runs/38491758452",
       "total_runs_analyzed": 10
     }
   },
   "python_version": "3.10",
   "schema_version": "1.0",
-  "timestamp": "2026-10-14T00:44:23.894963Z",
+  "timestamp": "2026-10-14T00:47:42.551931Z",
   "workflow_status": {}
 }

@@ -1,8 +1,24 @@
 metric,value
 schema_version,1.0
-timestamp,2026-10-14T00:44:23.894963Z
-commit_sha,cac9eb833e1026f81fef3426f015af753ab8021d
-commit_message,Merge 82557c8f1389c7fbd582d826a9c2e873ea718470 into b4e13c5ec62614944871c322473e9ec49815fd8c
+timestamp,2026-10-14T00:47:42.551931Z
+commit_sha,b1523208e1626cd7bca32788ef41747d06993831
+commit_message,"xdol.keys + codecs + paired .json/.bin store (1/3 of #3) (#9)
+
+* Add xdol.keys (stable robust cache keys) and codecs + paired .json/.bin store (#3)
+
+Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>
+
+* keys/codecs: fix adversarial-review findings (dict-key stability and collisions, crash-safe overwrite, bytes-only codec, lambdas/methods/pandas, suffix validation) (#3)
+
+Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>
+
+* keys: lossless pandas/numpy, bound builtins, mocks; reject overlapping suffixes (#3)
+
+Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>
+
+---------
+
+Co-authored-by: Claude Sonnet 5.5 <noreply@anthropic.com>"
 python_version,3.10
 metrics.umpyre_stats.num_functions,6833
 metrics.umpyre_stats.num_classes,1651
@@ -18,9 +34,9 @@ metrics.umpyre_stats.mean_lines_per_function,16.686374945119272
 metrics.umpyre_stats.files_analyzed,568
 metrics.umpyre_stats.pypi_version,0.1.14
 metrics.workflow_status.last_run_status,success
-metrics.workflow_status.last_success_timestamp,2026-10-14T00:40:34Z
+metrics.workflow_status.last_success_timestamp,2026-10-14T00:44:29Z
 metrics.workflow_status.recent_failure_count,0
-metrics.workflow_status.run_url,https://github.com/i2mint/xdol/actions/runs/38491413380
+metrics.workflow_status.run_url,https://github.com/i2mint/xdol/actions/runs/38491758452
 metrics.workflow_status.total_runs_analyzed,10
 metrics.wily.cyclomatic_avg,0.0
 metrics.wily.maintainability_index,0.0
@@ -33,4 +49,4 @@ metrics.coverage.branch_coverage,0.0
 metrics.coverage.statements_covered,0
 metrics.coverage.statements_total,0
 metrics.coverage.error,No coverage file found
-collection_duration_seconds,3.2455556392669678
+collection_duration_seconds,2.370479106903076
