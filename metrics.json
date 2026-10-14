@@ -1,7 +1,7 @@
 {
-  "collection_duration_seconds": 2.217484474182129,
-  "commit_message": "tests: don't assume '/' as the key separator on Windows (#3)\n\nCo-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>",
-  "commit_sha": "309416c9addd3e4054bb2bc71707ca8f67c1230b",
+  "collection_duration_seconds": 3.3744022846221924,
+  "commit_message": "Merge 309416c9addd3e4054bb2bc71707ca8f67c1230b into 7ee406bc1a46ae1a5865f4b2defed77393732c49",
+  "commit_sha": "34ec05f87bbf2ce6c3188a887557c7ab1e11ebc0",
   "metrics": {
     "coverage": {
       "branch_coverage": 0.0,
@@ -11,19 +11,19 @@
       "statements_total": 0
     },
     "umpyre_stats": {
-      "comment_lines": 14563,
-      "comment_lines_ratio": 0.056035676906975314,
-      "docs_lines": 37488,
-      "empty_lines": 33419,
-      "empty_lines_ratio": 0.12859000800344764,
-      "files_analyzed": 569,
-      "function_lines": 114479,
-      "function_lines_ratio": 0.4404935972418888,
-      "mean_lines_per_function": 16.690333867910773,
-      "num_classes": 1656,
-      "num_functions": 6859,
+      "comment_lines": 14709,
+      "comment_lines_ratio": 0.05613115204524379,
+      "docs_lines": 37521,
+      "empty_lines": 33752,
+      "empty_lines_ratio": 0.1288013219002698,
+      "files_analyzed": 579,
+      "function_lines": 116038,
+      "function_lines_ratio": 0.4428136937266979,
+      "mean_lines_per_function": 16.68411214953271,
+      "num_classes": 1667,
+      "num_functions": 6955,
       "pypi_version": "0.1.15",
-      "total_lines": 259888
+      "total_lines": 262047
     },
     "wily": {
       "cyclomatic_avg": 0.0,
@@ -42,6 +42,6 @@
   },
   "python_version": "3.10",
   "schema_version": "1.0",
-  "timestamp": "2026-10-14T01:01:00.921495Z",
+  "timestamp": "2026-10-14T01:01:05.233736Z",
   "workflow_status": {}
 }
