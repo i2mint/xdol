@@ -8,4 +8,18 @@ To install:	`pip install xdol`
 
 [Documentation](https://i2mint.github.io/xdol/)
 
+## Persistent memoizer (record/replay)
+
+Wrap a costly function (a paid API, a slow render) so the first run records its result to disk and every later run replays it:
+
+```python
+from xdol import memoize_calls
+
+@memoize_calls(store="tests/cassettes", mode="record")   # default mode is replay-only: a miss raises
+def slow_square(x):
+    return {"result": x * x}
+```
+
+Stable keys (`xdol.keys`), text / JSON / binary / paired `.json`+`.bin` codecs, any `MutableMapping` as the store (a folder, S3), spend-safe replay by default. See [misc/docs/persistent_memoizer.md]().
+
 <p class="epythet-aggregates">This documentation as a single file: <a href="xdol.md">xdol.md</a> (Markdown, for agents).</p>

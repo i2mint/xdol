@@ -16,7 +16,7 @@
 - [xdol.updating](_autosummary/xdol.updating.html.md): mapping using customizable policies to determine which items to update. It offers
 - [xdol.util](_autosummary/xdol.util.html.md): Utility functions for xdol.
 - [xdol.x_codecs](_autosummary/xdol.x_codecs.html.md): Extra codecs: object &lt;-&gt; bytes pairs, and stores that apply them.
-- [About this build](about-this-build.html.md): This documentation was built on &#42;&#42;2026-10-14 01:03 UTC&#42;&#42; from commit &lt;a href="https://github.com/i2m...
+- [About this build](about-this-build.html.md): This documentation was built on &#42;&#42;2026-10-14 01:07 UTC&#42;&#42; from commit &lt;a href="https://github.com/i2m...
 
 ## Optional
 

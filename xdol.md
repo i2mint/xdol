@@ -1,4 +1,4 @@
-> built 2026-10-14 01:03 UTC from 9c29114 (master) · xdol 0.1.16. Details: build_info.json
+> built 2026-10-14 01:07 UTC from 02cbc8c (master) · xdol 0.1.17. Details: build_info.json
 
 # index.html.md
 
@@ -11,6 +11,20 @@ Extended Data Object Layers - dol-based tools
 To install:	`pip install xdol`
 
 [Documentation](https://i2mint.github.io/xdol/)
+
+## Persistent memoizer (record/replay)
+
+Wrap a costly function (a paid API, a slow render) so the first run records its result to disk and every later run replays it:
+
+```python
+from xdol import memoize_calls
+
+@memoize_calls(store="tests/cassettes", mode="record")   # default mode is replay-only: a miss raises
+def slow_square(x):
+    return {"result": x * x}
+```
+
+Stable keys (`xdol.keys`), text / JSON / binary / paired `.json`+`.bin` codecs, any `MutableMapping` as the store (a folder, S3), spend-safe replay by default. See [misc/docs/persistent_memoizer.md]().
 
 <p class="epythet-aggregates">This documentation as a single file: <a href="xdol.md">xdol.md</a> (Markdown, for agents).</p>
 
@@ -1554,18 +1568,18 @@ A value that fails to decode raises [`CodecDecodeError`](_autosummary/xdol.x_cod
 
 # About this build
 
-This documentation was built on **2026-10-14 01:03 UTC** from commit <a href="https://github.com/i2mint/xdol/commit/9c29114a011f37bfa4c6275fc81030702b6bbe3d"><code>9c29114</code></a> on branch <code>master</code>, for **xdol 0.1.16** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-10-14 01:07 UTC** from commit <a href="https://github.com/i2mint/xdol/commit/02cbc8ca0274c1ee93d4df2c2df34f74f6655cb6"><code>02cbc8c</code></a> on branch <code>master</code>, for **xdol 0.1.17** (from <code>pyproject.toml</code>).
 
 #### WARNING
 The documentation and the package may be misaligned:
 
-- The documented version (0.1.16) is ahead of the latest release on PyPI (0.1.15): these docs describe unreleased code.
+- The documented version (0.1.17) is behind the latest release on PyPI (0.1.18): `pip install xdol` gives newer code than these docs describe.
 
 ## Source
 
 |                     |                                                                                                                                                    |
 |---------------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/i2mint/xdol/commit/9c29114a011f37bfa4c6275fc81030702b6bbe3d"><code>9c29114a011f37bfa4c6275fc81030702b6bbe3d</code></a> |
+| Commit              | <a href="https://github.com/i2mint/xdol/commit/02cbc8ca0274c1ee93d4df2c2df34f74f6655cb6"><code>02cbc8ca0274c1ee93d4df2c2df34f74f6655cb6</code></a> |
 | Branch              | <code>master</code>                                                                                                                                |
 | Tags at this commit | none                                                                                                                                               |
 | Working tree        | clean                                                                                                                                              |
@@ -1576,9 +1590,9 @@ The documentation and the package may be misaligned:
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>i2mint/xdol</code>                                                                   |
-| Run          | <a href="https://github.com/i2mint/xdol/actions/runs/38493443550">38493443550</a>          |
+| Run          | <a href="https://github.com/i2mint/xdol/actions/runs/38493861007">38493861007</a>          |
 | Ref          | <code>refs/heads/master</code>                                                             |
-| Event commit | <code>9c29114a011f37bfa4c6275fc81030702b6bbe3d</code> (in the history of the built commit) |
+| Event commit | <code>02cbc8ca0274c1ee93d4df2c2df34f74f6655cb6</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -1603,13 +1617,13 @@ The documentation and the package may be misaligned:
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/xdol/0.1.15/">0.1.15</a>, older than the documented version (0.1.16).
+Latest release: <a href="https://pypi.org/project/xdol/0.1.18/">0.1.18</a>, newer than the documented version (0.1.17).
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/i2mint/xdol && cd xdol
-git checkout 9c29114a011f37bfa4c6275fc81030702b6bbe3d
+git checkout 02cbc8ca0274c1ee93d4df2c2df34f74f6655cb6
 pip install "epythet==0.2.17"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```
