@@ -1,38 +1,41 @@
 metric,value
 schema_version,1.0
-timestamp,2026-10-14T01:01:16.815128Z
-commit_sha,309416c9addd3e4054bb2bc71707ca8f67c1230b
-commit_message,"tests: don't assume '/' as the key separator on Windows (#3)
+timestamp,2026-10-14T01:02:36.100669Z
+commit_sha,9c29114a011f37bfa4c6275fc81030702b6bbe3d
+commit_message,"tests: don't assume '/' as the key separator on Windows (#3) (#11)
 
-Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>"
+Co-authored-by: Claude Sonnet 5.5 <noreply@anthropic.com>"
 python_version,3.10
-metrics.umpyre_stats.num_functions,6955
-metrics.umpyre_stats.num_classes,1667
-metrics.umpyre_stats.total_lines,262047
-metrics.umpyre_stats.empty_lines,33752
-metrics.umpyre_stats.comment_lines,14709
-metrics.umpyre_stats.docs_lines,37521
-metrics.umpyre_stats.function_lines,116038
-metrics.umpyre_stats.empty_lines_ratio,0.1288013219002698
-metrics.umpyre_stats.comment_lines_ratio,0.05613115204524379
-metrics.umpyre_stats.function_lines_ratio,0.4428136937266979
-metrics.umpyre_stats.mean_lines_per_function,16.68411214953271
-metrics.umpyre_stats.files_analyzed,579
-metrics.umpyre_stats.pypi_version,0.1.15
+metrics.umpyre_stats.num_functions,6859
+metrics.umpyre_stats.num_classes,1656
+metrics.umpyre_stats.total_lines,259888
+metrics.umpyre_stats.empty_lines,33419
+metrics.umpyre_stats.comment_lines,14563
+metrics.umpyre_stats.docs_lines,37488
+metrics.umpyre_stats.function_lines,114479
+metrics.umpyre_stats.empty_lines_ratio,0.12859000800344764
+metrics.umpyre_stats.comment_lines_ratio,0.056035676906975314
+metrics.umpyre_stats.function_lines_ratio,0.4404935972418888
+metrics.umpyre_stats.mean_lines_per_function,16.690333867910773
+metrics.umpyre_stats.files_analyzed,569
+metrics.umpyre_stats.pypi_version,0.1.16
 metrics.workflow_status.last_run_status,success
-metrics.workflow_status.last_success_timestamp,2026-10-14T00:59:25Z
+metrics.workflow_status.last_success_timestamp,2026-10-14T01:02:01Z
 metrics.workflow_status.recent_failure_count,0
-metrics.workflow_status.run_url,https://github.com/i2mint/xdol/actions/runs/38493130356
+metrics.workflow_status.run_url,https://github.com/i2mint/xdol/actions/runs/38493431473
 metrics.workflow_status.total_runs_analyzed,10
 metrics.wily.cyclomatic_avg,0.0
 metrics.wily.maintainability_index,0.0
 metrics.wily.total_loc,0
 metrics.wily.files_analyzed,0
-metrics.wily.error,"wily build failed: [31mFailed to setup archiver: 'Dirty repository, make sure you commit/stash files first'[0m
+metrics.wily.error,"wily report failed: Usage: wily report [OPTIONS] FILE [METRICS]...
+Try 'wily report --help' for help.
+
+Error: Invalid value for '-f' / '--format': 'json' is not one of 'CONSOLE', 'HTML'.
 "
 metrics.coverage.line_coverage,0.0
 metrics.coverage.branch_coverage,0.0
 metrics.coverage.statements_covered,0
 metrics.coverage.statements_total,0
 metrics.coverage.error,No coverage file found
-collection_duration_seconds,3.3396120071411133
+collection_duration_seconds,3.642779588699341
