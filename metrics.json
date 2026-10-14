@@ -1,7 +1,7 @@
 {
-  "collection_duration_seconds": 3.2073686122894287,
-  "commit_message": "memoize: review fixes (store failures never cost a call, record==replay, no aliasing, torn-pair detection, root-escape guard, coroutine results)  (#3)\n\nCo-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>",
-  "commit_sha": "a6ccce83fef692c6857b1df1de90d0fcfcd223d8",
+  "collection_duration_seconds": 3.3144938945770264,
+  "commit_message": "Merge a6ccce83fef692c6857b1df1de90d0fcfcd223d8 into 8d3cdd96de3703ae205589f217dc5c8074ede6b0",
+  "commit_sha": "279180dc247b291fb31199c55292eba817bc7afe",
   "metrics": {
     "coverage": {
       "branch_coverage": 0.0,
@@ -11,19 +11,19 @@
       "statements_total": 0
     },
     "umpyre_stats": {
-      "comment_lines": 14559,
-      "comment_lines_ratio": 0.05602869358742962,
-      "docs_lines": 37484,
-      "empty_lines": 33412,
-      "empty_lines_ratio": 0.12858236899122183,
-      "files_analyzed": 569,
-      "function_lines": 114452,
-      "function_lines_ratio": 0.44045580317799954,
-      "mean_lines_per_function": 16.696134208606857,
-      "num_classes": 1656,
-      "num_functions": 6855,
-      "pypi_version": "0.1.14",
-      "total_lines": 259849
+      "comment_lines": 14705,
+      "comment_lines_ratio": 0.05612424048120668,
+      "docs_lines": 37517,
+      "empty_lines": 33745,
+      "empty_lines_ratio": 0.12879377728924307,
+      "files_analyzed": 579,
+      "function_lines": 116011,
+      "function_lines_ratio": 0.4427765564410247,
+      "mean_lines_per_function": 16.689828801611277,
+      "num_classes": 1667,
+      "num_functions": 6951,
+      "pypi_version": "0.1.15",
+      "total_lines": 262008
     },
     "wily": {
       "cyclomatic_avg": 0.0,
@@ -42,6 +42,6 @@
   },
   "python_version": "3.10",
   "schema_version": "1.0",
-  "timestamp": "2026-10-14T00:52:29.415072Z",
+  "timestamp": "2026-10-14T00:52:38.164797Z",
   "workflow_status": {}
 }
