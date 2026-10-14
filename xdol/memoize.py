@@ -182,9 +182,7 @@ class AtomicFiles(Files):
         return (k for k in super().__iter__() if not k.endswith(self._TMP_SUFFIX))
 
 
-def file_cache_store(
-    rootdir: str | os.PathLike, *, codec="json"
-) -> MutableMapping:
+def file_cache_store(rootdir: str | os.PathLike, *, codec="json") -> MutableMapping:
     """A persistent, atomic, codec-aware ``MutableMapping`` over a directory.
 
     Keys are filenames, values are decoded objects. ``rootdir`` is
