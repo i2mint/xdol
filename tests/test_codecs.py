@@ -135,3 +135,8 @@ def test_paired_store_detects_a_torn_pair():
     raw["k.bin"] = b"B"
     with pytest.raises(CodecDecodeError, match="belong together"):
         p["k"]
+
+
+def test_legacy_bare_metadata_layout_is_still_read():
+    raw = {"k.json": b'{"prompt": "cat"}', "k.bin": b"A"}
+    assert paired_store(raw)["k"] == ({"prompt": "cat"}, b"A")

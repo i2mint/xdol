@@ -334,8 +334,9 @@ def test_atomic_files_cannot_escape_root(tmp_path):
     root = tmp_path / "root"
     store = AtomicFiles(str(root))
     root.mkdir(exist_ok=True)
-    with pytest.raises(KeyError, match="outside"):
+    with pytest.raises(ValueError, match="outside"):
         store["../escaped"] = b"x"
+    assert "../escaped" not in store
     assert not (tmp_path / "escaped").exists()
     store["ok/inside"] = b"y"
     assert store["ok/inside"] == b"y"
@@ -348,3 +349,42 @@ def test_corrupt_paired_entry_is_corrupt_not_a_chimera(tmp_path):
     bin_path.write_bytes(b"asset-B")  # another writer's asset under A's metadata
     with pytest.raises(CacheCorrupt, match="do not belong together"):
         memoize_calls(f, store=tmp_path, codec="paired")()
+
+
+def test_unreadable_but_present_entry_never_costs_a_call(tmp_path):
+    f = Counter()
+    m = memoize_calls(f, store=tmp_path, mode="record")
+    m(1)
+    (path,) = tmp_path.iterdir()
+    path.unlink()
+    path.mkdir()  # present but not a readable file -> treated as absent, see below
+    # A genuine I/O failure (not a missing file) must propagate, not read as a miss:
+    from unittest import mock
+
+    with mock.patch("pathlib.Path.read_bytes", side_effect=OSError("EMFILE")):
+        with pytest.raises(OSError, match="EMFILE"):
+            m(1)
+    assert f.n == 1
+
+
+def test_traversal_key_fails_before_calling(tmp_path):
+    f = Counter()
+    m = memoize_calls(f, store=tmp_path, mode="record", key_func=lambda *a, **k: "../x")
+    with pytest.raises(ValueError, match="outside"):
+        m(1)
+    assert f.n == 0
+
+
+def test_uncopyable_result_is_still_cached_in_a_dict_store():
+    import threading
+
+    f = Counter()
+    n = []
+
+    def g():
+        n.append(1)
+        return {"lock": threading.Lock()}
+
+    m = memoize_calls(g, store={}, mode="record")
+    m(), m()
+    assert len(n) == 1

@@ -178,6 +178,9 @@ def with_codec(store: MutableMapping, codec="json") -> MutableMapping:
 # ---------------------------------------------------------------------------
 
 
+_ENVELOPE_KEYS = {"asset_sha256", "meta"}
+
+
 class PairedStore(MutableMapping):
     """Values are ``(metadata, asset_bytes)`` pairs, kept as two entries in a bytes store.
 
@@ -187,7 +190,8 @@ class PairedStore(MutableMapping):
     mid-write leaves no half-entry that reads back as valid; ``in``/iteration/``len``
     only see keys whose both halves are present. The digest guards against two writers
     of the same key interleaving (A's metadata with B's asset): such a pair raises
-    :class:`CodecDecodeError` on read instead of returning the chimera.
+    :class:`CodecDecodeError` on read instead of returning the chimera. Entries in the
+    older bare-metadata layout are still read (unverified).
     """
 
     def __init__(
@@ -225,10 +229,9 @@ class PairedStore(MutableMapping):
             raise KeyError(key)
         envelope = _safe_decode(self.meta_codec)(self.store[key + self.meta_suffix])
         asset = self.store[key + self.asset_suffix]
-        if (
-            not isinstance(envelope, dict)
-            or envelope.get("asset_sha256") != hashlib.sha256(asset).hexdigest()
-        ):
+        if not (isinstance(envelope, dict) and set(envelope) == _ENVELOPE_KEYS):
+            return envelope, asset  # 0.1.15 layout: bare metadata, nothing to verify
+        if envelope["asset_sha256"] != hashlib.sha256(asset).hexdigest():
             raise CodecDecodeError(
                 f"metadata and asset of {key!r} do not belong together "
                 "(interrupted or concurrent write)"

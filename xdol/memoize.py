@@ -143,8 +143,28 @@ class AtomicFiles(Files):
         path = super()._id_of_key(key)
         root = os.path.abspath(self.rootdir)
         if os.path.commonpath([root, os.path.abspath(path)]) != root:
-            raise KeyError(f"Key {key!r} points outside the store's root")
+            raise ValueError(f"Key {key!r} points outside the store's root")
         return path
+
+    # Only a *missing file* is a KeyError (a miss). dol.Files turns every error into a
+    # KeyError, which would make an unreadable-but-present entry look like a miss.
+    def __getitem__(self, key):
+        try:
+            return Path(self._id_of_key(key)).read_bytes()
+        except (FileNotFoundError, IsADirectoryError, NotADirectoryError):
+            raise KeyError(key) from None
+
+    def __contains__(self, key) -> bool:
+        try:
+            return os.path.isfile(self._id_of_key(key))
+        except ValueError:
+            return False
+
+    def __delitem__(self, key):
+        try:
+            os.remove(self._id_of_key(key))
+        except FileNotFoundError:
+            raise KeyError(key) from None
 
     def __setitem__(self, key, value):
         path = Path(self._id_of_key(key))
@@ -196,11 +216,21 @@ def _resolve_store(store, codec) -> MutableMapping:
     return _apply_codec(store, codec)
 
 
+def _copy(value: Any) -> Any:
+    """Deep copy, or the value itself if it cannot be copied (locks, handles, ...)."""
+    try:
+        return copy.deepcopy(value)
+    except Exception:
+        return value
+
+
 def _is_miss(store: MutableMapping, key: str, error: KeyError) -> bool:
     """Was this ``KeyError`` a plain absent key, rather than a failure shaped like one?
 
-    Some stores raise ``KeyError`` subclasses for failures (an archived object, a missing
-    bucket). A real miss means the store also says the key is not there.
+    A plain ``KeyError`` is the ``Mapping`` contract for "absent" and is trusted (the
+    stores built here only raise it for a missing entry). Some stores raise ``KeyError``
+    *subclasses* for failures (an archived object, a missing bucket); for those a real
+    miss means the store also says the key is not there.
     """
     if type(error) is KeyError:
         return True
@@ -312,7 +342,7 @@ def memoize_calls(
             """(hit, value). Raises on replay-mode corruption."""
             try:
                 value = cache[key]
-                return True, copy.deepcopy(value) if copy_results else value
+                return True, _copy(value) if copy_results else value
             except KeyError as e:
                 if not _is_miss(cache, key, e):
                     raise
@@ -337,7 +367,7 @@ def memoize_calls(
                     "returning a coroutine), and return a concrete value."
                 )
             try:
-                cache[key] = copy.deepcopy(result) if copy_results else result
+                cache[key] = _copy(result) if copy_results else result
             except Exception as e:
                 msg = (
                     f"{_name(f)!r} ran but its result could not be stored under "
@@ -356,7 +386,7 @@ def memoize_calls(
 
         def lookup_stored(key: str):
             value = cache[key]
-            return copy.deepcopy(value) if copy_results else value
+            return _copy(value) if copy_results else value
 
         def plan(args, kwargs):
             """-> (mode, key, replayed?, value)"""
