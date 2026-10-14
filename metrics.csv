@@ -1,10 +1,8 @@
 metric,value
 schema_version,1.0
-timestamp,2026-10-14T00:11:26.707062Z
-commit_sha,fd602970dc2cd3c8b30fc75e71e08f635ef5e4b8
-commit_message,"fix(registry): review hardening (class-level default, keep skips lazy loader) (#6)
-
-Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>"
+timestamp,2026-10-14T00:11:35.326051Z
+commit_sha,00a7ca39310caf8c8c79fd8a57fb54b263dfebd8
+commit_message,Merge fd602970dc2cd3c8b30fc75e71e08f635ef5e4b8 into 0221854485dc9678895fe11ab48ab9a843ac05a5
 python_version,3.10
 metrics.umpyre_stats.num_functions,6902
 metrics.umpyre_stats.num_classes,1659
@@ -20,9 +18,9 @@ metrics.umpyre_stats.mean_lines_per_function,16.688206317009563
 metrics.umpyre_stats.files_analyzed,577
 metrics.umpyre_stats.pypi_version,0.1.13
 metrics.workflow_status.last_run_status,success
-metrics.workflow_status.last_success_timestamp,2026-10-13T05:21:38Z
+metrics.workflow_status.last_success_timestamp,2026-10-14T00:11:31Z
 metrics.workflow_status.recent_failure_count,0
-metrics.workflow_status.run_url,https://github.com/i2mint/xdol/actions/runs/38350901873
+metrics.workflow_status.run_url,https://github.com/i2mint/xdol/actions/runs/38488612455
 metrics.workflow_status.total_runs_analyzed,10
 metrics.wily.cyclomatic_avg,0.0
 metrics.wily.maintainability_index,0.0
@@ -38,4 +36,4 @@ metrics.coverage.branch_coverage,0.0
 metrics.coverage.statements_covered,0
 metrics.coverage.statements_total,0
 metrics.coverage.error,No coverage file found
-collection_duration_seconds,4.1753480434417725
+collection_duration_seconds,3.8963191509246826

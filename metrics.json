@@ -1,7 +1,7 @@
 {
-  "collection_duration_seconds": 4.1753480434417725,
-  "commit_message": "fix(registry): review hardening (class-level default, keep skips lazy loader) (#6)\n\nCo-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>",
-  "commit_sha": "fd602970dc2cd3c8b30fc75e71e08f635ef5e4b8",
+  "collection_duration_seconds": 3.8963191509246826,
+  "commit_message": "Merge fd602970dc2cd3c8b30fc75e71e08f635ef5e4b8 into 0221854485dc9678895fe11ab48ab9a843ac05a5",
+  "commit_sha": "00a7ca39310caf8c8c79fd8a57fb54b263dfebd8",
   "metrics": {
     "coverage": {
       "branch_coverage": 0.0,
@@ -34,14 +34,14 @@
     },
     "workflow_status": {
       "last_run_status": "success",
-      "last_success_timestamp": "2026-10-13T05:21:38Z",
+      "last_success_timestamp": "2026-10-14T00:11:31Z",
       "recent_failure_count": 0,
-      "run_url": "https://github.com/i2mint/xdol/actions/runs/38350901873",
+      "run_url": "https://github.com/i2mint/xdol/actions/runs/38488612455",
       "total_runs_analyzed": 10
     }
   },
   "python_version": "3.10",
   "schema_version": "1.0",
-  "timestamp": "2026-10-14T00:11:26.707062Z",
+  "timestamp": "2026-10-14T00:11:35.326051Z",
   "workflow_status": {}
 }
