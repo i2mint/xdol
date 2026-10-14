@@ -49,7 +49,7 @@ DFLT_ON_UNSTABLE = "raise"
 UnstablePolicy = Literal["raise", "warn", "ignore"]
 
 #: What Python's default ``object.__repr__`` looks like: tied to a memory address.
-_ADDRESS_REPR = re.compile(r"<.+ at 0x[0-9a-fA-F]+>")
+_ADDRESS_REPR = re.compile(r" at 0x[0-9a-fA-F]+")
 
 
 class UnstableKeyError(TypeError):
@@ -68,7 +68,7 @@ def _digest_hex(data: bytes, digest: str = DFLT_DIGEST) -> str:
 def _unstable(obj: Any, on_unstable: UnstablePolicy) -> str:
     """The ``repr`` of ``obj``, vetted for run-stability according to the policy."""
     text = repr(obj)
-    if _ADDRESS_REPR.fullmatch(text) and on_unstable != "ignore":
+    if _ADDRESS_REPR.search(text) and on_unstable != "ignore":
         msg = (
             f"Cannot build a stable cache key from {type(obj).__qualname__!r} instance "
             f"(its repr contains a memory address, which changes every run). Give it a "
@@ -95,8 +95,11 @@ def normalize(
     - sets are sorted; bytes are replaced by their digest; paths, enums, dates,
       dataclasses, numpy-like arrays and callables get a tagged, stable description;
     - an object with a ``__cache_key__()`` method is described by what it returns;
+    - pandas objects are described by their full content; bound methods by function and
+      instance; lambdas raise (indistinguishable);
     - anything else falls back to ``repr``, vetted by ``on_unstable`` (see
-      :class:`UnstableKeyError`).
+      :class:`UnstableKeyError`). A ``repr`` can still be lossy (truncated, or leaving out
+      state): for such types define ``__cache_key__``.
 
     >>> normalize({"b": " x ", "a": (1, 2)})
     {'a': [1, 2], 'b': 'x'}
@@ -106,21 +109,26 @@ def normalize(
     rec = lambda o: normalize(  # noqa: E731
         o, collapse_whitespace=collapse_whitespace, on_unstable=on_unstable
     )
-    if obj is None or isinstance(obj, (bool, int, float)) and not isinstance(
-        obj, enum.Enum
-    ):
+    # Scalars (including IntEnum / str-Enum members, as plain values: they compare equal
+    # to them, and this is what the prototype's keys did).
+    if obj is None or isinstance(obj, bool):
         return obj
-    if isinstance(obj, str) and not isinstance(obj, enum.Enum):
-        obj = obj.strip()
+    if isinstance(obj, int):
+        return int(obj)
+    if isinstance(obj, float):
+        return float(obj)
+    if isinstance(obj, str):
+        obj = str.strip(obj)
         return re.sub(r"\s+", " ", obj) if collapse_whitespace else obj
-    if hasattr(obj, "__cache_key__"):
+    if hasattr(obj, "__cache_key__") and not isinstance(obj, type):
         return rec(obj.__cache_key__())
     if isinstance(obj, enum.Enum):
-        return {"__enum__": f"{type(obj).__qualname__}.{obj.name}"}
+        cls = type(obj)
+        return {"__enum__": f"{cls.__module__}.{cls.__qualname__}.{obj.name}"}
     if isinstance(obj, (bytes, bytearray, memoryview)):
         return {"__bytes__": _digest_hex(bytes(obj))}
     if isinstance(obj, Mapping):
-        return {str(k): rec(obj[k]) for k in sorted(obj, key=str)}
+        return _normalize_mapping(obj, rec)
     if isinstance(obj, (list, tuple)):
         return [rec(x) for x in obj]
     if isinstance(obj, (set, frozenset)):
@@ -133,14 +141,64 @@ def normalize(
     if dataclasses.is_dataclass(obj) and not isinstance(obj, type):
         fields = {f.name: getattr(obj, f.name) for f in dataclasses.fields(obj)}
         return {"__dataclass__": type(obj).__qualname__, "fields": rec(fields)}
+    root = type(obj).__module__.split(".")[0]
+    if root == "pandas" and callable(getattr(obj, "to_json", None)):
+        # Full content, index and columns included (repr truncates large frames).
+        return {"__pandas__": type(obj).__qualname__, "json": obj.to_json(orient="split")}
+    if root == "numpy" and hasattr(obj, "tolist") and hasattr(obj, "dtype"):
+        return {"__array__": str(obj.dtype), "value": rec(obj.tolist())}
     if callable(getattr(obj, "model_dump", None)):  # pydantic v2, without importing it
         return {"__model__": type(obj).__qualname__, "fields": rec(obj.model_dump())}
-    if hasattr(obj, "tolist") and hasattr(obj, "dtype"):  # numpy array / scalar
-        return {"__array__": str(obj.dtype), "value": rec(obj.tolist())}
+    if inspect.ismethod(obj):  # a bound method is its function *and* its instance
+        return {
+            "__method__": _callable_name(obj.__func__),
+            "self": rec(obj.__self__),
+        }
     if inspect.isroutine(obj) or inspect.isclass(obj):
-        module = getattr(obj, "__module__", "")
-        return {"__callable__": f"{module}:{getattr(obj, '__qualname__', repr(obj))}"}
+        name = _callable_name(obj)
+        if name.endswith("<lambda>"):
+            _unstable_name(name, on_unstable)
+        return {"__callable__": name}
     return _unstable(obj, on_unstable)
+
+
+def _callable_name(obj: Any) -> str:
+    return f"{getattr(obj, '__module__', '')}:{getattr(obj, '__qualname__', repr(obj))}"
+
+
+def _unstable_name(name: str, on_unstable: UnstablePolicy) -> None:
+    if on_unstable == "ignore":
+        return
+    msg = (
+        f"Cannot build a stable cache key from {name}: lambdas are indistinguishable "
+        f"by name. Use a named function, or drop that argument from the key."
+    )
+    if on_unstable == "raise":
+        raise UnstableKeyError(msg)
+    warnings.warn(msg, stacklevel=3)
+
+
+def _normalize_mapping(obj: Mapping, rec: Callable) -> dict:
+    """Mapping with string keys, sorted. Distinct keys must stay distinct.
+
+    ``str``/``int``/``float``/``bool``/``None`` keys become their ``str`` (as JSON would);
+    other hashables (tuples, frozensets, ...) become the JSON of their normal form. Two
+    keys that end up the same string (``1`` and ``"1"``) would silently drop a value and
+    make equal dicts hash differently, so that raises :class:`UnstableKeyError`.
+    """
+
+    def key_str(k: Any) -> str:
+        if isinstance(k, (str, int, float, bool)) or k is None:
+            return str(k)
+        return json.dumps(rec(k), sort_keys=True, ensure_ascii=False)
+
+    keyed = [(key_str(k), k) for k in obj]
+    names = [name for name, _ in keyed]
+    if len(set(names)) != len(names):
+        raise UnstableKeyError(
+            f"Mapping keys collide once made strings (e.g. 1 and '1'): {sorted(names)}"
+        )
+    return {name: rec(obj[k]) for name, k in sorted(keyed, key=lambda nk: nk[0])}
 
 
 def hash_payload(
@@ -208,7 +266,12 @@ def make_key_func(
     if drop and func is None:
         raise ValueError("`drop` needs `func`: it names parameters of the function.")
     sig = inspect.signature(func) if func is not None else None
-    if sig is not None and (unknown := drop - set(sig.parameters)):
+    var_kw = None
+    if sig is not None:
+        var_kw = next(
+            (n for n, p in sig.parameters.items() if p.kind is p.VAR_KEYWORD), None
+        )
+    if sig is not None and var_kw is None and (unknown := drop - set(sig.parameters)):
         raise ValueError(f"`drop` names no parameter of {func!r}: {sorted(unknown)}")
     norm = lambda o: normalize(  # noqa: E731
         o, collapse_whitespace=collapse_whitespace, on_unstable=on_unstable
@@ -222,6 +285,10 @@ def make_key_func(
             if apply_defaults:
                 bound.apply_defaults()
             arguments = {k: v for k, v in bound.arguments.items() if k not in drop}
+            if var_kw in arguments:  # `drop` may also name entries of **kwargs
+                arguments[var_kw] = {
+                    k: v for k, v in arguments[var_kw].items() if k not in drop
+                }
             payload = {"bound": norm(arguments)}
         return prefix + hash_payload(payload, digest=digest, length=length)
 

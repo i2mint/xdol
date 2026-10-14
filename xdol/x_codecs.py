@@ -93,9 +93,12 @@ def json_codec(*, indent: int | None = 2, default: Callable | None = None) -> Co
     """
 
     def encode(obj):
-        return json.dumps(
-            obj, indent=indent, sort_keys=True, ensure_ascii=False, default=default
-        ).encode("utf-8")
+        kw = dict(indent=indent, ensure_ascii=False, default=default)
+        try:
+            text = json.dumps(obj, sort_keys=True, **kw)
+        except TypeError:  # unsortable (mixed-type) keys, or an unserializable value
+            text = json.dumps(obj, **kw)
+        return text.encode("utf-8")
 
     return Codec(encode, lambda data: json.loads(data))
 
@@ -106,7 +109,13 @@ JSON_CODEC = json_codec()
 TEXT_CODEC = Codec(lambda s: s.encode("utf-8"), lambda b: b.decode("utf-8"))
 """``str`` results, stored as UTF-8."""
 
-BYTES_CODEC = Codec(lambda obj: bytes(obj), lambda data: data)
+def _as_bytes(obj) -> bytes:
+    if not isinstance(obj, (bytes, bytearray, memoryview)):
+        raise TypeError(f"Expected bytes-like, got {type(obj).__name__}")
+    return bytes(obj)
+
+
+BYTES_CODEC = Codec(_as_bytes, lambda data: data)
 """Pass-through, for binary assets (image / audio bytes)."""
 
 CODECS: dict[str, Codec] = {
@@ -162,6 +171,8 @@ class PairedStore(MutableMapping):
         meta_suffix: str = ".json",
         asset_suffix: str = ".bin",
     ):
+        if not meta_suffix or not asset_suffix or meta_suffix == asset_suffix:
+            raise ValueError("meta_suffix and asset_suffix must be non-empty and differ")
         self.store = store
         self.meta_codec = get_codec(meta_codec)
         self.meta_suffix = meta_suffix
@@ -183,13 +194,16 @@ class PairedStore(MutableMapping):
     def __setitem__(self, key, value):
         try:
             meta, asset = value
-            asset = bytes(asset)
+            asset = _as_bytes(asset)
         except (TypeError, ValueError):
             raise TypeError(
                 "A paired store holds (metadata, asset_bytes) pairs; "
                 f"got {type(value).__name__}"
             ) from None
         encoded_meta = self.meta_codec.encode(meta)  # fail before writing anything
+        if (meta_key := key + self.meta_suffix) in self.store:
+            del self.store[meta_key]  # un-commit first: a failed write below must not
+            # leave the old metadata paired with the new asset
         self.store[key + self.asset_suffix] = asset
         self.store[key + self.meta_suffix] = encoded_meta
 

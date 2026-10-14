@@ -69,3 +69,43 @@ def test_paired_store_rejects_non_pairs_and_unencodable_meta_without_writing():
     with pytest.raises(TypeError):
         p["k"] = ({"x": object()}, b"a")
     assert raw == {}
+
+
+# --- regressions from the adversarial review of PR #9 ---
+
+
+def test_bytes_codec_refuses_non_bytes():
+    with pytest.raises(TypeError):
+        BYTES_CODEC.encode(5)
+    p = paired_store({})
+    with pytest.raises(TypeError):
+        p["k"] = ({}, 5)
+
+
+def test_json_codec_handles_mixed_key_types():
+    assert JSON_CODEC.decode(JSON_CODEC.encode({1: "a", "b": 2})) == {"1": "a", "b": 2}
+
+
+def test_overwrite_that_fails_midway_leaves_no_valid_mixed_pair():
+    class FailsOnJson(dict):
+        fail = False
+
+        def __setitem__(self, k, v):
+            if self.fail and k.endswith(".json"):
+                raise OSError("disk full")
+            super().__setitem__(k, v)
+
+    raw = FailsOnJson()
+    p = paired_store(raw)
+    p["k"] = ({"prompt": "cat"}, b"CAT")
+    raw.fail = True
+    with pytest.raises(OSError):
+        p["k"] = ({"prompt": "dog"}, b"DOG")
+    assert "k" not in p  # absent, not a cat/dog chimera
+
+
+def test_suffixes_are_validated():
+    with pytest.raises(ValueError):
+        paired_store({}, meta_suffix="")
+    with pytest.raises(ValueError):
+        paired_store({}, meta_suffix=".x", asset_suffix=".x")

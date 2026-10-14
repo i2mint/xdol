@@ -122,3 +122,106 @@ def test_make_key_func_validation_and_formatting():
     assert k.startswith("v2-") and len(k) == 11
     with pytest.raises(TypeError):  # signature mismatch surfaces immediately
         make_key_func(lambda a: a)(1, 2)
+
+
+# --- regressions from the adversarial review of PR #9 ---
+
+
+def test_dict_keys_of_any_type_are_stable_or_loud():
+    k = robust_key({frozenset({"alpha", "beta", "gamma", "delta"}): 1, (1, 2): 3})
+    code = (
+        "from xdol.keys import robust_key;"
+        "print(robust_key({frozenset({'alpha','beta','gamma','delta'}): 1, (1, 2): 3}))"
+    )
+    for seed in (1, 2, 3):
+        out = subprocess.run(
+            [sys.executable, "-c", code], env={"PYTHONHASHSEED": str(seed), "PATH": ""},
+            capture_output=True, text=True, check=True,
+        ).stdout.strip()
+        assert out == k
+
+    class Foo:
+        pass
+
+    with pytest.raises(UnstableKeyError):
+        robust_key({Foo(): 1})
+
+
+def test_colliding_dict_keys_raise_instead_of_dropping_a_value():
+    with pytest.raises(UnstableKeyError, match="collide"):
+        robust_key({1: "a", "1": "b"})
+    assert robust_key({1: "a"}) == robust_key({"1": "a"})  # plain JSON semantics
+
+
+def test_enum_subclasses_of_primitives_match_their_values():
+    class N(enum.IntEnum):
+        A = 5
+
+    class S(str, enum.Enum):
+        A = "x"
+
+    assert robust_key(N.A) == robust_key(5)
+    assert robust_key(S.A) == robust_key("x")
+
+
+def test_lambdas_and_bound_methods_and_partials():
+    with pytest.raises(UnstableKeyError, match="lambda"):
+        robust_key(lambda x: x)
+
+    class M:
+        def __init__(self, i):
+            self.i = i
+
+        def m(self):
+            ...
+
+        def __cache_key__(self):
+            return self.i
+
+    assert robust_key(M(1).m) != robust_key(M(2).m)
+    assert robust_key(M(1).m) == robust_key(M(1).m)
+
+    import functools
+
+    class Plain:
+        def go(self):
+            ...
+
+    with pytest.raises(UnstableKeyError):  # the address is inside partial's repr
+        robust_key(functools.partial(Plain().go))
+
+
+def test_address_inside_a_repr_is_caught():
+    class Wrapper:
+        def __repr__(self):
+            return "Wrapper(<Foo object at 0x7f12abcd>)"
+
+    with pytest.raises(UnstableKeyError):
+        robust_key(Wrapper())
+
+
+def test_class_with_cache_key_can_itself_be_an_argument():
+    class K:
+        def __cache_key__(self):
+            return 1
+
+    assert robust_key(K) != robust_key(1)
+
+
+def test_pandas_content_is_fully_keyed():
+    pd = pytest.importorskip("pandas")
+    a = pd.Series([1, 2], index=["x", "y"])
+    b = pd.Series([1, 2], index=["p", "q"])
+    assert robust_key(a) != robust_key(b)
+    big1 = pd.DataFrame({"v": range(1000)})
+    big2 = big1.copy()
+    big2.loc[500, "v"] = -1
+    assert robust_key(big1) != robust_key(big2)
+
+
+def test_drop_names_entries_of_var_keyword():
+    def h(a, **kw):
+        ...
+
+    k = make_key_func(h, drop=["logger"])
+    assert k(1, logger=print, x=2) == k(1, x=2) != k(1, x=3)
