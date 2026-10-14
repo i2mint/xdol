@@ -1,32 +1,32 @@
 {
   "schema_version": 1,
-  "built_at": "2026-10-14T01:01:13Z",
+  "built_at": "2026-10-14T01:03:08Z",
   "package": {
     "name": "xdol",
-    "version": "0.1.15",
+    "version": "0.1.16",
     "display_name": "xdol",
     "source": "pyproject.toml"
   },
   "git": {
     "available": true,
-    "commit": "7ee406bc1a46ae1a5865f4b2defed77393732c49",
-    "short_commit": "7ee406b",
+    "commit": "9c29114a011f37bfa4c6275fc81030702b6bbe3d",
+    "short_commit": "9c29114",
     "branch": "master",
     "tags": [],
     "dirty": false,
     "remote_url": "https://github.com/i2mint/xdol",
-    "commit_url": "https://github.com/i2mint/xdol/commit/7ee406bc1a46ae1a5865f4b2defed77393732c49",
+    "commit_url": "https://github.com/i2mint/xdol/commit/9c29114a011f37bfa4c6275fc81030702b6bbe3d",
     "error": null
   },
   "ci": {
     "provider": "github",
     "repository": "i2mint/xdol",
-    "sha": "7ee406bc1a46ae1a5865f4b2defed77393732c49",
+    "sha": "9c29114a011f37bfa4c6275fc81030702b6bbe3d",
     "sha_in_history": true,
     "ref": "refs/heads/master",
     "ref_name": "master",
-    "run_id": "38493260797",
-    "run_url": "https://github.com/i2mint/xdol/actions/runs/38493260797",
+    "run_id": "38493443550",
+    "run_url": "https://github.com/i2mint/xdol/actions/runs/38493443550",
     "server_url": "https://github.com"
   },
   "tools": {
@@ -60,16 +60,16 @@
   },
   "pypi": {
     "checked": true,
-    "latest": "0.1.16",
-    "relation": "behind",
+    "latest": "0.1.15",
+    "relation": "ahead",
     "error": null
   },
-  "reproduce": "git clone https://github.com/i2mint/xdol && cd xdol\ngit checkout 7ee406bc1a46ae1a5865f4b2defed77393732c49\npip install \"epythet==0.2.17\"\nepythet quickstart . --ignore tests/ scrap/ examples/",
+  "reproduce": "git clone https://github.com/i2mint/xdol && cd xdol\ngit checkout 9c29114a011f37bfa4c6275fc81030702b6bbe3d\npip install \"epythet==0.2.17\"\nepythet quickstart . --ignore tests/ scrap/ examples/",
   "warnings": [],
   "alignment": {
     "aligned": false,
     "notes": [
-      "The documented version (0.1.15) is behind the latest release on PyPI (0.1.16): `pip install xdol` gives newer code than these docs describe."
+      "The documented version (0.1.16) is ahead of the latest release on PyPI (0.1.15): these docs describe unreleased code."
     ]
   }
 }
