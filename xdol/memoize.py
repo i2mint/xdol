@@ -51,6 +51,7 @@ import copy
 import functools
 import inspect
 import os
+import stat
 import uuid
 import warnings
 from collections.abc import Callable, Iterable, Iterator, MutableMapping
@@ -156,9 +157,9 @@ class AtomicFiles(Files):
 
     def __contains__(self, key) -> bool:
         try:
-            return os.path.isfile(self._id_of_key(key))
-        except ValueError:
-            return False
+            return stat.S_ISREG(os.stat(self._id_of_key(key)).st_mode)
+        except (FileNotFoundError, NotADirectoryError, ValueError):
+            return False  # anything else (e.g. EACCES) is a failure, not "absent"
 
     def __delitem__(self, key):
         try:
@@ -197,8 +198,9 @@ def file_cache_store(
     >>> store["k"], list(store)
     ({'a': 1}, ['k'])
     """
+    rootdir = os.path.abspath(rootdir)  # not relative to whatever the cwd is later
     Path(rootdir).mkdir(parents=True, exist_ok=True)
-    return _apply_codec(AtomicFiles(str(rootdir)), codec)
+    return _apply_codec(AtomicFiles(rootdir), codec)
 
 
 def _apply_codec(raw_store: MutableMapping, codec) -> MutableMapping:

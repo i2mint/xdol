@@ -388,3 +388,30 @@ def test_uncopyable_result_is_still_cached_in_a_dict_store():
     m = memoize_calls(g, store={}, mode="record")
     m(), m()
     assert len(n) == 1
+
+
+def test_unreadable_paired_entry_never_costs_a_call(tmp_path):
+    from unittest import mock
+
+    f = lambda: ({"a": 1}, b"x")  # noqa: E731
+    m = memoize_calls(f, store=tmp_path, codec="paired", mode="record")
+    m()
+    calls = []
+    g = lambda: calls.append(1) or ({"a": 1}, b"x")  # noqa: E731
+    m2 = memoize_calls(g, store=tmp_path, codec="paired", mode="record")
+    with mock.patch("pathlib.Path.read_bytes", side_effect=PermissionError("EACCES")):
+        with pytest.raises(PermissionError):
+            m2()
+    assert calls == []
+
+
+def test_relative_store_path_is_pinned_at_decoration(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    f = Counter()
+    m = memoize_calls(f, store="cass", mode="record")
+    m(3)
+    elsewhere = tmp_path / "elsewhere"
+    elsewhere.mkdir()
+    monkeypatch.chdir(elsewhere)
+    m(3)
+    assert f.n == 1 and not (elsewhere / "cass").exists()

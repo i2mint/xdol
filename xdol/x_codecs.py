@@ -225,10 +225,14 @@ class PairedStore(MutableMapping):
         )
 
     def __getitem__(self, key):
-        if key not in self:
-            raise KeyError(key)
-        envelope = _safe_decode(self.meta_codec)(self.store[key + self.meta_suffix])
-        asset = self.store[key + self.asset_suffix]
+        # Read the halves directly: a failure of the store must surface as itself, not
+        # as the plain KeyError that "absent" would be.
+        try:
+            raw_meta = self.store[key + self.meta_suffix]
+            asset = self.store[key + self.asset_suffix]
+        except KeyError:
+            raise KeyError(key) from None
+        envelope = _safe_decode(self.meta_codec)(raw_meta)
         if not (isinstance(envelope, dict) and set(envelope) == _ENVELOPE_KEYS):
             return envelope, asset  # 0.1.15 layout: bare metadata, nothing to verify
         if envelope["asset_sha256"] != hashlib.sha256(asset).hexdigest():
