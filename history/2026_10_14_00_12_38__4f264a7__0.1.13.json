@@ -1,0 +1,47 @@
+{
+  "collection_duration_seconds": 2.8450777530670166,
+  "commit_message": "Registry: opt-in strict_setitem; register() resolves aliases (#6) (#8)\n\n* feat(registry): opt-in strict_setitem; register()/register_lazy() resolve aliases (#6)\n\nCo-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>\n\n* fix(registry): review hardening (class-level default, keep skips lazy loader) (#6)\n\nCo-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>\n\n---------\n\nCo-authored-by: Claude Sonnet 5.5 <noreply@anthropic.com>",
+  "commit_sha": "4f264a78d74cb8dea6077670ff9ee6974dba94e3",
+  "metrics": {
+    "coverage": {
+      "branch_coverage": 0.0,
+      "error": "No coverage file found",
+      "line_coverage": 0.0,
+      "statements_covered": 0,
+      "statements_total": 0
+    },
+    "umpyre_stats": {
+      "comment_lines": 14677,
+      "comment_lines_ratio": 0.056232639221470856,
+      "docs_lines": 37324,
+      "empty_lines": 33566,
+      "empty_lines_ratio": 0.12860290032757993,
+      "files_analyzed": 577,
+      "function_lines": 115182,
+      "function_lines_ratio": 0.44130189076837606,
+      "mean_lines_per_function": 16.688206317009563,
+      "num_classes": 1659,
+      "num_functions": 6902,
+      "pypi_version": "0.1.13",
+      "total_lines": 261005
+    },
+    "wily": {
+      "cyclomatic_avg": 0.0,
+      "error": "wily report failed: Usage: wily report [OPTIONS] FILE [METRICS]...\nTry 'wily report --help' for help.\n\nError: Invalid value for '-f' / '--format': 'json' is not one of 'CONSOLE', 'HTML'.\n",
+      "files_analyzed": 0,
+      "maintainability_index": 0.0,
+      "total_loc": 0
+    },
+    "workflow_status": {
+      "last_run_status": "success",
+      "last_success_timestamp": "2026-10-14T00:11:39Z",
+      "recent_failure_count": 0,
+      "run_url": "https://github.com/i2mint/xdol/actions/runs/38488624825",
+      "total_runs_analyzed": 10
+    }
+  },
+  "python_version": "3.10",
+  "schema_version": "1.0",
+  "timestamp": "2026-10-14T00:12:38.343136Z",
+  "workflow_status": {}
+}
