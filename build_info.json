@@ -1,36 +1,36 @@
 {
   "schema_version": 1,
-  "built_at": "2026-10-13T05:20:28Z",
+  "built_at": "2026-10-14T00:13:14Z",
   "package": {
     "name": "xdol",
-    "version": "0.1.12",
+    "version": "0.1.13",
     "display_name": "xdol",
     "source": "pyproject.toml"
   },
   "git": {
     "available": true,
-    "commit": "4c7afa824c43533c22faa2c789154f4f3d2515a0",
-    "short_commit": "4c7afa8",
+    "commit": "4f264a78d74cb8dea6077670ff9ee6974dba94e3",
+    "short_commit": "4f264a7",
     "branch": "master",
     "tags": [],
     "dirty": false,
     "remote_url": "https://github.com/i2mint/xdol",
-    "commit_url": "https://github.com/i2mint/xdol/commit/4c7afa824c43533c22faa2c789154f4f3d2515a0",
+    "commit_url": "https://github.com/i2mint/xdol/commit/4f264a78d74cb8dea6077670ff9ee6974dba94e3",
     "error": null
   },
   "ci": {
     "provider": "github",
     "repository": "i2mint/xdol",
-    "sha": "4c7afa824c43533c22faa2c789154f4f3d2515a0",
+    "sha": "4f264a78d74cb8dea6077670ff9ee6974dba94e3",
     "sha_in_history": true,
     "ref": "refs/heads/master",
     "ref_name": "master",
-    "run_id": "38350767776",
-    "run_url": "https://github.com/i2mint/xdol/actions/runs/38350767776",
+    "run_id": "38488756424",
+    "run_url": "https://github.com/i2mint/xdol/actions/runs/38488756424",
     "server_url": "https://github.com"
   },
   "tools": {
-    "epythet": "0.2.13",
+    "epythet": "0.2.17",
     "sphinx": "9.1.0",
     "docutils": "0.22.4",
     "python": "3.12.15"
@@ -60,11 +60,11 @@
   },
   "pypi": {
     "checked": true,
-    "latest": "0.1.12",
+    "latest": "0.1.13",
     "relation": "same",
     "error": null
   },
-  "reproduce": "git clone https://github.com/i2mint/xdol && cd xdol\ngit checkout 4c7afa824c43533c22faa2c789154f4f3d2515a0\npip install \"epythet==0.2.13\"\nepythet quickstart . --ignore tests/ scrap/ examples/",
+  "reproduce": "git clone https://github.com/i2mint/xdol && cd xdol\ngit checkout 4f264a78d74cb8dea6077670ff9ee6974dba94e3\npip install \"epythet==0.2.17\"\nepythet quickstart . --ignore tests/ scrap/ examples/",
   "warnings": [],
   "alignment": {
     "aligned": true,

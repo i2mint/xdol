@@ -68,6 +68,22 @@ xdol.registry.RegistryConflict: 'k' is already registered in <Registry>
 1
 ```
 
+Plain assignment replaces; opt in to `strict_setitem` to make it honour the policy:
+
+```pycon
+>>> loose = Registry()
+>>> loose["k"] = 1
+>>> loose["k"] = 2  # explicit assignment replaces
+>>> loose["k"]
+2
+>>> strict = Registry(strict_setitem=True)
+>>> strict["k"] = 1
+>>> strict["k"] = 2
+Traceback (most recent call last):
+    ...
+xdol.registry.RegistryConflict: 'k' is already registered in <Registry>
+```
+
 Lazy loading — value is built on first access:
 
 ```pycon
@@ -108,9 +124,9 @@ Subscription — observe registrations as they happen:
 
 ### Classes
 
-| [`Registry`](#xdol.registry.Registry)(\*[, name, on_conflict])   | A typed dict-backed plugin registry.                                                      |
-|--------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------|
-| [`Subscription`](#xdol.registry.Subscription)(registry, callback)    | Handle returned by [`Registry.subscribe()`](#xdol.registry.Registry.subscribe). |
+| [`Registry`](#xdol.registry.Registry)(\*[, name, on_conflict, strict_setitem])   | A typed dict-backed plugin registry.                                                      |
+|------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------|
+| [`Subscription`](#xdol.registry.Subscription)(registry, callback)                    | Handle returned by [`Registry.subscribe()`](#xdol.registry.Registry.subscribe). |
 
 ### Exceptions
 
@@ -119,7 +135,7 @@ Subscription — observe registrations as they happen:
 | [`RegistryError`](#xdol.registry.RegistryError)      | Base for registry errors.                                                                        |
 | [`RegistryMissing`](#xdol.registry.RegistryMissing)    | Raised by [`Registry.get()`](#xdol.registry.Registry.get) when a key is missing. |
 
-### *class* xdol.registry.Registry(, name='', on_conflict='error')
+### *class* xdol.registry.Registry(, name='', on_conflict='error', strict_setitem=False)
 
 Bases: [`MutableMapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping), [`Generic`](https://docs.python.org/3/library/typing.html#typing.Generic)[`V`]
 
@@ -130,8 +146,20 @@ A typed dict-backed plugin registry.
   * **on_conflict** ([`Literal`](https://docs.python.org/3/library/typing.html#typing.Literal)[`'error'`, `'replace'`, `'keep'`]) – `'error'` (default) raises [`RegistryConflict`](#xdol.registry.RegistryConflict) when registering
     a key that already exists. `'replace'` silently overwrites.
     `'keep'` silently keeps the original.
-  * **(****dict****(****...****)** (*Implements MutableMapping so anything that takes a mapping*)
+  * **strict_setitem** ([`bool`](https://docs.python.org/3/builtins/functions.html#bool)) – Opt-in (default `False`). By default `reg[k] = v` is an explicit
+    assignment that replaces whatever is there, bypassing `on_conflict`.
+    With `strict_setitem=True` it follows the `on_conflict` policy exactly
+    like [`register()`](#xdol.registry.Registry.register) (so `MutableMapping.update` and `setdefault`
+    do too; note `update` is not atomic: entries before the first conflict stay).
+  * **(****reading** (*Keys that are aliases resolve to their canonical key everywhere*)
 
+:param :
+:param `reg[k] = v`:
+:param [`register()`](#xdol.registry.Registry.register):
+:param [`register_lazy()`](#xdol.registry.Registry.register_lazy)):
+:param so the `on_conflict`:
+:param policy always applies to the canonical entry.:
+:param Implements `MutableMapping` so anything that takes a mapping (`dict(...)`:
 :param :
 :param iteration:
 :param length checks:
@@ -160,6 +188,9 @@ Return canonical keys whose tag set contains `tag`.
 
 Register `value` under `key`. Returns `value` so it can be used inline.
 
+If `key` is an alias, it is resolved to its canonical key first, so the
+`on_conflict` policy applies to that entry (no unreachable shadow entry).
+
 * **Return type:**
   [`TypeVar`](https://docs.python.org/3/library/typing.html#typing.TypeVar)(`V`)
 
@@ -183,6 +214,7 @@ Return a decorator that registers the decorated object under `key`.
 Register a no-arg `loader` callable; value is built on first `__getitem__`.
 
 Once built, the result replaces the loader and is cached.
+Alias keys resolve to their canonical key, as in [`register()`](#xdol.registry.Registry.register).
 
 * **Return type:**
   [`None`](https://docs.python.org/3/builtins/constants.html#None)
