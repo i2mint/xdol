@@ -1,8 +1,20 @@
 metric,value
 schema_version,1.0
-timestamp,2026-10-14T01:05:43.067572Z
-commit_sha,e543fd27119ebaf80dfc05f24e0e59204ba2c3cb
-commit_message,Merge abd312b56ca4d7b27b7a1d5ab2716c4c4a3a36a2 into 7e9444f4b1752e09ce0dada26df5c20637676f60
+timestamp,2026-10-14T01:07:01.421067Z
+commit_sha,02cbc8ca0274c1ee93d4df2c2df34f74f6655cb6
+commit_message,"Persistent memoizer: docs, S3 replay test (3/3 of #3) (#12)
+
+* Docs + S3 replay test for the persistent memoizer (#3)
+
+Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>
+
+* Docs: move out of gitignored docs/, document key/relative-path/drop pitfalls; add s3 extra (#3)
+
+Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>
+
+---------
+
+Co-authored-by: Claude Sonnet 5.5 <noreply@anthropic.com>"
 python_version,3.10
 metrics.umpyre_stats.num_functions,6955
 metrics.umpyre_stats.num_classes,1667
@@ -18,9 +30,9 @@ metrics.umpyre_stats.mean_lines_per_function,16.68411214953271
 metrics.umpyre_stats.files_analyzed,579
 metrics.umpyre_stats.pypi_version,0.1.17
 metrics.workflow_status.last_run_status,success
-metrics.workflow_status.last_success_timestamp,2026-10-14T01:04:25Z
+metrics.workflow_status.last_success_timestamp,2026-10-14T01:05:47Z
 metrics.workflow_status.recent_failure_count,0
-metrics.workflow_status.run_url,https://github.com/i2mint/xdol/actions/runs/38493602347
+metrics.workflow_status.run_url,https://github.com/i2mint/xdol/actions/runs/38493714893
 metrics.workflow_status.total_runs_analyzed,10
 metrics.wily.cyclomatic_avg,0.0
 metrics.wily.maintainability_index,0.0
@@ -33,4 +45,4 @@ metrics.coverage.branch_coverage,0.0
 metrics.coverage.statements_covered,0
 metrics.coverage.statements_total,0
 metrics.coverage.error,No coverage file found
-collection_duration_seconds,3.255885601043701
+collection_duration_seconds,2.8992350101470947
