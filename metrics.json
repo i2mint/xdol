@@ -1,7 +1,7 @@
 {
-  "collection_duration_seconds": 3.292424201965332,
-  "commit_message": "memoize: paired reads surface store failures; EACCES is not absence; pin relative store path (#3)\n\nCo-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>",
-  "commit_sha": "956663600096f60145042e927e89e517e8ad43e7",
+  "collection_duration_seconds": 3.3344004154205322,
+  "commit_message": "Merge 956663600096f60145042e927e89e517e8ad43e7 into 8d3cdd96de3703ae205589f217dc5c8074ede6b0",
+  "commit_sha": "ba0f2da7811f14d02da6d9069c81eab705147274",
   "metrics": {
     "coverage": {
       "branch_coverage": 0.0,
@@ -11,19 +11,19 @@
       "statements_total": 0
     },
     "umpyre_stats": {
-      "comment_lines": 14709,
-      "comment_lines_ratio": 0.05613115204524379,
-      "docs_lines": 37521,
-      "empty_lines": 33752,
-      "empty_lines_ratio": 0.1288013219002698,
-      "files_analyzed": 579,
-      "function_lines": 116038,
-      "function_lines_ratio": 0.4428136937266979,
-      "mean_lines_per_function": 16.68411214953271,
-      "num_classes": 1667,
-      "num_functions": 6955,
-      "pypi_version": "0.1.14",
-      "total_lines": 262047
+      "comment_lines": 14563,
+      "comment_lines_ratio": 0.056035676906975314,
+      "docs_lines": 37488,
+      "empty_lines": 33419,
+      "empty_lines_ratio": 0.12859000800344764,
+      "files_analyzed": 569,
+      "function_lines": 114479,
+      "function_lines_ratio": 0.4404935972418888,
+      "mean_lines_per_function": 16.690333867910773,
+      "num_classes": 1656,
+      "num_functions": 6859,
+      "pypi_version": "0.1.15",
+      "total_lines": 259888
     },
     "wily": {
       "cyclomatic_avg": 0.0,
@@ -42,6 +42,6 @@
   },
   "python_version": "3.10",
   "schema_version": "1.0",
-  "timestamp": "2026-10-14T00:59:16.549775Z",
+  "timestamp": "2026-10-14T00:59:19.754624Z",
   "workflow_status": {}
 }
