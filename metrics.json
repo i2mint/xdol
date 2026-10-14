@@ -1,7 +1,7 @@
 {
-  "collection_duration_seconds": 3.1816258430480957,
-  "commit_message": "xdol.memoize: persistent record/replay memoizer (2/3 of #3) (#10)\n\n* Add xdol.memoize: persistent record/replay memoizer with atomic file store (#3)\n\nCo-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>\n\n* memoize: review fixes (store failures never cost a call, record==replay, no aliasing, torn-pair detection, root-escape guard, coroutine results)  (#3)\n\nCo-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>\n\n* memoize: AtomicFiles only maps a missing file to KeyError; uncopyable results; read legacy paired layout (#3)\n\nCo-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>\n\n* memoize: paired reads surface store failures; EACCES is not absence; pin relative store path (#3)\n\nCo-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>\n\n---------\n\nCo-authored-by: Claude Sonnet 5.5 <noreply@anthropic.com>",
-  "commit_sha": "7ee406bc1a46ae1a5865f4b2defed77393732c49",
+  "collection_duration_seconds": 2.217484474182129,
+  "commit_message": "tests: don't assume '/' as the key separator on Windows (#3)\n\nCo-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>",
+  "commit_sha": "309416c9addd3e4054bb2bc71707ca8f67c1230b",
   "metrics": {
     "coverage": {
       "branch_coverage": 0.0,
@@ -42,6 +42,6 @@
   },
   "python_version": "3.10",
   "schema_version": "1.0",
-  "timestamp": "2026-10-14T01:00:43.063146Z",
+  "timestamp": "2026-10-14T01:01:00.921495Z",
   "workflow_status": {}
 }
