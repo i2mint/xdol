@@ -31,6 +31,7 @@
 <link href="../../_static/styles/pydata-sphinx-theme.css?digest=18bd87630a240e9c25be" rel="stylesheet" />
 
     <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d75fae25" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx_autodoc_typehints.css?v=057ac668" />
     <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
     <link rel="stylesheet" type="text/css" href="../../_static/epythet.css?v=3baad687" />
   
@@ -40,7 +41,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../_static/documentation_options.js?v=71734efd"></script>
+    <script src="../../_static/documentation_options.js?v=9969ed3f"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -410,7 +411,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.17" />
+  <meta name="docsearch:version" content="0.1.18" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -863,6 +864,8 @@ window.runMermaid = runMermaid;</script>
     <span class="c1"># Only a *missing file* is a KeyError (a miss). dol.Files turns every error into a</span>
     <span class="c1"># KeyError, which would make an unreadable-but-present entry look like a miss.</span>
     <span class="k">def</span><span class="w"> </span><span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">str</span><span class="p">(</span><span class="n">key</span><span class="p">)</span><span class="o">.</span><span class="n">endswith</span><span class="p">((</span><span class="s2">"/"</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">sep</span><span class="p">)):</span>  <span class="c1"># a directory-style key never names a file</span>
+            <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>  <span class="c1"># (consistent with ``in``)</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">Path</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_id_of_key</span><span class="p">(</span><span class="n">key</span><span class="p">))</span><span class="o">.</span><span class="n">read_bytes</span><span class="p">()</span>
         <span class="k">except</span> <span class="p">(</span><span class="ne">FileNotFoundError</span><span class="p">,</span> <span class="ne">IsADirectoryError</span><span class="p">,</span> <span class="ne">NotADirectoryError</span><span class="p">):</span>
@@ -1045,6 +1048,13 @@ window.runMermaid = runMermaid;</script>
 
 <span class="sd">    The returned wrapper has attributes ``cache_store``, ``key_func``, ``cache_key(*args,</span>
 <span class="sd">    **kwargs)`` and ``cache_mode()`` (the mode that would apply now).</span>
+
+<span class="sd">    Known limitations:</span>
+
+<span class="sd">    - On a method, ``obj.method.cache_key(...)`` is unbound (``self`` is not supplied</span>
+<span class="sd">      for you): call ``Cls.method.cache_key(obj, ...)``, also when using ``drop=['self']``.</span>
+<span class="sd">    - There is no cross-process lock: concurrent recorders of one key may each call the</span>
+<span class="sd">      function (the last write wins; entries are written atomically, so none is torn).</span>
 <span class="sd">    """</span>
     <span class="k">if</span> <span class="n">key_func</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">drop</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Pass either `key_func` or `drop`, not both."</span><span class="p">)</span>

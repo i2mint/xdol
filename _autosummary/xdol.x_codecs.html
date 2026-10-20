@@ -34,6 +34,7 @@
 <link href="../_static/styles/pydata-sphinx-theme.css?digest=18bd87630a240e9c25be" rel="stylesheet" />
 
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=d75fae25" />
+    <link rel="stylesheet" type="text/css" href="../_static/sphinx_autodoc_typehints.css?v=057ac668" />
     <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
     <link rel="stylesheet" type="text/css" href="../_static/epythet.css?v=3baad687" />
   
@@ -43,7 +44,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../_static/documentation_options.js?v=71734efd"></script>
+    <script src="../_static/documentation_options.js?v=9969ed3f"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -56,7 +57,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.17" />
+  <meta name="docsearch:version" content="0.1.18" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -541,17 +542,17 @@ older bare-metadata layout are still read (unverified).</p>
 <dt class="sig sig-object py" id="xdol.x_codecs.get_codec">
 <span class="sig-prename descclassname"><span class="pre">xdol.x_codecs.</span></span><span class="sig-name descname"><span class="pre">get_codec</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">codec</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xdol/x_codecs.html#get_codec"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xdol.x_codecs.get_codec" title="Link to this definition">#</a></dt>
 <dd><p>Resolve a <a class="reference internal" href="#xdol.x_codecs.Codec" title="xdol.x_codecs.Codec"><code class="xref py py-class docutils literal notranslate"><span class="pre">Codec</span></code></a>, a name in <a class="reference internal" href="#xdol.x_codecs.CODECS" title="xdol.x_codecs.CODECS"><code class="xref py py-data docutils literal notranslate"><span class="pre">CODECS</span></code></a>, or an <code class="docutils literal notranslate"><span class="pre">(encode,</span> <span class="pre">decode)</span></code> pair.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#xdol.x_codecs.Codec" title="xdol.x_codecs.Codec"><code class="xref py py-class docutils literal notranslate"><span class="pre">Codec</span></code></a></span></p>
-</dd>
-</dl>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">get_codec</span><span class="p">(</span><span class="s2">"json"</span><span class="p">)</span> <span class="ow">is</span> <span class="n">JSON_CODEC</span>
 <span class="go">True</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">get_codec</span><span class="p">((</span><span class="nb">str</span><span class="o">.</span><span class="n">encode</span><span class="p">,</span> <span class="nb">bytes</span><span class="o">.</span><span class="n">decode</span><span class="p">))</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="sa">b</span><span class="s2">"x"</span><span class="p">)</span>
 <span class="go">'x'</span>
 </pre></div>
 </div>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#xdol.x_codecs.Codec" title="xdol.x_codecs.Codec"><code class="xref py py-class docutils literal notranslate"><span class="pre">Codec</span></code></a></span></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py function">
@@ -560,11 +561,6 @@ older bare-metadata layout are still read (unverified).</p>
 <dd><p>A JSON <a class="reference internal" href="#xdol.x_codecs.Codec" title="xdol.x_codecs.Codec"><code class="xref py py-class docutils literal notranslate"><span class="pre">Codec</span></code></a>: keys sorted, non-ASCII kept, so stored files diff well.</p>
 <p>Strict by default: a value JSON cannot represent raises <code class="docutils literal notranslate"><span class="pre">TypeError</span></code> rather than
 being silently stringified. Pass <code class="docutils literal notranslate"><span class="pre">default=</span></code> (as in <a class="reference external" href="https://docs.python.org/3/library/json.html#json.dumps" title="(in Python v3.15)"><code class="xref py py-func docutils literal notranslate"><span class="pre">json.dumps()</span></code></a>) to opt in.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#xdol.x_codecs.Codec" title="xdol.x_codecs.Codec"><code class="xref py py-class docutils literal notranslate"><span class="pre">Codec</span></code></a></span></p>
-</dd>
-</dl>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">c</span> <span class="o">=</span> <span class="n">json_codec</span><span class="p">(</span><span class="n">indent</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">c</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">encode</span><span class="p">({</span><span class="s2">"b"</span><span class="p">:</span> <span class="s2">"é"</span><span class="p">,</span> <span class="s2">"a"</span><span class="p">:</span> <span class="mi">1</span><span class="p">}))</span>
 <span class="go">{'a': 1, 'b': 'é'}</span>
@@ -572,6 +568,11 @@ being silently stringified. Pass <code class="docutils literal notranslate"><spa
 <span class="go">b'{"a": 2, "b": 1}'</span>
 </pre></div>
 </div>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#xdol.x_codecs.Codec" title="xdol.x_codecs.Codec"><code class="xref py py-class docutils literal notranslate"><span class="pre">Codec</span></code></a></span></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py function">

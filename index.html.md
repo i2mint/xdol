@@ -15,7 +15,10 @@ Wrap a costly function (a paid API, a slow render) so the first run records its 
 ```python
 from xdol import memoize_calls
 
-@memoize_calls(store="tests/cassettes", mode="record")   # default mode is replay-only: a miss raises
+
+@memoize_calls(
+    store="tests/cassettes", mode="record"
+)  # default mode is replay-only: a miss raises
 def slow_square(x):
     return {"result": x * x}
 ```

@@ -132,9 +132,6 @@ created if missing and is meant to be a stable folder you commit (a cassette
 directory), not a temp dir. `codec="paired"` stores `(metadata, asset_bytes)`
 values as `<key>.json` + `<key>.bin`.
 
-* **Return type:**
-  [`MutableMapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping)
-
 ```pycon
 >>> import tempfile
 >>> store = file_cache_store(tempfile.mkdtemp())
@@ -142,6 +139,9 @@ values as `<key>.json` + `<key>.bin`.
 >>> store["k"], list(store)
 ({'a': 1}, ['k'])
 ```
+
+* **Return type:**
+  [`MutableMapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping)
 
 ### xdol.memoize.memoize_calls(func=None, \*, store, codec=None, key_func=None, drop=(), mode=None, default_mode='replay', record_env='XDOL_MEMOIZE_RECORD', corrupt_errors=(<class 'xdol.x_codecs.CodecDecodeError'>, ), on_write_error='raise', copy_results=None, reread_after_write=True)
 
@@ -161,7 +161,7 @@ Usable as `memoize_calls(fn, store=...)` or as a decorator
   * **drop** ([`Iterable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterable)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]) – parameter names of `func` to leave out of the key (callbacks, loggers,
     `self`); builds the key with [`xdol.keys.make_key_func()`](xdol.keys.html.md#xdol.keys.make_key_func), which also
     binds calls to the signature. Not combinable with `key_func`.
-  * **mode** (`Union`[[`Literal`](https://docs.python.org/3/library/typing.html#typing.Literal)[`'replay'`, `'record'`, `'refresh'`, `'off'`], [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[], [`Literal`](https://docs.python.org/3/library/typing.html#typing.Literal)[`'replay'`, `'record'`, `'refresh'`, `'off'`]], [`None`](https://docs.python.org/3/builtins/constants.html#None)]) – one of `MODES`, a zero-argument callable returning one (evaluated on
+  * **mode** ([`Union`](https://docs.python.org/3/library/typing.html#typing.Union)[[`Literal`](https://docs.python.org/3/library/typing.html#typing.Literal)[`'replay'`, `'record'`, `'refresh'`, `'off'`], [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[], [`Literal`](https://docs.python.org/3/library/typing.html#typing.Literal)[`'replay'`, `'record'`, `'refresh'`, `'off'`]], [`None`](https://docs.python.org/3/builtins/constants.html#None)]) – one of `MODES`, a zero-argument callable returning one (evaluated on
     every call), or `None` (default) for: `"record"` if the `record_env`
     variable is truthy, else `default_mode`. Read at call time, so setting the
     variable after import (e.g. in a pytest hook) works.
@@ -189,6 +189,13 @@ Usable as `memoize_calls(fn, store=...)` or as a decorator
 The returned wrapper has attributes `cache_store`, `key_func`, `cache_key(\*args,
 \*\*kwargs)` and `cache_mode()` (the mode that would apply now).
 
+Known limitations:
+
+- On a method, `obj.method.cache_key(...)` is unbound (`self` is not supplied
+  for you): call `Cls.method.cache_key(obj, ...)`, also when using `drop=['self']`.
+- There is no cross-process lock: concurrent recorders of one key may each call the
+  function (the last write wins; entries are written atomically, so none is torn).
+
 ### xdol.memoize.recording_enabled(env='XDOL_MEMOIZE_RECORD')
 
 True when the environment variable `env` is set to a truthy value.
@@ -196,10 +203,10 @@ True when the environment variable `env` is set to a truthy value.
 The opt-in is environment-level rather than per-call, so “this run may spend” is one
 visible fact about the run instead of a property of each test.
 
-* **Return type:**
-  [`bool`](https://docs.python.org/3/builtins/functions.html#bool)
-
 ```pycon
 >>> recording_enabled("XDOL_SURELY_UNSET_VARIABLE")
 False
 ```
+
+* **Return type:**
+  [`bool`](https://docs.python.org/3/builtins/functions.html#bool)

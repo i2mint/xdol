@@ -115,15 +115,15 @@ older bare-metadata layout are still read (unverified).
 
 Resolve a [`Codec`](#xdol.x_codecs.Codec), a name in [`CODECS`](#xdol.x_codecs.CODECS), or an `(encode, decode)` pair.
 
-* **Return type:**
-  [`Codec`](#xdol.x_codecs.Codec)
-
 ```pycon
 >>> get_codec("json") is JSON_CODEC
 True
 >>> get_codec((str.encode, bytes.decode)).decode(b"x")
 'x'
 ```
+
+* **Return type:**
+  [`Codec`](#xdol.x_codecs.Codec)
 
 ### xdol.x_codecs.json_codec(, indent=2, default=None)
 
@@ -132,9 +132,6 @@ A JSON [`Codec`](#xdol.x_codecs.Codec): keys sorted, non-ASCII kept, so stored f
 Strict by default: a value JSON cannot represent raises `TypeError` rather than
 being silently stringified. Pass `default=` (as in [`json.dumps()`](https://docs.python.org/3/library/json.html#json.dumps)) to opt in.
 
-* **Return type:**
-  [`Codec`](#xdol.x_codecs.Codec)
-
 ```pycon
 >>> c = json_codec(indent=None)
 >>> c.decode(c.encode({"b": "é", "a": 1}))
@@ -142,6 +139,9 @@ being silently stringified. Pass `default=` (as in [`json.dumps()`](https://docs
 >>> c.encode({"b": 1, "a": 2})
 b'{"a": 2, "b": 1}'
 ```
+
+* **Return type:**
+  [`Codec`](#xdol.x_codecs.Codec)
 
 ### xdol.x_codecs.paired_store(store, \*\*kwargs)
 

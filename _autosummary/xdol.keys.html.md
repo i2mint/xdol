@@ -112,6 +112,9 @@ Recursively reduce `obj` to a JSON-able structure that is equal for equal meanin
   [`UnstableKeyError`](#xdol.keys.UnstableKeyError)). A `repr` can still be lossy (truncated, or leaving out
   > state): for such types define `__cache_key__`.
 
+Limitation: recursion costs ~2 frames per nesting level, so structures nested deeper
+than ~400 levels raise `RecursionError`.
+
 ```pycon
 >>> normalize({"b": " x ", "a": (1, 2)})
 {'a': [1, 2], 'b': 'x'}
@@ -129,12 +132,12 @@ The default key function: a stable SHA-256 (32 hex chars) of the normalized call
 Calls whose arguments are semantically equal – same values up to dict key order and
 surrounding whitespace – get the same key.
 
-* **Return type:**
-  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
-
 ```pycon
 >>> robust_key("a", n=1) == robust_key("a ", n=1)
 True
 >>> robust_key("a", n=1) == robust_key("a", n=2)
 False
 ```
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)

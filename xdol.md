@@ -1,4 +1,4 @@
-> built 2026-10-14 01:07 UTC from 02cbc8c (master) · xdol 0.1.17. Details: build_info.json
+> built 2026-10-20 09:58 UTC from 0ea22c0 (master) · xdol 0.1.18. Details: build_info.json
 
 # index.html.md
 
@@ -19,7 +19,10 @@ Wrap a costly function (a paid API, a slow render) so the first run records its 
 ```python
 from xdol import memoize_calls
 
-@memoize_calls(store="tests/cassettes", mode="record")   # default mode is replay-only: a miss raises
+
+@memoize_calls(
+    store="tests/cassettes", mode="record"
+)  # default mode is replay-only: a miss raises
 def slow_square(x):
     return {"result": x * x}
 ```
@@ -164,6 +167,9 @@ Recursively reduce `obj` to a JSON-able structure that is equal for equal meanin
   [`UnstableKeyError`](_autosummary/xdol.keys.html.md#xdol.keys.UnstableKeyError)). A `repr` can still be lossy (truncated, or leaving out
   > state): for such types define `__cache_key__`.
 
+Limitation: recursion costs ~2 frames per nesting level, so structures nested deeper
+than ~400 levels raise `RecursionError`.
+
 ```pycon
 >>> normalize({"b": " x ", "a": (1, 2)})
 {'a': [1, 2], 'b': 'x'}
@@ -181,15 +187,15 @@ The default key function: a stable SHA-256 (32 hex chars) of the normalized call
 Calls whose arguments are semantically equal – same values up to dict key order and
 surrounding whitespace – get the same key.
 
-* **Return type:**
-  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
-
 ```pycon
 >>> robust_key("a", n=1) == robust_key("a ", n=1)
 True
 >>> robust_key("a", n=1) == robust_key("a", n=2)
 False
 ```
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
 
 
 # _autosummary/xdol.memoize.html.md
@@ -328,9 +334,6 @@ created if missing and is meant to be a stable folder you commit (a cassette
 directory), not a temp dir. `codec="paired"` stores `(metadata, asset_bytes)`
 values as `<key>.json` + `<key>.bin`.
 
-* **Return type:**
-  [`MutableMapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping)
-
 ```pycon
 >>> import tempfile
 >>> store = file_cache_store(tempfile.mkdtemp())
@@ -338,6 +341,9 @@ values as `<key>.json` + `<key>.bin`.
 >>> store["k"], list(store)
 ({'a': 1}, ['k'])
 ```
+
+* **Return type:**
+  [`MutableMapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping)
 
 ### xdol.memoize.memoize_calls(func=None, \*, store, codec=None, key_func=None, drop=(), mode=None, default_mode='replay', record_env='XDOL_MEMOIZE_RECORD', corrupt_errors=(<class 'xdol.x_codecs.CodecDecodeError'>, ), on_write_error='raise', copy_results=None, reread_after_write=True)
 
@@ -357,7 +363,7 @@ Usable as `memoize_calls(fn, store=...)` or as a decorator
   * **drop** ([`Iterable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterable)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]) – parameter names of `func` to leave out of the key (callbacks, loggers,
     `self`); builds the key with [`xdol.keys.make_key_func()`](_autosummary/xdol.keys.html.md#xdol.keys.make_key_func), which also
     binds calls to the signature. Not combinable with `key_func`.
-  * **mode** (`Union`[[`Literal`](https://docs.python.org/3/library/typing.html#typing.Literal)[`'replay'`, `'record'`, `'refresh'`, `'off'`], [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[], [`Literal`](https://docs.python.org/3/library/typing.html#typing.Literal)[`'replay'`, `'record'`, `'refresh'`, `'off'`]], [`None`](https://docs.python.org/3/builtins/constants.html#None)]) – one of `MODES`, a zero-argument callable returning one (evaluated on
+  * **mode** ([`Union`](https://docs.python.org/3/library/typing.html#typing.Union)[[`Literal`](https://docs.python.org/3/library/typing.html#typing.Literal)[`'replay'`, `'record'`, `'refresh'`, `'off'`], [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[], [`Literal`](https://docs.python.org/3/library/typing.html#typing.Literal)[`'replay'`, `'record'`, `'refresh'`, `'off'`]], [`None`](https://docs.python.org/3/builtins/constants.html#None)]) – one of `MODES`, a zero-argument callable returning one (evaluated on
     every call), or `None` (default) for: `"record"` if the `record_env`
     variable is truthy, else `default_mode`. Read at call time, so setting the
     variable after import (e.g. in a pytest hook) works.
@@ -385,6 +391,13 @@ Usable as `memoize_calls(fn, store=...)` or as a decorator
 The returned wrapper has attributes `cache_store`, `key_func`, `cache_key(\*args,
 \*\*kwargs)` and `cache_mode()` (the mode that would apply now).
 
+Known limitations:
+
+- On a method, `obj.method.cache_key(...)` is unbound (`self` is not supplied
+  for you): call `Cls.method.cache_key(obj, ...)`, also when using `drop=['self']`.
+- There is no cross-process lock: concurrent recorders of one key may each call the
+  function (the last write wins; entries are written atomically, so none is torn).
+
 ### xdol.memoize.recording_enabled(env='XDOL_MEMOIZE_RECORD')
 
 True when the environment variable `env` is set to a truthy value.
@@ -392,13 +405,13 @@ True when the environment variable `env` is set to a truthy value.
 The opt-in is environment-level rather than per-call, so “this run may spend” is one
 visible fact about the run instead of a property of each test.
 
-* **Return type:**
-  [`bool`](https://docs.python.org/3/builtins/functions.html#bool)
-
 ```pycon
 >>> recording_enabled("XDOL_SURELY_UNSET_VARIABLE")
 False
 ```
+
+* **Return type:**
+  [`bool`](https://docs.python.org/3/builtins/functions.html#bool)
 
 
 # _autosummary/xdol.paths.html.md
@@ -948,14 +961,11 @@ If `key` is an alias, it is resolved to its canonical key first, so the
 `on_conflict` policy applies to that entry (no unreachable shadow entry).
 
 * **Return type:**
-  [`TypeVar`](https://docs.python.org/3/library/typing.html#typing.TypeVar)(`V`)
+  `V`
 
 #### register_decorator(key, , tags=())
 
 Return a decorator that registers the decorated object under `key`.
-
-* **Return type:**
-  [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[[`TypeVar`](https://docs.python.org/3/library/typing.html#typing.TypeVar)(`V`)], [`TypeVar`](https://docs.python.org/3/library/typing.html#typing.TypeVar)(`V`)]
 
 ```pycon
 >>> r = Registry()
@@ -964,6 +974,9 @@ Return a decorator that registers the decorated object under `key`.
 >>> r["hi"]()
 'hello'
 ```
+
+* **Return type:**
+  [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[`V`], `V`]
 
 #### register_lazy(key, loader, , tags=())
 
@@ -980,7 +993,7 @@ Alias keys resolve to their canonical key, as in [`register()`](_autosummary/xdo
 Return values whose tag set contains ALL of `tags` (empty `tags` = all).
 
 * **Return type:**
-  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`TypeVar`](https://docs.python.org/3/library/typing.html#typing.TypeVar)(`V`)]
+  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[`V`]
 
 #### subscribe(callback)
 
@@ -1100,7 +1113,7 @@ Decisions for individual keys during update.
 
 ### *class* xdol.updating.KeyInfoExtractor(\*args, \*\*kwargs)
 
-Bases: `Protocol`
+Bases: [`Protocol`](https://docs.python.org/3/library/typing.html#typing.Protocol)
 
 Protocol for functions that extract comparison information from values.
 
@@ -1118,7 +1131,7 @@ Enum where members are also (and must be) strings.
 
 ### *class* xdol.updating.UpdateDecider(\*args, \*\*kwargs)
 
-Bases: `Protocol`
+Bases: [`Protocol`](https://docs.python.org/3/library/typing.html#typing.Protocol)
 
 Protocol for functions that decide whether to update a key.
 
@@ -1183,9 +1196,9 @@ Print all decisions except SKIP.
 Generator yielding unique hashable items from an iterable of iterables.
 
 * **Parameters:**
-  **iterables** ([`Iterable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterable)[[`TypeVar`](https://docs.python.org/3/library/typing.html#typing.TypeVar)(`T`)]) – An iterable where each element is itself an iterable of hashable items.
+  **iterables** ([`Iterable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterable)[`T`]) – An iterable where each element is itself an iterable of hashable items.
 * **Yields:**
-  Unique items from the nested iterables, in order of first appearance.
+  `T` – Unique items from the nested iterables, in order of first appearance.
 * **Return type:**
   [*Generator*](https://docs.python.org/3/library/collections.abc.html#collections.abc.Generator)[*T*, *None*, *None*]
 
@@ -1203,11 +1216,11 @@ Generator yielding unique hashable items from an iterable of iterables.
 Update target with all source values, equivalent to dict.update().
 
 * **Parameters:**
-  * **target** ([`MutableMapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping)[[`TypeVar`](https://docs.python.org/3/library/typing.html#typing.TypeVar)(`K`), [`TypeVar`](https://docs.python.org/3/library/typing.html#typing.TypeVar)(`V`)]) – The mapping to be updated (modified in-place)
-  * **source** ([`Mapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping)[[`TypeVar`](https://docs.python.org/3/library/typing.html#typing.TypeVar)(`K`), [`TypeVar`](https://docs.python.org/3/library/typing.html#typing.TypeVar)(`V`)]) – The mapping containing items to potentially copy to target
-  * **keys_to_consider** (`Union`[[`Iterable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterable)[[`TypeVar`](https://docs.python.org/3/library/typing.html#typing.TypeVar)(`K`)], [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[[`Mapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping), [`MutableMapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping)], [`Iterable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterable)[[`TypeVar`](https://docs.python.org/3/library/typing.html#typing.TypeVar)(`K`)]]]) – Specific iterable of keys to consider or a callable to make
+  * **target** ([`MutableMapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping)[`K`, `V`]) – The mapping to be updated (modified in-place)
+  * **source** ([`Mapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping)[`K`, `V`]) – The mapping containing items to potentially copy to target
+  * **keys_to_consider** ([`Union`](https://docs.python.org/3/library/typing.html#typing.Union)[[`Iterable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterable)[`K`], [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[[`Mapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping), [`MutableMapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping)], [`Iterable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterable)[`K`]]]) – Specific iterable of keys to consider or a callable to make
     this from source and target. The default will consider source keys only.
-  * **verbose** ([`bool`](https://docs.python.org/3/builtins/functions.html#bool) | [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[[`TypeVar`](https://docs.python.org/3/library/typing.html#typing.TypeVar)(`K`), [`KeyDecision`](_autosummary/xdol.updating.html.md#xdol.updating.KeyDecision)], [`Any`](https://docs.python.org/3/library/typing.html#typing.Any)]) – If True, print debug information, if callable, call with
+  * **verbose** ([`bool`](https://docs.python.org/3/builtins/functions.html#bool) | [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[`K`, [`KeyDecision`](_autosummary/xdol.updating.html.md#xdol.updating.KeyDecision)], [`Any`](https://docs.python.org/3/library/typing.html#typing.Any)]) – If True, print debug information, if callable, call with
     (key, decision) on each key that is looped over
 * **Return type:**
   [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`int`](https://docs.python.org/3/builtins/functions.html#int)]
@@ -1219,12 +1232,12 @@ Update target with all source values, equivalent to dict.update().
 Update target with source values only if their hash differs.
 
 * **Parameters:**
-  * **target** ([`MutableMapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping)[[`TypeVar`](https://docs.python.org/3/library/typing.html#typing.TypeVar)(`K`), [`TypeVar`](https://docs.python.org/3/library/typing.html#typing.TypeVar)(`V`)]) – The mapping to be updated (modified in-place)
-  * **source** ([`Mapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping)[[`TypeVar`](https://docs.python.org/3/library/typing.html#typing.TypeVar)(`K`), [`TypeVar`](https://docs.python.org/3/library/typing.html#typing.TypeVar)(`V`)]) – The mapping containing items to potentially copy to target
-  * **hash_function** ([`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[[`TypeVar`](https://docs.python.org/3/library/typing.html#typing.TypeVar)(`V`)], [`Any`](https://docs.python.org/3/library/typing.html#typing.Any)]) – Function to generate a hash of a value
-  * **keys_to_consider** (`Union`[[`Iterable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterable)[[`TypeVar`](https://docs.python.org/3/library/typing.html#typing.TypeVar)(`K`)], [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[[`Mapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping), [`MutableMapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping)], [`Iterable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterable)[[`TypeVar`](https://docs.python.org/3/library/typing.html#typing.TypeVar)(`K`)]]]) – Specific iterable of keys to consider or a callable to make
+  * **target** ([`MutableMapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping)[`K`, `V`]) – The mapping to be updated (modified in-place)
+  * **source** ([`Mapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping)[`K`, `V`]) – The mapping containing items to potentially copy to target
+  * **hash_function** ([`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[`V`], [`Any`](https://docs.python.org/3/library/typing.html#typing.Any)]) – Function to generate a hash of a value
+  * **keys_to_consider** ([`Union`](https://docs.python.org/3/library/typing.html#typing.Union)[[`Iterable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterable)[`K`], [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[[`Mapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping), [`MutableMapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping)], [`Iterable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterable)[`K`]]]) – Specific iterable of keys to consider or a callable to make
     this from source and target. The default will consider source keys only.
-  * **verbose** ([`bool`](https://docs.python.org/3/builtins/functions.html#bool) | [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[[`TypeVar`](https://docs.python.org/3/library/typing.html#typing.TypeVar)(`K`), [`KeyDecision`](_autosummary/xdol.updating.html.md#xdol.updating.KeyDecision)], [`Any`](https://docs.python.org/3/library/typing.html#typing.Any)]) – If True, print debug information, if callable, call with
+  * **verbose** ([`bool`](https://docs.python.org/3/builtins/functions.html#bool) | [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[`K`, [`KeyDecision`](_autosummary/xdol.updating.html.md#xdol.updating.KeyDecision)], [`Any`](https://docs.python.org/3/library/typing.html#typing.Any)]) – If True, print debug information, if callable, call with
     (key, decision) on each key that is looped over
 * **Return type:**
   [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`int`](https://docs.python.org/3/builtins/functions.html#int)]
@@ -1239,11 +1252,11 @@ This is a convenience wrapper around update_newer that uses local_file_timestamp
 to compare file modification times.
 
 * **Parameters:**
-  * **target** ([`MutableMapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping)[[`TypeVar`](https://docs.python.org/3/library/typing.html#typing.TypeVar)(`K`), [`TypeVar`](https://docs.python.org/3/library/typing.html#typing.TypeVar)(`V`)]) – The target file store to be updated
-  * **source** ([`Mapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping)[[`TypeVar`](https://docs.python.org/3/library/typing.html#typing.TypeVar)(`K`), [`TypeVar`](https://docs.python.org/3/library/typing.html#typing.TypeVar)(`V`)]) – The source file store containing potential updates
-  * **keys_to_consider** (`Union`[[`Iterable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterable)[[`TypeVar`](https://docs.python.org/3/library/typing.html#typing.TypeVar)(`K`)], [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[[`Mapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping), [`MutableMapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping)], [`Iterable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterable)[[`TypeVar`](https://docs.python.org/3/library/typing.html#typing.TypeVar)(`K`)]]]) – Specific iterable of keys to consider or a callable to make
+  * **target** ([`MutableMapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping)[`K`, `V`]) – The target file store to be updated
+  * **source** ([`Mapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping)[`K`, `V`]) – The source file store containing potential updates
+  * **keys_to_consider** ([`Union`](https://docs.python.org/3/library/typing.html#typing.Union)[[`Iterable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterable)[`K`], [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[[`Mapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping), [`MutableMapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping)], [`Iterable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterable)[`K`]]]) – Specific iterable of keys to consider or a callable to make
     this from source and target. The default will consider source keys only.
-  * **verbose** ([`bool`](https://docs.python.org/3/builtins/functions.html#bool) | [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[[`TypeVar`](https://docs.python.org/3/library/typing.html#typing.TypeVar)(`K`), [`KeyDecision`](_autosummary/xdol.updating.html.md#xdol.updating.KeyDecision)], [`Any`](https://docs.python.org/3/library/typing.html#typing.Any)]) – If True, print debug information, if callable, call with
+  * **verbose** ([`bool`](https://docs.python.org/3/builtins/functions.html#bool) | [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[`K`, [`KeyDecision`](_autosummary/xdol.updating.html.md#xdol.updating.KeyDecision)], [`Any`](https://docs.python.org/3/library/typing.html#typing.Any)]) – If True, print debug information, if callable, call with
     (key, decision) on each key that is looped over
 * **Return type:**
   [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`int`](https://docs.python.org/3/builtins/functions.html#int)]
@@ -1255,14 +1268,14 @@ to compare file modification times.
 Update target with source values only if they differ.
 
 * **Parameters:**
-  * **target** ([`MutableMapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping)[[`TypeVar`](https://docs.python.org/3/library/typing.html#typing.TypeVar)(`K`), [`TypeVar`](https://docs.python.org/3/library/typing.html#typing.TypeVar)(`V`)]) – The mapping to be updated (modified in-place)
-  * **source** ([`Mapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping)[[`TypeVar`](https://docs.python.org/3/library/typing.html#typing.TypeVar)(`K`), [`TypeVar`](https://docs.python.org/3/library/typing.html#typing.TypeVar)(`V`)]) – The mapping containing items to potentially copy to target
+  * **target** ([`MutableMapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping)[`K`, `V`]) – The mapping to be updated (modified in-place)
+  * **source** ([`Mapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping)[`K`, `V`]) – The mapping containing items to potentially copy to target
   * **key_info** – (Deprecated) Function to extract comparison info from values
   * **target_key_info** – Function to extract comparison info from target keys
   * **source_key_info** – Function to extract comparison info from source keys
-  * **keys_to_consider** (`Union`[[`Iterable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterable)[[`TypeVar`](https://docs.python.org/3/library/typing.html#typing.TypeVar)(`K`)], [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[[`Mapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping), [`MutableMapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping)], [`Iterable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterable)[[`TypeVar`](https://docs.python.org/3/library/typing.html#typing.TypeVar)(`K`)]]]) – Specific iterable of keys to consider or a callable to make
+  * **keys_to_consider** ([`Union`](https://docs.python.org/3/library/typing.html#typing.Union)[[`Iterable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterable)[`K`], [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[[`Mapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping), [`MutableMapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping)], [`Iterable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterable)[`K`]]]) – Specific iterable of keys to consider or a callable to make
     this from source and target. The default will consider source keys only.
-  * **verbose** ([`bool`](https://docs.python.org/3/builtins/functions.html#bool) | [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[[`TypeVar`](https://docs.python.org/3/library/typing.html#typing.TypeVar)(`K`), [`KeyDecision`](_autosummary/xdol.updating.html.md#xdol.updating.KeyDecision)], [`Any`](https://docs.python.org/3/library/typing.html#typing.Any)]) – If True, print debug information, if callable, call with
+  * **verbose** ([`bool`](https://docs.python.org/3/builtins/functions.html#bool) | [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[`K`, [`KeyDecision`](_autosummary/xdol.updating.html.md#xdol.updating.KeyDecision)], [`Any`](https://docs.python.org/3/library/typing.html#typing.Any)]) – If True, print debug information, if callable, call with
     (key, decision) on each key that is looped over
 * **Return type:**
   [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`int`](https://docs.python.org/3/builtins/functions.html#int)]
@@ -1274,11 +1287,11 @@ Update target with source values only if they differ.
 Update target with source values only for keys not in target.
 
 * **Parameters:**
-  * **target** ([`MutableMapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping)[[`TypeVar`](https://docs.python.org/3/library/typing.html#typing.TypeVar)(`K`), [`TypeVar`](https://docs.python.org/3/library/typing.html#typing.TypeVar)(`V`)]) – The mapping to be updated (modified in-place)
-  * **source** ([`Mapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping)[[`TypeVar`](https://docs.python.org/3/library/typing.html#typing.TypeVar)(`K`), [`TypeVar`](https://docs.python.org/3/library/typing.html#typing.TypeVar)(`V`)]) – The mapping containing items to potentially copy to target
-  * **keys_to_consider** (`Union`[[`Iterable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterable)[[`TypeVar`](https://docs.python.org/3/library/typing.html#typing.TypeVar)(`K`)], [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[[`Mapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping), [`MutableMapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping)], [`Iterable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterable)[[`TypeVar`](https://docs.python.org/3/library/typing.html#typing.TypeVar)(`K`)]]]) – Specific iterable of keys to consider or a callable to make
+  * **target** ([`MutableMapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping)[`K`, `V`]) – The mapping to be updated (modified in-place)
+  * **source** ([`Mapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping)[`K`, `V`]) – The mapping containing items to potentially copy to target
+  * **keys_to_consider** ([`Union`](https://docs.python.org/3/library/typing.html#typing.Union)[[`Iterable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterable)[`K`], [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[[`Mapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping), [`MutableMapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping)], [`Iterable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterable)[`K`]]]) – Specific iterable of keys to consider or a callable to make
     this from source and target. The default will consider source keys only.
-  * **verbose** ([`bool`](https://docs.python.org/3/builtins/functions.html#bool) | [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[[`TypeVar`](https://docs.python.org/3/library/typing.html#typing.TypeVar)(`K`), [`KeyDecision`](_autosummary/xdol.updating.html.md#xdol.updating.KeyDecision)], [`Any`](https://docs.python.org/3/library/typing.html#typing.Any)]) – If True, print debug information, if callable, call with
+  * **verbose** ([`bool`](https://docs.python.org/3/builtins/functions.html#bool) | [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[`K`, [`KeyDecision`](_autosummary/xdol.updating.html.md#xdol.updating.KeyDecision)], [`Any`](https://docs.python.org/3/library/typing.html#typing.Any)]) – If True, print debug information, if callable, call with
     (key, decision) on each key that is looped over
 * **Return type:**
   [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`int`](https://docs.python.org/3/builtins/functions.html#int)]
@@ -1290,13 +1303,13 @@ Update target with source values only for keys not in target.
 Update target with source values only if source has a newer timestamp.
 
 * **Parameters:**
-  * **target** ([`MutableMapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping)[[`TypeVar`](https://docs.python.org/3/library/typing.html#typing.TypeVar)(`K`), [`TypeVar`](https://docs.python.org/3/library/typing.html#typing.TypeVar)(`V`)]) – The mapping to be updated (modified in-place)
-  * **source** ([`Mapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping)[[`TypeVar`](https://docs.python.org/3/library/typing.html#typing.TypeVar)(`K`), [`TypeVar`](https://docs.python.org/3/library/typing.html#typing.TypeVar)(`V`)]) – The mapping containing items to potentially copy to target
-  * **target_timestamp** ([`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[[`TypeVar`](https://docs.python.org/3/library/typing.html#typing.TypeVar)(`K`)], [`Any`](https://docs.python.org/3/library/typing.html#typing.Any)]) – Function(key) -> timestamp that extracts timestamp from target
-  * **source_timestamp** ([`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[[`TypeVar`](https://docs.python.org/3/library/typing.html#typing.TypeVar)(`K`)], [`Any`](https://docs.python.org/3/library/typing.html#typing.Any)]) – Function(key) -> timestamp that extracts timestamp from source
-  * **keys_to_consider** (`Union`[[`Iterable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterable)[[`TypeVar`](https://docs.python.org/3/library/typing.html#typing.TypeVar)(`K`)], [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[[`Mapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping), [`MutableMapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping)], [`Iterable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterable)[[`TypeVar`](https://docs.python.org/3/library/typing.html#typing.TypeVar)(`K`)]]]) – Specific iterable of keys to consider or a callable to make
+  * **target** ([`MutableMapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping)[`K`, `V`]) – The mapping to be updated (modified in-place)
+  * **source** ([`Mapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping)[`K`, `V`]) – The mapping containing items to potentially copy to target
+  * **target_timestamp** ([`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[`K`], [`Any`](https://docs.python.org/3/library/typing.html#typing.Any)]) – Function(key) -> timestamp that extracts timestamp from target
+  * **source_timestamp** ([`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[`K`], [`Any`](https://docs.python.org/3/library/typing.html#typing.Any)]) – Function(key) -> timestamp that extracts timestamp from source
+  * **keys_to_consider** ([`Union`](https://docs.python.org/3/library/typing.html#typing.Union)[[`Iterable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterable)[`K`], [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[[`Mapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping), [`MutableMapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping)], [`Iterable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterable)[`K`]]]) – Specific iterable of keys to consider or a callable to make
     this from source and target. The default will consider source keys only.
-  * **verbose** ([`bool`](https://docs.python.org/3/builtins/functions.html#bool) | [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[[`TypeVar`](https://docs.python.org/3/library/typing.html#typing.TypeVar)(`K`), [`KeyDecision`](_autosummary/xdol.updating.html.md#xdol.updating.KeyDecision)], [`Any`](https://docs.python.org/3/library/typing.html#typing.Any)]) – If True, print debug information, if callable, call with
+  * **verbose** ([`bool`](https://docs.python.org/3/builtins/functions.html#bool) | [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[`K`, [`KeyDecision`](_autosummary/xdol.updating.html.md#xdol.updating.KeyDecision)], [`Any`](https://docs.python.org/3/library/typing.html#typing.Any)]) – If True, print debug information, if callable, call with
     (key, decision) on each key that is looped over
 * **Return type:**
   [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`int`](https://docs.python.org/3/builtins/functions.html#int)]
@@ -1308,14 +1321,14 @@ Update target with source values only if source has a newer timestamp.
 Update a target mapping with values from a source mapping using a customizable policy.
 
 * **Parameters:**
-  * **target** ([`MutableMapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping)[[`TypeVar`](https://docs.python.org/3/library/typing.html#typing.TypeVar)(`K`), [`TypeVar`](https://docs.python.org/3/library/typing.html#typing.TypeVar)(`V`)]) – The mapping to be updated (modified in-place)
-  * **source** ([`Mapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping)[[`TypeVar`](https://docs.python.org/3/library/typing.html#typing.TypeVar)(`K`), [`TypeVar`](https://docs.python.org/3/library/typing.html#typing.TypeVar)(`V`)]) – The mapping containing items to potentially copy to target
+  * **target** ([`MutableMapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping)[`K`, `V`]) – The mapping to be updated (modified in-place)
+  * **source** ([`Mapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping)[`K`, `V`]) – The mapping containing items to potentially copy to target
   * **policy** ([`DefaultPolicy`](_autosummary/xdol.updating.html.md#xdol.updating.DefaultPolicy) | [`UpdateDecider`](_autosummary/xdol.updating.html.md#xdol.updating.UpdateDecider)) – Either a DefaultPolicy enum value or a custom decision function
   * **target_key_info** ([`KeyInfoExtractor`](_autosummary/xdol.updating.html.md#xdol.updating.KeyInfoExtractor) | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – Function to extract comparison info from target keys
   * **source_key_info** ([`KeyInfoExtractor`](_autosummary/xdol.updating.html.md#xdol.updating.KeyInfoExtractor) | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – Function to extract comparison info from source keys
-  * **keys_to_consider** (`Union`[[`Iterable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterable)[[`TypeVar`](https://docs.python.org/3/library/typing.html#typing.TypeVar)(`K`)], [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[[`Mapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping), [`MutableMapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping)], [`Iterable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterable)[[`TypeVar`](https://docs.python.org/3/library/typing.html#typing.TypeVar)(`K`)]]]) – Specific iterable of keys to consider or a callable to make
+  * **keys_to_consider** ([`Union`](https://docs.python.org/3/library/typing.html#typing.Union)[[`Iterable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterable)[`K`], [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[[`Mapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping), [`MutableMapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping)], [`Iterable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterable)[`K`]]]) – Specific iterable of keys to consider or a callable to make
     this from source and target. The default will consider source keys only.
-  * **verbose** ([`bool`](https://docs.python.org/3/builtins/functions.html#bool) | [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[[`TypeVar`](https://docs.python.org/3/library/typing.html#typing.TypeVar)(`K`), [`KeyDecision`](_autosummary/xdol.updating.html.md#xdol.updating.KeyDecision)], [`Any`](https://docs.python.org/3/library/typing.html#typing.Any)]) – If True, will print debug information, if callable, call with
+  * **verbose** ([`bool`](https://docs.python.org/3/builtins/functions.html#bool) | [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[`K`, [`KeyDecision`](_autosummary/xdol.updating.html.md#xdol.updating.KeyDecision)], [`Any`](https://docs.python.org/3/library/typing.html#typing.Any)]) – If True, will print debug information, if callable, call with
     (key, decision) on each key that is looped over
 * **Return type:**
   [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`int`](https://docs.python.org/3/builtins/functions.html#int)]
@@ -1517,15 +1530,15 @@ older bare-metadata layout are still read (unverified).
 
 Resolve a [`Codec`](_autosummary/xdol.x_codecs.html.md#xdol.x_codecs.Codec), a name in [`CODECS`](_autosummary/xdol.x_codecs.html.md#xdol.x_codecs.CODECS), or an `(encode, decode)` pair.
 
-* **Return type:**
-  [`Codec`](_autosummary/xdol.x_codecs.html.md#xdol.x_codecs.Codec)
-
 ```pycon
 >>> get_codec("json") is JSON_CODEC
 True
 >>> get_codec((str.encode, bytes.decode)).decode(b"x")
 'x'
 ```
+
+* **Return type:**
+  [`Codec`](_autosummary/xdol.x_codecs.html.md#xdol.x_codecs.Codec)
 
 ### xdol.x_codecs.json_codec(, indent=2, default=None)
 
@@ -1534,9 +1547,6 @@ A JSON [`Codec`](_autosummary/xdol.x_codecs.html.md#xdol.x_codecs.Codec): keys s
 Strict by default: a value JSON cannot represent raises `TypeError` rather than
 being silently stringified. Pass `default=` (as in [`json.dumps()`](https://docs.python.org/3/library/json.html#json.dumps)) to opt in.
 
-* **Return type:**
-  [`Codec`](_autosummary/xdol.x_codecs.html.md#xdol.x_codecs.Codec)
-
 ```pycon
 >>> c = json_codec(indent=None)
 >>> c.decode(c.encode({"b": "é", "a": 1}))
@@ -1544,6 +1554,9 @@ being silently stringified. Pass `default=` (as in [`json.dumps()`](https://docs
 >>> c.encode({"b": 1, "a": 2})
 b'{"a": 2, "b": 1}'
 ```
+
+* **Return type:**
+  [`Codec`](_autosummary/xdol.x_codecs.html.md#xdol.x_codecs.Codec)
 
 ### xdol.x_codecs.paired_store(store, \*\*kwargs)
 
@@ -1568,18 +1581,16 @@ A value that fails to decode raises [`CodecDecodeError`](_autosummary/xdol.x_cod
 
 # About this build
 
-This documentation was built on **2026-10-14 01:07 UTC** from commit <a href="https://github.com/i2mint/xdol/commit/02cbc8ca0274c1ee93d4df2c2df34f74f6655cb6"><code>02cbc8c</code></a> on branch <code>master</code>, for **xdol 0.1.17** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-10-20 09:58 UTC** from commit <a href="https://github.com/i2mint/xdol/commit/0ea22c013cff485da310441e7ce1b1a4aa7dcf12"><code>0ea22c0</code></a> on branch <code>master</code>, for **xdol 0.1.18** (from <code>pyproject.toml</code>).
 
-#### WARNING
-The documentation and the package may be misaligned:
-
-- The documented version (0.1.17) is behind the latest release on PyPI (0.1.18): `pip install xdol` gives newer code than these docs describe.
+#### NOTE
+Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
 
 ## Source
 
 |                     |                                                                                                                                                    |
 |---------------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/i2mint/xdol/commit/02cbc8ca0274c1ee93d4df2c2df34f74f6655cb6"><code>02cbc8ca0274c1ee93d4df2c2df34f74f6655cb6</code></a> |
+| Commit              | <a href="https://github.com/i2mint/xdol/commit/0ea22c013cff485da310441e7ce1b1a4aa7dcf12"><code>0ea22c013cff485da310441e7ce1b1a4aa7dcf12</code></a> |
 | Branch              | <code>master</code>                                                                                                                                |
 | Tags at this commit | none                                                                                                                                               |
 | Working tree        | clean                                                                                                                                              |
@@ -1590,16 +1601,16 @@ The documentation and the package may be misaligned:
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>i2mint/xdol</code>                                                                   |
-| Run          | <a href="https://github.com/i2mint/xdol/actions/runs/38493861007">38493861007</a>          |
+| Run          | <a href="https://github.com/i2mint/xdol/actions/runs/39404408561">39404408561</a>          |
 | Ref          | <code>refs/heads/master</code>                                                             |
-| Event commit | <code>02cbc8ca0274c1ee93d4df2c2df34f74f6655cb6</code> (in the history of the built commit) |
+| Event commit | <code>0ea22c013cff485da310441e7ce1b1a4aa7dcf12</code> (in the history of the built commit) |
 
 ## Tools
 
 |          |         |
 |----------|---------|
-| epythet  | 0.2.17  |
-| Sphinx   | 9.1.0   |
+| epythet  | 0.2.18  |
+| Sphinx   | 9.1.1   |
 | docutils | 0.22.4  |
 | Python   | 3.12.15 |
 
@@ -1617,14 +1628,14 @@ The documentation and the package may be misaligned:
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/xdol/0.1.18/">0.1.18</a>, newer than the documented version (0.1.17).
+Latest release: <a href="https://pypi.org/project/xdol/0.1.18/">0.1.18</a>, the same as the documented version.
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/i2mint/xdol && cd xdol
-git checkout 02cbc8ca0274c1ee93d4df2c2df34f74f6655cb6
-pip install "epythet==0.2.17"
+git checkout 0ea22c013cff485da310441e7ce1b1a4aa7dcf12
+pip install "epythet==0.2.18"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```
 

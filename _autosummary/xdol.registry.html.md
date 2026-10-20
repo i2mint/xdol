@@ -192,14 +192,11 @@ If `key` is an alias, it is resolved to its canonical key first, so the
 `on_conflict` policy applies to that entry (no unreachable shadow entry).
 
 * **Return type:**
-  [`TypeVar`](https://docs.python.org/3/library/typing.html#typing.TypeVar)(`V`)
+  `V`
 
 #### register_decorator(key, , tags=())
 
 Return a decorator that registers the decorated object under `key`.
-
-* **Return type:**
-  [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[[`TypeVar`](https://docs.python.org/3/library/typing.html#typing.TypeVar)(`V`)], [`TypeVar`](https://docs.python.org/3/library/typing.html#typing.TypeVar)(`V`)]
 
 ```pycon
 >>> r = Registry()
@@ -208,6 +205,9 @@ Return a decorator that registers the decorated object under `key`.
 >>> r["hi"]()
 'hello'
 ```
+
+* **Return type:**
+  [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[`V`], `V`]
 
 #### register_lazy(key, loader, , tags=())
 
@@ -224,7 +224,7 @@ Alias keys resolve to their canonical key, as in [`register()`](#xdol.registry.R
 Return values whose tag set contains ALL of `tags` (empty `tags` = all).
 
 * **Return type:**
-  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`TypeVar`](https://docs.python.org/3/library/typing.html#typing.TypeVar)(`V`)]
+  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[`V`]
 
 #### subscribe(callback)
 
