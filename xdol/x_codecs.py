@@ -25,6 +25,7 @@ persistent memoizer (:mod:`xdol.memoize`):
 
 from collections.abc import Callable, Iterable, Iterator, MutableMapping
 import hashlib
+import re
 import json
 from typing import Any, NamedTuple
 from dol import wrap_kvs
@@ -182,6 +183,20 @@ def with_codec(store: MutableMapping, codec="json") -> MutableMapping:
 
 
 _ENVELOPE_KEYS = {"asset_sha256", "meta"}
+_SHA256_HEX = re.compile(r"[0-9a-f]{64}")
+
+
+def _is_envelope(obj) -> bool:
+    """Is ``obj`` the new-format envelope, rather than 0.1.15 bare metadata?
+
+    Bare metadata that happens to have exactly the envelope keys is told apart by the
+    digest: only a 64-hex-digit ``asset_sha256`` counts. (Bare metadata imitating that
+    too remains indistinguishable.)
+    """
+    if not (isinstance(obj, dict) and set(obj) == _ENVELOPE_KEYS):
+        return False
+    digest = obj["asset_sha256"]
+    return isinstance(digest, str) and _SHA256_HEX.fullmatch(digest) is not None
 
 
 class PairedStore(MutableMapping):
@@ -236,7 +251,7 @@ class PairedStore(MutableMapping):
         except KeyError:
             raise KeyError(key) from None
         envelope = _safe_decode(self.meta_codec)(raw_meta)
-        if not (isinstance(envelope, dict) and set(envelope) == _ENVELOPE_KEYS):
+        if not _is_envelope(envelope):
             return envelope, asset  # 0.1.15 layout: bare metadata, nothing to verify
         if envelope["asset_sha256"] != hashlib.sha256(asset).hexdigest():
             raise CodecDecodeError(

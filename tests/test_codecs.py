@@ -140,3 +140,14 @@ def test_paired_store_detects_a_torn_pair():
 def test_legacy_bare_metadata_layout_is_still_read():
     raw = {"k.json": b'{"prompt": "cat"}', "k.bin": b"A"}
     assert paired_store(raw)["k"] == ({"prompt": "cat"}, b"A")
+
+
+def test_bare_metadata_with_envelope_keys_but_no_digest_is_read_as_legacy():
+    # i2mint/xdol#13: such a dict used to be taken for a new-format envelope.
+    from xdol.x_codecs import PairedStore
+
+    raw = {}
+    store = PairedStore(raw)
+    raw["k.json"] = b'{"asset_sha256": "not-a-digest", "meta": 1}'
+    raw["k.bin"] = b"blob"
+    assert store["k"] == ({"asset_sha256": "not-a-digest", "meta": 1}, b"blob")

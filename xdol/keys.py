@@ -101,6 +101,9 @@ def normalize(
       :class:`UnstableKeyError`). A ``repr`` can still be lossy (truncated, or leaving out
       state): for such types define ``__cache_key__``.
 
+    Limitation: recursion costs ~2 frames per nesting level, so structures nested deeper
+    than ~400 levels raise ``RecursionError``.
+
     >>> normalize({"b": " x ", "a": (1, 2)})
     {'a': [1, 2], 'b': 'x'}
     >>> normalize({3, 1, 2})
