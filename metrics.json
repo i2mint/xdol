@@ -1,5 +1,5 @@
 {
-  "collection_duration_seconds": 3.8672473430633545,
+  "collection_duration_seconds": 3.797365665435791,
   "commit_message": "Narrow known limitations: AtomicFiles dir-key read, legacy envelope check; document the rest (#13) (#14)\n\nCo-authored-by: Claude Sonnet 5.5 <noreply@anthropic.com>",
   "commit_sha": "0ea22c013cff485da310441e7ce1b1a4aa7dcf12",
   "metrics": {
@@ -11,19 +11,19 @@
       "statements_total": 0
     },
     "umpyre_stats": {
-      "comment_lines": 14592,
-      "comment_lines_ratio": 0.05598097138034221,
-      "docs_lines": 37677,
-      "empty_lines": 33539,
-      "empty_lines_ratio": 0.128669531190056,
-      "files_analyzed": 574,
-      "function_lines": 115057,
-      "function_lines_ratio": 0.441406429831965,
-      "mean_lines_per_function": 16.71125635439361,
-      "num_classes": 1656,
-      "num_functions": 6885,
+      "comment_lines": 14738,
+      "comment_lines_ratio": 0.056076615465396336,
+      "docs_lines": 37710,
+      "empty_lines": 33872,
+      "empty_lines_ratio": 0.1288795711116776,
+      "files_analyzed": 584,
+      "function_lines": 116616,
+      "function_lines_ratio": 0.44371221258737004,
+      "mean_lines_per_function": 16.70477009024495,
+      "num_classes": 1667,
+      "num_functions": 6981,
       "pypi_version": "0.1.18",
-      "total_lines": 260660
+      "total_lines": 262819
     },
     "wily": {
       "cyclomatic_avg": 0.0,
@@ -42,6 +42,6 @@
   },
   "python_version": "3.10",
   "schema_version": "1.0",
-  "timestamp": "2026-10-20T09:58:04.921888Z",
+  "timestamp": "2026-10-20T09:58:13.446453Z",
   "workflow_status": {}
 }
