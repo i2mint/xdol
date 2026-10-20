@@ -150,6 +150,8 @@ class AtomicFiles(Files):
     # Only a *missing file* is a KeyError (a miss). dol.Files turns every error into a
     # KeyError, which would make an unreadable-but-present entry look like a miss.
     def __getitem__(self, key):
+        if str(key).endswith(("/", os.sep)):  # a directory-style key never names a file
+            raise KeyError(key)  # (consistent with ``in``)
         try:
             return Path(self._id_of_key(key)).read_bytes()
         except (FileNotFoundError, IsADirectoryError, NotADirectoryError):
@@ -326,6 +328,13 @@ def memoize_calls(
 
     The returned wrapper has attributes ``cache_store``, ``key_func``, ``cache_key(*args,
     **kwargs)`` and ``cache_mode()`` (the mode that would apply now).
+
+    Known limitations:
+
+    - On a method, ``obj.method.cache_key(...)`` is unbound (``self`` is not supplied
+      for you): call ``Cls.method.cache_key(obj, ...)``, also when using ``drop=['self']``.
+    - There is no cross-process lock: concurrent recorders of one key may each call the
+      function (the last write wins; entries are written atomically, so none is torn).
     """
     if key_func is not None and drop:
         raise ValueError("Pass either `key_func` or `drop`, not both.")

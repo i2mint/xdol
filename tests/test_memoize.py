@@ -415,3 +415,14 @@ def test_relative_store_path_is_pinned_at_decoration(tmp_path, monkeypatch):
     monkeypatch.chdir(elsewhere)
     m(3)
     assert f.n == 1 and not (elsewhere / "cass").exists()
+
+
+def test_atomic_files_directory_style_key_is_absent_for_get_and_in(tmp_path):
+    # i2mint/xdol#13: 'a/' used to read file 'a' while `'a/' in store` was False.
+    from xdol.memoize import AtomicFiles
+
+    store = AtomicFiles(str(tmp_path))
+    store["a"] = b"x"
+    assert "a/" not in store
+    with pytest.raises(KeyError):
+        store["a/"]
