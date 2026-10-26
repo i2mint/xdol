@@ -638,14 +638,15 @@ def test_backfill_reads_only_the_values_it_pushes():
 def test_reconcile_prefers_master_and_honours_policy():
     from xdol.updating import reconcile, DefaultPolicy
 
-    master, copy = {"a": 1, "b": 2}, {"a": 9}
+    # An identical key is left alone (the old PREFER_SOURCE default rewrote it)
+    master, copy = {"a": 1, "b": 2, "c": 3}, {"a": 9, "c": 3}
     stats = reconcile(master=master, copy=copy)
-    assert copy == {"a": 1, "b": 2}
+    assert copy == {"a": 1, "b": 2, "c": 3}
     assert (stats.examined, stats.updated, stats.added, stats.unchanged) == (
-        2,
+        3,
         1,
         1,
-        0,
+        1,
     )
     master, copy = {"a": 1, "b": 2}, {"a": 9}
     stats = reconcile(master=master, copy=copy, policy=DefaultPolicy.PREFER_TARGET)
@@ -750,7 +751,7 @@ def test_reconcile_does_not_rewrite_identical_values():
 
 
 def test_keys_to_consider_callable_gets_master_then_copy():
-    from xdol.updating import reconcile, verify
+    from xdol.updating import backfill, reconcile, verify
 
     seen = []
 
@@ -761,7 +762,8 @@ def test_keys_to_consider_callable_gets_master_then_copy():
     master, copy = {"a": 1, "b": 2}, {"a": 1}
     assert verify(copy=copy, master=master, keys_to_consider=keys).ok
     assert reconcile(master=master, copy=copy, keys_to_consider=keys).examined == 1
-    assert all(m is master and c is copy for m, c in seen) and len(seen) == 2
+    assert backfill(master=master, copy=copy, keys_to_consider=keys).examined == 1
+    assert all(m is master and c is copy for m, c in seen) and len(seen) == 3
 
 
 def test_update_if_different_key_info_is_deprecated():
@@ -769,3 +771,72 @@ def test_update_if_different_key_info_is_deprecated():
 
     with pytest.warns(DeprecationWarning, match="target_key_info"):
         update_if_different({"a": 1}, {"a": 2}, key_info=lambda k, v: v)
+
+
+def test_verify_keys_are_master_first_and_deduplicated():
+    from xdol.updating import verify
+
+    r = verify(master={"b": 1, "a": 1}, copy={"a": 2, "b": 2})
+    assert r.mismatched == ["b", "a"]
+    r = verify(master={"a": 1}, copy={"a": 2}, keys_to_consider=["a", "a"])
+    assert r.mismatched == ["a"]
+
+
+class _Incomparable:
+    """``!=`` raises, or gives a non-bool whose truth can't be taken (like arrays)."""
+
+    def __init__(self, ne):
+        self.ne = ne
+
+    def __ne__(self, other):
+        return self.ne()
+
+
+class _NoTruth:
+    def __bool__(self):
+        raise ValueError("truth value is ambiguous")
+
+
+def _raise():
+    raise TypeError("can't compare")
+
+
+@pytest.mark.parametrize("ne", [_raise, _NoTruth])
+def test_incomparable_values_count_as_different(ne):
+    from xdol.updating import reconcile, verify
+
+    master, copy = {"a": _Incomparable(ne)}, {"a": _Incomparable(ne)}
+    assert verify(master=master, copy=copy).mismatched == ["a"]
+    assert reconcile(master=master, copy=copy).updated == 1
+    assert copy["a"] is master["a"]
+
+
+def test_numpy_values_are_compared_safely():
+    np = pytest.importorskip("numpy")
+    from xdol.updating import reconcile, verify
+
+    master, copy = {"a": np.array([1, 2])}, {"a": np.array([1, 3])}
+    assert verify(master=master, copy=copy).mismatched == ["a"]
+    assert reconcile(master=master, copy=copy).updated == 1
+    assert copy["a"] is master["a"]
+
+
+def test_reconcile_reads_each_master_value_at_most_once():
+    from xdol.updating import reconcile, DefaultPolicy
+
+    def pair():
+        return _ReadCounter(same=1, changed=2, new=3), _ReadCounter(same=1, changed=9)
+
+    # Default: each value read once, to compare; a changed one is not read again
+    master, copy = pair()
+    s = reconcile(master=master, copy=copy)
+    assert sorted(master.reads) == ["changed", "new", "same"]
+    assert (s.updated, s.added, s.unchanged) == (1, 1, 1)
+
+    # Presence-only policies read only the values they copy, once each
+    master, copy = pair()
+    reconcile(master=master, copy=copy, policy=DefaultPolicy.PREFER_SOURCE)
+    assert sorted(master.reads) == ["changed", "new", "same"] and copy.reads == []
+    master, copy = pair()
+    reconcile(master=master, copy=copy, policy=DefaultPolicy.PREFER_TARGET)
+    assert master.reads == ["new"] and copy.reads == []

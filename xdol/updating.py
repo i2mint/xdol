@@ -197,7 +197,7 @@ def _get_key_decisions(
     decider: UpdateDecider,
     target_key_info: KeyInfoExtractor | None = None,
     source_key_info: KeyInfoExtractor | None = None,
-) -> Iterator[tuple[K, KeyDecision]]:
+) -> Iterator[tuple[K, KeyDecision, Any]]:
     """
     Get decisions for each key regarding update action.
 
@@ -210,7 +210,7 @@ def _get_key_decisions(
         source_key_info: Function to extract comparison info from source (optional)
 
     Returns:
-        Iterator of (key, decision) pairs
+        Iterator of (key, decision, source_info) triples
     """
     # Use default extractors if none provided
     target_info_func = target_key_info or (lambda k: _key_info_from_mapping(target, k))
@@ -226,7 +226,16 @@ def _get_key_decisions(
 
         # Get decision
         decision = decider(key, target_info, source_info)
-        yield key, decision
+        yield key, decision, source_info
+
+
+def _differ(a, b) -> bool:
+    """``bool(a != b)``, or ``True`` ("different") when that raises (e.g. an array's
+    elementwise result has no truth value)."""
+    try:
+        return bool(a != b)
+    except Exception:
+        return True
 
 
 # Update the standard decider functions
@@ -243,7 +252,7 @@ def _update_if_different_decider(
         return KeyDecision.SKIP
 
     # Compare and decide
-    if target_info != source_info:
+    if _differ(target_info, source_info):
         return KeyDecision.COPY
     return KeyDecision.SKIP
 
@@ -330,11 +339,6 @@ def _source_and_target_keys(source: Mapping, target: Mapping):
     return source.keys() | target.keys()
 
 
-def _union_keys_in_order(source: Mapping, target: Mapping):
-    """The keys of both mappings, source's first, each once (a deterministic order)."""
-    return union_iter(source, target)
-
-
 def _just_source_keys(source: Mapping, target: Mapping):
     """Return only the keys from the source mapping."""
     return source.keys()
@@ -411,7 +415,7 @@ def update_with_policy(
     stats = UpdateStats()
 
     # Process each key according to the decided action
-    for key, decision in _get_key_decisions(
+    for key, decision, source_info in _get_key_decisions(
         keys_to_consider,
         target,
         source,
@@ -424,11 +428,16 @@ def update_with_policy(
         stats.examined += 1
 
         if decision == KeyDecision.COPY:
+            # The default info is the value itself: don't download it twice
+            if source_key_info is None and source_info is not None:
+                value = source_info
+            else:
+                value = source[key]
             if key in target:
-                target[key] = source[key]
+                target[key] = value
                 stats.updated += 1
             else:
-                target[key] = source[key]
+                target[key] = value
                 stats.added += 1
         elif decision == KeyDecision.DELETE:
             if key in target:
@@ -739,17 +748,21 @@ def _present(key: K) -> bool:
     return True
 
 
+def _copy_keys(master: Mapping, copy: Mapping):
+    return copy.keys()
+
+
 def backfill(
     *,
-    copy: Mapping[K, V],
     master: MutableMapping[K, V],
-    keys_to_consider: KeysToConsider = _just_source_keys,
+    copy: Mapping[K, V],
+    keys_to_consider: KeysToConsider = _copy_keys,
 ) -> UpdateStats:
     """Push to ``master`` the items that only ``copy`` has. Never overwrites.
 
     Decisions use key presence only: the one value read is ``copy[k]`` for each key
     actually pushed, so nothing is ever downloaded from a cold (e.g. S3) master.
-    ``keys_to_consider``: keys, or ``(copy, master) -> keys`` (default: copy's keys).
+    ``keys_to_consider``: keys, or ``(master, copy) -> keys`` (default: copy's keys).
 
     >>> master, copy = {'a': 1}, {'a': 9, 'b': 2}
     >>> backfill(copy=copy, master=master).added
@@ -757,6 +770,8 @@ def backfill(
     >>> master
     {'a': 1, 'b': 2}
     """
+    if callable(keys_to_consider):
+        keys_to_consider = keys_to_consider(master, copy)
     return _as_update_stats(
         update_with_policy(
             master,
@@ -767,6 +782,14 @@ def backfill(
             keys_to_consider=keys_to_consider,
         )
     )
+
+
+# The standard policies that look at presence only, never at the infos' content
+_PRESENCE_ONLY_POLICIES = (
+    DefaultPolicy.ALWAYS_UPDATE,
+    DefaultPolicy.PREFER_TARGET,
+    DefaultPolicy.PREFER_SOURCE,
+)
 
 
 def reconcile(
@@ -781,8 +804,11 @@ def reconcile(
     says otherwise.
 
     :param key_info_for: ``key_info_for(store)`` gives the ``key -> info`` compared for
-        that store (e.g. :func:`content_hash_key_info`, or sizes or ETags to avoid
-        reading values); default: the values themselves.
+        that store (e.g. sizes or ETags, to avoid reading values); default: the values
+        themselves, any pair that can't be compared counting as different (and, for a
+        policy that looks at presence only, nothing is read to decide).
+        An info of ``None`` reads as "missing" (see i2mint/xdol#21), so an extractor
+        must not return ``None`` for a present key.
     :param keys_to_consider: keys, or ``(master, copy) -> keys`` (default: master's).
 
     >>> master, copy = {'a': 1, 'b': 2, 'c': 3}, {'a': 9, 'c': 3}
@@ -797,6 +823,8 @@ def reconcile(
         infos = dict(
             target_key_info=key_info_for(copy), source_key_info=key_info_for(master)
         )
+    elif policy in _PRESENCE_ONLY_POLICIES:
+        infos = dict(target_key_info=_present, source_key_info=_present)
     return _as_update_stats(
         update_with_policy(
             copy, master, policy=policy, keys_to_consider=keys_to_consider, **infos
@@ -837,11 +865,12 @@ def _content_hash(value) -> Any:
 
 
 def content_hash_key_info(store: Mapping) -> KeyInfoExtractor:
-    """Default ``key_info_for`` of :func:`verify`: ``key -> content hash`` for ``store``.
+    """A ``key_info_for``: ``key -> content hash`` for ``store``.
 
     Text and bytes-like values give a sha256 of their content, tagged by kind so
-    that ``'a'`` and ``b'a'`` differ. Any other value is returned as is, so it is
-    compared with ``==`` (``1 == 1.0``, dict order ignored).
+    that ``'a'`` and ``b'a'`` differ. Any other value is returned as is. Hashes
+    compare exactly as the values do with ``==`` (``1 == 1.0``, dict order ignored),
+    so this is for when a hash, not the value, is what must be kept or sent.
 
     >>> h = lambda v: content_hash_key_info({'k': v})('k')
     >>> h(b'a') == h(bytearray(b'a')), h(b'a') == h('a')
@@ -854,32 +883,36 @@ def content_hash_key_info(store: Mapping) -> KeyInfoExtractor:
 
 def verify(
     *,
-    copy: Mapping[K, V],
     master: Mapping[K, V],
-    key_info_for: KeyInfoFor = content_hash_key_info,
-    keys_to_consider: KeysToConsider = _union_keys_in_order,
+    copy: Mapping[K, V],
+    key_info_for: KeyInfoFor | None = None,
+    keys_to_consider: KeysToConsider = union_iter,
 ) -> VerifyReport:
     """Compare ``copy`` with ``master`` without writing anything.
 
     :param key_info_for: ``key_info_for(store)`` gives the ``key -> info`` compared for
-        that store; pass a cheaper one (size, ETag) to avoid reading values.
+        that store; pass a cheaper one (size, ETag) to avoid reading values. Default:
+        the values themselves, any pair that can't be compared counting as different.
     :param keys_to_consider: keys, or ``(master, copy) -> keys`` (default: the keys of
-        both, master's first).
+        both, master's first), each considered once.
 
-    >>> r = verify(copy={'a': 1, 'b': 2, 'c': 3}, master={'a': 1, 'b': 20, 'd': 4})
+    >>> r = verify(master={'a': 1, 'b': 20, 'd': 4}, copy={'a': 1, 'b': 2, 'c': 3})
     >>> r.only_in_copy, r.only_in_master, r.mismatched
     (['c'], ['d'], ['b'])
     """
     if callable(keys_to_consider):
         keys_to_consider = keys_to_consider(master, copy)
-    copy_info, master_info = key_info_for(copy), key_info_for(master)
+    if key_info_for is None:
+        copy_info, master_info = copy.__getitem__, master.__getitem__
+    else:
+        copy_info, master_info = key_info_for(copy), key_info_for(master)
     report = VerifyReport()
-    for key in keys_to_consider:
+    for key in union_iter(keys_to_consider):
         in_copy, in_master = key in copy, key in master
         if in_copy and not in_master:
             report.only_in_copy.append(key)
         elif in_master and not in_copy:
             report.only_in_master.append(key)
-        elif in_copy and in_master and copy_info(key) != master_info(key):
+        elif in_copy and in_master and _differ(copy_info(key), master_info(key)):
             report.mismatched.append(key)
     return report
