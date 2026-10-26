@@ -1,32 +1,32 @@
 {
   "schema_version": 1,
-  "built_at": "2026-10-26T14:00:29Z",
+  "built_at": "2026-10-26T15:02:29Z",
   "package": {
     "name": "xdol",
-    "version": "0.1.22",
+    "version": "0.1.23",
     "display_name": "xdol",
     "source": "pyproject.toml"
   },
   "git": {
     "available": true,
-    "commit": "05270c3d10331cea1ad4f32112973d12653ff1ba",
-    "short_commit": "05270c3",
+    "commit": "baf5ef1e7d3f973858da8f01d0d4e71296689763",
+    "short_commit": "baf5ef1",
     "branch": "master",
     "tags": [],
     "dirty": false,
     "remote_url": "https://github.com/i2mint/xdol",
-    "commit_url": "https://github.com/i2mint/xdol/commit/05270c3d10331cea1ad4f32112973d12653ff1ba",
+    "commit_url": "https://github.com/i2mint/xdol/commit/baf5ef1e7d3f973858da8f01d0d4e71296689763",
     "error": null
   },
   "ci": {
     "provider": "github",
     "repository": "i2mint/xdol",
-    "sha": "05270c3d10331cea1ad4f32112973d12653ff1ba",
+    "sha": "baf5ef1e7d3f973858da8f01d0d4e71296689763",
     "sha_in_history": true,
     "ref": "refs/heads/master",
     "ref_name": "master",
-    "run_id": "40335355775",
-    "run_url": "https://github.com/i2mint/xdol/actions/runs/40335355775",
+    "run_id": "40345145092",
+    "run_url": "https://github.com/i2mint/xdol/actions/runs/40345145092",
     "server_url": "https://github.com"
   },
   "tools": {
@@ -56,15 +56,15 @@
   },
   "site": {
     "modules_documented": 11,
-    "objects_documented": 108
+    "objects_documented": 109
   },
   "pypi": {
     "checked": true,
-    "latest": "0.1.22",
+    "latest": "0.1.23",
     "relation": "same",
     "error": null
   },
-  "reproduce": "git clone https://github.com/i2mint/xdol && cd xdol\ngit checkout 05270c3d10331cea1ad4f32112973d12653ff1ba\npip install \"epythet==0.2.22\"\nepythet quickstart . --ignore tests/ scrap/ examples/",
+  "reproduce": "git clone https://github.com/i2mint/xdol && cd xdol\ngit checkout baf5ef1e7d3f973858da8f01d0d4e71296689763\npip install \"epythet==0.2.22\"\nepythet quickstart . --ignore tests/ scrap/ examples/",
   "warnings": [],
   "alignment": {
     "aligned": true,

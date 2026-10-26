@@ -1,4 +1,4 @@
-> built 2026-10-26 14:00 UTC from 05270c3 (master) · xdol 0.1.22. Details: build_info.json
+> built 2026-10-26 15:02 UTC from baf5ef1 (master) · xdol 0.1.23. Details: build_info.json
 
 # index.html.md
 
@@ -1750,10 +1750,36 @@ Utility functions for xdol.
 
 ### Functions
 
-| `resolve_module_filepath`(module_spec[, ...])                                          |                                                                            |
-|----------------------------------------------------------------------------------------|----------------------------------------------------------------------------|
-| `resolve_to_folder`(obj[, ...])                                                        |                                                                            |
-| [`save_obj`](_autosummary/xdol.util.html.md#xdol.util.save_obj)(obj, \*[, encode, key, ...]) | Serialize and save a Python object with customizable encoding and storage. |
+| [`atomic_write`](_autosummary/xdol.util.html.md#xdol.util.atomic_write)(path, data, \*[, tmp_suffix])   | Write `data` to `path` so that a crash leaves the old content or the new, never a torn file.   |
+|-----------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------|
+| `resolve_module_filepath`(module_spec[, ...])                                                 |                                                                                                |
+| `resolve_to_folder`(obj[, ...])                                                               |                                                                                                |
+| [`save_obj`](_autosummary/xdol.util.html.md#xdol.util.save_obj)(obj, \*[, encode, key, ...])        | Serialize and save a Python object with customizable encoding and storage.                     |
+
+### xdol.util.atomic_write(path, data, , tmp_suffix='.tmp')
+
+Write `data` to `path` so that a crash leaves the old content or the new, never a torn file.
+
+`data` is bytes or an iterable of byte chunks (written one at a time, so a large
+snapshot need not be held in memory). The chunks go to a uniquely named sibling of
+`path` (`<name>.<random><tmp_suffix>`), which is then renamed into place with
+`os.replace`; on any failure the sibling is removed. The parent directory must exist.
+The file gets the usual umask permissions. Crash-safe, not power-loss-durable (no fsync).
+
+```pycon
+>>> import tempfile
+>>> d = tempfile.mkdtemp()
+>>> target = os.path.join(d, "f.txt")
+>>> atomic_write(target, b"hello")
+>>> open(target).read(), os.listdir(d)
+('hello', ['f.txt'])
+>>> atomic_write(target, (c.encode() for c in "ab"))
+>>> open(target).read()
+'ab'
+```
+
+* **Return type:**
+  [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
 ### xdol.util.save_obj(obj, \*, encode=<built-in function dumps>, key=None, save_under_key=None, return_func=None)
 
@@ -1966,7 +1992,7 @@ A value that fails to decode raises [`CodecDecodeError`](_autosummary/xdol.x_cod
 
 # About this build
 
-This documentation was built on **2026-10-26 14:00 UTC** from commit <a href="https://github.com/i2mint/xdol/commit/05270c3d10331cea1ad4f32112973d12653ff1ba"><code>05270c3</code></a> on branch <code>master</code>, for **xdol 0.1.22** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-10-26 15:02 UTC** from commit <a href="https://github.com/i2mint/xdol/commit/baf5ef1e7d3f973858da8f01d0d4e71296689763"><code>baf5ef1</code></a> on branch <code>master</code>, for **xdol 0.1.23** (from <code>pyproject.toml</code>).
 
 #### NOTE
 Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
@@ -1975,7 +2001,7 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 |                     |                                                                                                                                                    |
 |---------------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/i2mint/xdol/commit/05270c3d10331cea1ad4f32112973d12653ff1ba"><code>05270c3d10331cea1ad4f32112973d12653ff1ba</code></a> |
+| Commit              | <a href="https://github.com/i2mint/xdol/commit/baf5ef1e7d3f973858da8f01d0d4e71296689763"><code>baf5ef1e7d3f973858da8f01d0d4e71296689763</code></a> |
 | Branch              | <code>master</code>                                                                                                                                |
 | Tags at this commit | none                                                                                                                                               |
 | Working tree        | clean                                                                                                                                              |
@@ -1986,9 +2012,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>i2mint/xdol</code>                                                                   |
-| Run          | <a href="https://github.com/i2mint/xdol/actions/runs/40335355775">40335355775</a>          |
+| Run          | <a href="https://github.com/i2mint/xdol/actions/runs/40345145092">40345145092</a>          |
 | Ref          | <code>refs/heads/master</code>                                                             |
-| Event commit | <code>05270c3d10331cea1ad4f32112973d12653ff1ba</code> (in the history of the built commit) |
+| Event commit | <code>baf5ef1e7d3f973858da8f01d0d4e71296689763</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -2013,13 +2039,13 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/xdol/0.1.22/">0.1.22</a>, the same as the documented version.
+Latest release: <a href="https://pypi.org/project/xdol/0.1.23/">0.1.23</a>, the same as the documented version.
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/i2mint/xdol && cd xdol
-git checkout 05270c3d10331cea1ad4f32112973d12653ff1ba
+git checkout baf5ef1e7d3f973858da8f01d0d4e71296689763
 pip install "epythet==0.2.22"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```

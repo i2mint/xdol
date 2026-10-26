@@ -8,6 +8,7 @@ xdol.util
 
    .. autosummary::
    
+      atomic_write
       resolve_module_filepath
       resolve_to_folder
       save_obj

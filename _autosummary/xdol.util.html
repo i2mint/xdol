@@ -44,7 +44,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../_static/documentation_options.js?v=842aa08f"></script>
+    <script src="../_static/documentation_options.js?v=20522496"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -58,7 +58,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.22" />
+  <meta name="docsearch:version" content="0.1.23" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -387,18 +387,48 @@
 <p class="rubric">Functions</p>
 <div class="pst-scrollable-table-container"><table class="autosummary longtable table">
 <tbody>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">resolve_module_filepath</span></code>(module_spec[, ...])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#xdol.util.atomic_write" title="xdol.util.atomic_write"><code class="xref py py-obj docutils literal notranslate"><span class="pre">atomic_write</span></code></a>(path, data, *[, tmp_suffix])</p></td>
+<td><p>Write <code class="docutils literal notranslate"><span class="pre">data</span></code> to <code class="docutils literal notranslate"><span class="pre">path</span></code> so that a crash leaves the old content or the new, never a torn file.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">resolve_module_filepath</span></code>(module_spec[, ...])</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">resolve_to_folder</span></code>(obj[, ...])</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">resolve_to_folder</span></code>(obj[, ...])</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#xdol.util.save_obj" title="xdol.util.save_obj"><code class="xref py py-obj docutils literal notranslate"><span class="pre">save_obj</span></code></a>(obj, *[, encode, key, ...])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#xdol.util.save_obj" title="xdol.util.save_obj"><code class="xref py py-obj docutils literal notranslate"><span class="pre">save_obj</span></code></a>(obj, *[, encode, key, ...])</p></td>
 <td><p>Serialize and save a Python object with customizable encoding and storage.</p></td>
 </tr>
 </tbody>
 </table>
 </div>
+<dl class="py function">
+<dt class="sig sig-object py" id="xdol.util.atomic_write">
+<span class="sig-prename descclassname"><span class="pre">xdol.util.</span></span><span class="sig-name descname"><span class="pre">atomic_write</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">tmp_suffix</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'.tmp'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xdol/util.html#atomic_write"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xdol.util.atomic_write" title="Link to this definition">#</a></dt>
+<dd><p>Write <code class="docutils literal notranslate"><span class="pre">data</span></code> to <code class="docutils literal notranslate"><span class="pre">path</span></code> so that a crash leaves the old content or the new, never a torn file.</p>
+<p><code class="docutils literal notranslate"><span class="pre">data</span></code> is bytes or an iterable of byte chunks (written one at a time, so a large
+snapshot need not be held in memory). The chunks go to a uniquely named sibling of
+<code class="docutils literal notranslate"><span class="pre">path</span></code> (<code class="docutils literal notranslate"><span class="pre">&lt;name&gt;.&lt;random&gt;&lt;tmp_suffix&gt;</span></code>), which is then renamed into place with
+<code class="docutils literal notranslate"><span class="pre">os.replace</span></code>; on any failure the sibling is removed. The parent directory must exist.
+The file gets the usual umask permissions. Crash-safe, not power-loss-durable (no fsync).</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">tempfile</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">d</span> <span class="o">=</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">mkdtemp</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">target</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="s2">"f.txt"</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">atomic_write</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="sa">b</span><span class="s2">"hello"</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">open</span><span class="p">(</span><span class="n">target</span><span class="p">)</span><span class="o">.</span><span class="n">read</span><span class="p">(),</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="n">d</span><span class="p">)</span>
+<span class="go">('hello', ['f.txt'])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">atomic_write</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">encode</span><span class="p">()</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="s2">"ab"</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">open</span><span class="p">(</span><span class="n">target</span><span class="p">)</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+<span class="go">'ab'</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><span class="highlight sphinx_autodoc_typehints-value"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></a></span></span></p>
+</dd>
+</dl>
+</dd></dl>
+
 <dl class="py function">
 <dt class="sig sig-object py" id="xdol.util.save_obj">
 <span class="sig-prename descclassname"><span class="pre">xdol.util.</span></span><span class="sig-name descname"><span class="pre">save_obj</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">obj</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">encode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;built-in</span> <span class="pre">function</span> <span class="pre">dumps&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">key</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save_under_key</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_func</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xdol/util.html#save_obj"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xdol.util.save_obj" title="Link to this definition">#</a></dt>
@@ -492,6 +522,7 @@ with a .pkl extension.</p>
   </div>
   <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
     <ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#xdol.util.atomic_write"><code class="docutils literal notranslate"><span class="pre">atomic_write()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#xdol.util.save_obj"><code class="docutils literal notranslate"><span class="pre">save_obj()</span></code></a></li>
 </ul>
   </nav></div>
