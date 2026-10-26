@@ -2,6 +2,8 @@
 
 import os
 import inspect
+import uuid
+from collections.abc import Iterable
 
 
 # Pattern: meshed
@@ -41,6 +43,43 @@ def resolve_to_folder(obj, assert_output_is_existing_folder=True):
     if assert_output_is_existing_folder:
         assert os.path.isdir(obj), "obj should be a folder at this point"
     return obj
+
+
+def atomic_write(
+    path, data: "bytes | Iterable[bytes]", *, tmp_suffix: str = ".tmp"
+) -> None:
+    """Write ``data`` to ``path`` so that a crash leaves the old content or the new, never a torn file.
+
+    ``data`` is bytes or an iterable of byte chunks (written one at a time, so a large
+    snapshot need not be held in memory). The chunks go to a uniquely named sibling of
+    ``path`` (``<name>.<random><tmp_suffix>``), which is then renamed into place with
+    ``os.replace``; on any failure the sibling is removed. The parent directory must exist.
+    The file gets the usual umask permissions. Crash-safe, not power-loss-durable (no fsync).
+
+    >>> import tempfile
+    >>> d = tempfile.mkdtemp()
+    >>> target = os.path.join(d, "f.txt")
+    >>> atomic_write(target, b"hello")
+    >>> open(target).read(), os.listdir(d)
+    ('hello', ['f.txt'])
+    >>> atomic_write(target, (c.encode() for c in "ab"))
+    >>> open(target).read()
+    'ab'
+    """
+    path = os.fspath(path)
+    chunks = [data] if isinstance(data, (bytes, bytearray, memoryview)) else data
+    tmp = f"{path}.{uuid.uuid4().hex[:8]}{tmp_suffix}"
+    try:
+        with open(tmp, "xb") as fh:
+            for chunk in chunks:
+                fh.write(chunk)
+        os.replace(tmp, path)
+    except BaseException:
+        try:
+            os.unlink(tmp)
+        except OSError:
+            pass
+        raise
 
 
 # ------------------------------------------------------------------------------
