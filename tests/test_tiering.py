@@ -474,3 +474,56 @@ def test_gdsf_forgets_entries_of_keys_no_longer_hot():
     p.on_hot_access("gone", AccessStats(size=1), admitted=True)
     assert list(p.to_release({}, hot_bytes=100, budget_bytes=10, now=0)) == []
     assert "gone" not in p._entries
+
+
+def test_budget_zero_sweep_releases_everything_even_protected():
+    s, _ = make(0, cold={"a": b"xx", "b": b"yy"})  # default residency protects
+    prefetch(s, ["a", "b"])
+    pin(s, "a")
+    assert set(s.hot) == {"a", "b"}
+    report = sweep(s)
+    assert s.hot == {} and set(report.keys_released) == {"a", "b"}
+    assert set(s.cold) == {"a", "b"}
+
+
+def test_budget_zero_sweep_spares_excluded():
+    s, _ = make(0, cold={"a": b"xx", "b": b"yy"})
+    prefetch(s, ["a", "b"])
+    sweep(s, exclude=["a"])
+    assert set(s.hot) == {"a"}
+
+
+def test_budget_zero_sweep_accepts_generator_exclude():
+    s, _ = make(0, cold={"a": b"xx", "b": b"yy", "c": b"zz"})
+    prefetch(s, ["a", "b", "c"])
+    sweep(s, exclude=(k for k in ["b", "a"]))
+    assert set(s.hot) == {"a", "b"}
+
+
+def test_gdsf_after_restart_long_history_does_not_outrank_recent_hits(tmp_path):
+    clock = Clock()
+    path = tmp_path / "log.jsonl"
+    hot, cold = {}, {}
+
+    def open_store():
+        return TieredStore(
+            hot,
+            cold,
+            budget_bytes=10,
+            policy=GdsfPolicy(min_residency_s=0, admit_after_reads=1),
+            tracker=AccessLog(path, clock=clock),
+        )
+
+    s = open_store()
+    s["old"] = b"o" * 4
+    for _ in range(20):
+        s["old"]  # long history, all before the restart
+    s.tracker.close()
+
+    clock.t += DAY
+    s = open_store()  # restart: "old" is hot, its policy entry is gone
+    s["old"]  # one hot hit after the restart seeds its entry
+    s["new"] = b"n" * 4
+    s["new"], s["new"]  # recent hits
+    s["c"] = b"c" * 2  # crosses the high watermark: one or more keys must go
+    assert "old" not in s.hot and "new" in s.hot

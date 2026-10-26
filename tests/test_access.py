@@ -1,5 +1,6 @@
 """Tests for xdol.access."""
 
+import itertools
 import json
 import os
 import warnings
@@ -74,7 +75,10 @@ def test_contains_records_nothing():
 
 
 def test_merge_stats_across_tags():
-    l1, l2 = AccessLog(clock=Clock(100), tag="m1"), AccessLog(clock=Clock(200), tag="m2")
+    l1, l2 = (
+        AccessLog(clock=Clock(100), tag="m1"),
+        AccessLog(clock=Clock(200), tag="m2"),
+    )
     l1.record("a", "write", 1)
     l1.record("a", "read", 1)
     l2.record("a", "read", 9)
@@ -92,7 +96,11 @@ def test_track_access_over_dict_and_files(tmp_path):
     d = track_access({}, tracker=log)
     d["k"] = b"abc"
     assert d["k"] == b"abc" and d.store == {"k": b"abc"}
-    assert (log.stats("k").writes, log.stats("k").reads, log.stats("k").size) == (1, 1, 3)
+    assert (log.stats("k").writes, log.stats("k").reads, log.stats("k").size) == (
+        1,
+        1,
+        3,
+    )
     del d["k"]
     assert log.stats("k") is None
 
@@ -285,3 +293,133 @@ def test_compact_leaves_no_temp_file(tmp_path):
     log.compact()
     assert os.listdir(tmp_path) == ["log.jsonl"]
     assert json.loads((tmp_path / "log.jsonl").read_text().splitlines()[0])["k"] == "a"
+
+
+def _write_lines(path, *events):
+    path.write_text("".join(json.dumps(e) + "\n" for e in events))
+
+
+def test_replay_skips_lines_with_wrong_types(tmp_path):
+    p = tmp_path / "log.jsonl"
+    _write_lines(
+        p,
+        {"k": "a", "op": "read", "n": 5, "ts": 10.0},
+        {"k": "a", "op": "read", "n": "12", "ts": 11.0},
+        {"k": "a", "op": "read", "n": 5, "ts": "late"},
+        {"k": "b", "op": "snapshot", "stats": {"reads": "many"}},
+        {"k": "c", "op": "snapshot", "stats": {"pinned": 1}},
+    )
+    log = AccessLog(p)
+    assert log["a"].reads == 1 and log["a"].size == 5
+    assert "b" not in log and "c" not in log
+
+
+def test_replay_orders_delete_and_pin_by_timestamp(tmp_path):
+    p = tmp_path / "log.jsonl"
+    _write_lines(
+        p,
+        {"k": "a", "op": "write", "n": 1, "ts": 1.0},
+        {"k": "a", "op": "delete", "ts": 10.0},
+        {"k": "a", "op": "read", "n": 1, "ts": 5.0},  # older than the delete: void
+        {"k": "b", "op": "write", "n": 1, "ts": 1.0},
+        {"k": "b", "op": "read", "n": 1, "ts": 15.0},
+        {"k": "b", "op": "delete", "ts": 10.0},  # older than the read: keep b
+        {"k": "c", "op": "write", "n": 1, "ts": 1.0},
+        {"k": "c", "op": "unpin", "ts": 7.0},
+        {"k": "c", "op": "pin", "ts": 3.0},  # older than the unpin: ignored
+    )
+    log = AccessLog(p)
+    assert "a" not in log
+    assert "b" in log
+    assert not log["c"].pinned
+
+
+_HISTORY = (  # (op, ts): out of order on purpose
+    ("write", 1.0),
+    ("pin", 2.0),
+    ("read", 15.0),
+    ("read", 5.0),
+    ("delete", 10.0),
+)
+
+
+def test_replay_in_any_file_order_equals_live_recording(tmp_path):
+    clock = Clock()
+    live = AccessLog(clock=clock)
+    for op, ts in sorted(_HISTORY, key=lambda e: e[1]):
+        clock.t = ts - 1  # Clock adds 1 before returning
+        live.record("a", op, 3)
+    expected = dict(live)
+    assert expected["a"].reads == 1 and not expected["a"].pinned
+    p = tmp_path / "log.jsonl"
+    for order in itertools.permutations(_HISTORY):
+        _write_lines(p, *({"k": "a", "op": op, "n": 3, "ts": ts} for op, ts in order))
+        assert dict(AccessLog(p)) == expected, order
+
+
+def test_replay_delete_without_timestamp_still_deletes(tmp_path):
+    p = tmp_path / "log.jsonl"
+    _write_lines(
+        p,
+        {"k": "a", "op": "write", "n": 1, "ts": 5.0},
+        {"k": "a", "op": "pin", "ts": 6.0},
+        {"k": "a", "op": "delete"},
+    )
+    assert "a" not in AccessLog(p)
+
+
+def test_replay_skips_non_finite_and_falsy_wrong_typed_numbers(tmp_path):
+    p = tmp_path / "log.jsonl"
+    good = {"k": "a", "op": "read", "n": 5, "ts": 10.0}
+    bad = [
+        {**good, "ts": float("nan")},
+        {**good, "ts": float("inf")},
+        {**good, "n": float("nan")},
+        {**good, "n": float("-inf")},
+        {**good, "ts": []},
+        {**good, "ts": ""},
+        {**good, "ts": False},
+        {**good, "n": False},
+        {**good, "ts": 10**400},
+    ]
+    p.write_text("".join(json.dumps(e) + "\n" for e in [good, *bad]))  # NaN, Infinity
+    log = AccessLog(p)
+    assert log["a"].reads == 1 and log["a"].size == 5
+    assert log["a"].last_access == 10.0
+
+
+def test_float_size_survives_compact_and_reopen(tmp_path):
+    p = tmp_path / "log.jsonl"
+    _write_lines(p, {"k": "a", "op": "write", "n": 3.0, "ts": 1.0})
+    log = AccessLog(p)
+    assert log["a"].size == 3 and type(log["a"].size) is int
+    log.compact()
+    assert AccessLog(p)["a"].size == 3
+
+
+def test_replay_rejects_bool_in_int_field(tmp_path):
+    p = tmp_path / "log.jsonl"
+    _write_lines(p, {"k": "a", "op": "snapshot", "stats": {"reads": True}})
+    assert "a" not in AccessLog(p)
+
+
+def test_unstamped_line_is_ordered_after_every_earlier_line(tmp_path):
+    p = tmp_path / "log.jsonl"
+    _write_lines(
+        p,
+        {"k": "a", "op": "write", "n": 1, "ts": 5.0},
+        {"k": "b", "op": "write", "n": 1, "ts": 1.0},
+        {"k": "a", "op": "delete"},
+    )
+    assert "a" not in AccessLog(p) and "b" in AccessLog(p)
+
+
+def test_record_survives_bad_sizes_and_backwards_clock():
+    clock = Clock()
+    log = AccessLog(clock=clock)
+    log.record("a", "write", float("nan"))
+    log.record("a", "write", True)
+    assert log["a"].size == 0
+    clock.t -= 50  # the clock steps back (NTP): events never go back in time
+    log.record("a", "delete")
+    assert "a" not in log

@@ -155,7 +155,9 @@ class GdsfPolicy(_ResidencyPolicy):
     cost_per_byte * size`` and ``L`` the H of the last released key at that time
     (per process; resets at restart). Releasing the lowest H raises ``L``, so a key
     not accessed for a while loses to newer ones however often it was read. A key
-    already hot when this process first sees it is seeded with its logged frequency.
+    already hot when this process first sees it starts fresh, ``F = 1``, as if just
+    admitted: its logged history (often long, all of it older than ``L``'s reset)
+    would otherwise keep it favoured after every restart.
     """
 
     cost_per_request: float = 1.0
@@ -182,7 +184,7 @@ class GdsfPolicy(_ResidencyPolicy):
         elif key in self._entries:
             f = self._entries[key][0] + 1
         else:
-            f = stats.frequency
+            f = 1  # first seen by this process: fresh, as if just admitted
         self._set(key, f, stats.size)
 
     def on_hot_drop(self, key) -> None:
@@ -190,7 +192,7 @@ class GdsfPolicy(_ResidencyPolicy):
 
     def _h(self, key, stats: AccessStats) -> float:
         entry = self._entries.get(key)
-        return entry[1] if entry else self._set(key, stats.frequency, stats.size)
+        return entry[1] if entry else self._set(key, 1, stats.size)
 
     def _forget_unknown(self, hot_keys) -> None:
         for k in self._entries.keys() - hot_keys:
@@ -258,7 +260,10 @@ class TieredStore(MutableMapping):
     """Bounded hot store over a cold source of truth. See the module docstring.
 
     :param budget_bytes: ``None``: hot is a full mirror (never released, every read miss
-        admitted); ``0``: cold-only; ``> 0``: bounded.
+        admitted); ``0``: cold-only, no hot tier (writes skip hot and read misses are not admitted, but only
+        :func:`sweep` enforces it: :func:`prefetch` and :func:`local_paths` still fill
+        hot until the next sweep, which releases every hot copy, protected or not);
+        ``> 0``: bounded.
     :param policy: a :class:`PlacementPolicy`; default :class:`GdsfPolicy`.
     :param tracker: an :class:`AccessLog` (its ``clock`` is the store's clock); default
         :func:`xdol.access.default_access_log_for` ``(hot)``.
@@ -402,16 +407,27 @@ class TieredStore(MutableMapping):
 # -- verbs ---------------------------------------------------------------------
 
 
+def _release(store: TieredStore, key, released: list) -> None:
+    store._drop_hot(key)
+    store._tracker.record(key, "release", 0)
+    released.append(key)
+
+
 def sweep(store: TieredStore, *, exclude: Iterable = ()) -> SweepReport:
     """Release hot copies, lowest priority first, down to the low watermark.
 
     Never touches ``cold``, nor the keys in ``exclude``. Warns if every remaining key
-    is protected.
+    is protected. With ``budget_bytes=0`` (no hot tier) every hot copy is released,
+    protected or not.
     """
     before = store._hot_bytes
     budget = store._budget
     released: list = []
-    if budget is not None:
+    if budget == 0:  # no hot tier: release everything, whatever the policy protects
+        exclude = set(exclude)
+        for k in [k for k in store._hot_sizes if k not in exclude]:
+            _release(store, k, released)
+    elif budget is not None:
         target = store._policy.low_watermark * budget
         exclude = set(exclude)
         hot_stats = {}
@@ -425,9 +441,7 @@ def sweep(store: TieredStore, *, exclude: Iterable = ()) -> SweepReport:
         for k in candidates:
             if store._hot_bytes <= target:
                 break
-            store._drop_hot(k)
-            store._tracker.record(k, "release", 0)
-            released.append(k)
+            _release(store, k, released)
         if store._hot_bytes > target and _exceeds_watermark(
             before, budget, store._policy.high_watermark
         ):
