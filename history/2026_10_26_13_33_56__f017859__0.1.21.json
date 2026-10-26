@@ -1,0 +1,47 @@
+{
+  "collection_duration_seconds": 4.260693550109863,
+  "commit_message": "CI: collect xdol/ (package tests + doctests); fix two pystores doctests that could never pass\n\ntestpaths only listed tests/, so xdol/tests/*.py and every module doctest\nwere skipped in CI (CI passes --doctest-modules but no paths).",
+  "commit_sha": "f0178590d162170b9b90b7d9c3a12e96edc6a9b9",
+  "metrics": {
+    "coverage": {
+      "branch_coverage": 0.0,
+      "error": "No coverage file found",
+      "line_coverage": 0.0,
+      "statements_covered": 0,
+      "statements_total": 0
+    },
+    "umpyre_stats": {
+      "comment_lines": 14696,
+      "comment_lines_ratio": 0.05568480641421069,
+      "docs_lines": 38340,
+      "empty_lines": 34040,
+      "empty_lines_ratio": 0.12898141061103238,
+      "files_analyzed": 586,
+      "function_lines": 116860,
+      "function_lines_ratio": 0.4427957592245959,
+      "mean_lines_per_function": 16.5970742792217,
+      "num_classes": 1680,
+      "num_functions": 7041,
+      "pypi_version": "0.1.21",
+      "total_lines": 263914
+    },
+    "wily": {
+      "cyclomatic_avg": 0.0,
+      "error": "wily report failed: Usage: wily report [OPTIONS] FILE [METRICS]...\nTry 'wily report --help' for help.\n\nError: Invalid value for '-f' / '--format': 'json' is not one of 'CONSOLE', 'HTML'.\n",
+      "files_analyzed": 0,
+      "maintainability_index": 0.0,
+      "total_loc": 0
+    },
+    "workflow_status": {
+      "last_run_status": "success",
+      "last_success_timestamp": "2026-10-26T13:30:17Z",
+      "recent_failure_count": 1,
+      "run_url": "https://github.com/i2mint/xdol/actions/runs/40330902100",
+      "total_runs_analyzed": 10
+    }
+  },
+  "python_version": "3.10",
+  "schema_version": "1.0",
+  "timestamp": "2026-10-26T13:33:55.588643Z",
+  "workflow_status": {}
+}

@@ -1,5 +1,5 @@
 {
-  "collection_duration_seconds": 4.119436502456665,
+  "collection_duration_seconds": 4.260693550109863,
   "commit_message": "CI: collect xdol/ (package tests + doctests); fix two pystores doctests that could never pass\n\ntestpaths only listed tests/, so xdol/tests/*.py and every module doctest\nwere skipped in CI (CI passes --doctest-modules but no paths).",
   "commit_sha": "f0178590d162170b9b90b7d9c3a12e96edc6a9b9",
   "metrics": {
@@ -11,19 +11,19 @@
       "statements_total": 0
     },
     "umpyre_stats": {
-      "comment_lines": 14808,
-      "comment_lines_ratio": 0.055669591500687975,
-      "docs_lines": 38377,
-      "empty_lines": 34357,
-      "empty_lines_ratio": 0.12916262528289688,
-      "files_analyzed": 596,
-      "function_lines": 118375,
-      "function_lines_ratio": 0.44502214302363174,
-      "mean_lines_per_function": 16.59540165428291,
-      "num_classes": 1692,
-      "num_functions": 7133,
+      "comment_lines": 14696,
+      "comment_lines_ratio": 0.05568480641421069,
+      "docs_lines": 38340,
+      "empty_lines": 34040,
+      "empty_lines_ratio": 0.12898141061103238,
+      "files_analyzed": 586,
+      "function_lines": 116860,
+      "function_lines_ratio": 0.4427957592245959,
+      "mean_lines_per_function": 16.5970742792217,
+      "num_classes": 1680,
+      "num_functions": 7041,
       "pypi_version": "0.1.21",
-      "total_lines": 265998
+      "total_lines": 263914
     },
     "wily": {
       "cyclomatic_avg": 0.0,
@@ -42,6 +42,6 @@
   },
   "python_version": "3.10",
   "schema_version": "1.0",
-  "timestamp": "2026-10-26T13:33:52.749631Z",
+  "timestamp": "2026-10-26T13:33:55.588643Z",
   "workflow_status": {}
 }
