@@ -1,7 +1,7 @@
 {
-  "collection_duration_seconds": 3.6312062740325928,
-  "commit_message": "Merge 00443755ed5e3c11e11cc858fa623e368b60cfb5 into 817aa1f17f616d59646cfd804c546dc2ec569ec8",
-  "commit_sha": "7b0e4153d2bfb7b8a9bf6fe2c50d750cc22224c6",
+  "collection_duration_seconds": 4.463446617126465,
+  "commit_message": "access: clamp clock, coerce sizes, unstamped lines after all earlier; stronger tests (re-review of #29)",
+  "commit_sha": "00443755ed5e3c11e11cc858fa623e368b60cfb5",
   "metrics": {
     "coverage": {
       "branch_coverage": 0.0,
@@ -22,7 +22,7 @@
       "mean_lines_per_function": 16.56355518347984,
       "num_classes": 1694,
       "num_functions": 7167,
-      "pypi_version": "0.1.25",
+      "pypi_version": "0.1.24",
       "total_lines": 266479
     },
     "wily": {
@@ -42,6 +42,6 @@
   },
   "python_version": "3.10",
   "schema_version": "1.0",
-  "timestamp": "2026-10-26T15:44:52.507251Z",
+  "timestamp": "2026-10-26T15:44:59.116145Z",
   "workflow_status": {}
 }
