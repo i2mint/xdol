@@ -1,4 +1,4 @@
-> built 2026-10-26 13:36 UTC from 119794f (master) · xdol 0.1.21. Details: build_info.json
+> built 2026-10-26 14:00 UTC from 05270c3 (master) · xdol 0.1.22. Details: build_info.json
 
 # index.html.md
 
@@ -39,7 +39,8 @@ Stable keys (`xdol.keys`), text / JSON / binary / paired `.json`+`.bin` codecs, 
 Persisted, mergeable per-key access statistics for any store.
 
 An [`AccessLog`](_autosummary/xdol.access.html.md#xdol.access.AccessLog) is an append-only JSONL file of access events, folded into an
-in-memory `{key: AccessStats}` on open. [`track_access()`](_autosummary/xdol.access.html.md#xdol.access.track_access) wraps any
+in-memory `{key: AccessStats}` on open; the log itself is a read-only `Mapping` of
+key to (immutable) [`AccessStats`](_autosummary/xdol.access.html.md#xdol.access.AccessStats). [`track_access()`](_autosummary/xdol.access.html.md#xdol.access.track_access) wraps any
 `MutableMapping` so reads, writes and deletes are recorded. The log is the
 `tracker` of [`xdol.tiering.TieredStore`](_autosummary/xdol.tiering.html.md#xdol.tiering.TieredStore).
 
@@ -54,6 +55,14 @@ only knows paths can append to the same file):
  "n": bytes, "from": "hot"|"cold"|null, "ts": unix_seconds, "tag": str|null}
 ```
 
+Only `k` and `op` are required: an event without `n` leaves the size alone.
+Replay does not trust file order (several writers may append to one file): recency
+fields take the max timestamp seen, `first_seen` the min.
+
+Keys must be JSON scalars, in practice `str`: a key that does not survive a JSON
+round trip (a tuple, a `Path`…) is counted in memory but lost or changed on reopen,
+and recording one warns once.
+
 A compacted file holds `{"k": key, "op": "snapshot", "stats": {...}}` lines, folded as
 initial state.
 
@@ -62,11 +71,11 @@ initial state.
 >>> store = track_access({'a': b'xyz'}, tracker=log)
 >>> store['a']
 b'xyz'
->>> log.stats('a').reads
+>>> log['a'].reads
 1
 >>> 'a' in store  # membership is never recorded
 True
->>> log.stats('a').frequency
+>>> log['a'].frequency
 1
 ```
 
@@ -74,20 +83,21 @@ True
 
 | [`default_access_log_for`](_autosummary/xdol.access.html.md#xdol.access.default_access_log_for)(store, \*\*kwargs)      | An [`AccessLog`](_autosummary/xdol.access.html.md#xdol.access.AccessLog) beside `store`'s `rootdir` (never inside it).   |
 |-------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------|
-| [`merge_stats`](_autosummary/xdol.access.html.md#xdol.access.merge_stats)(\*logs)                            | Merge several logs (or `{key: AccessStats}` mappings) into one dict.                                          |
+| [`merge_stats`](_autosummary/xdol.access.html.md#xdol.access.merge_stats)(\*logs)                            | Merge several `Mapping[key, AccessStats]` (e.g. logs) into one dict.                                          |
 | [`track_access`](_autosummary/xdol.access.html.md#xdol.access.track_access)(store, \*[, tracker, clock, tag]) | Wrap `store` so reads, writes and deletes are recorded in `tracker`.                                          |
+| [`value_size`](_autosummary/xdol.access.html.md#xdol.access.value_size)(v)                                  | `len(v)`, or `0` when `v` has no length (tracking never raises).                                              |
 
 ### Classes
 
-| [`AccessLog`](_autosummary/xdol.access.html.md#xdol.access.AccessLog)([path, clock, tag])           | Append-only JSONL access log with an in-memory aggregate.   |
-|------------------------------------------------------------------------------------------|-------------------------------------------------------------|
-| [`AccessStats`](_autosummary/xdol.access.html.md#xdol.access.AccessStats)([size, reads, writes, ...]) | Access statistics of one key.                               |
+| [`AccessLog`](_autosummary/xdol.access.html.md#xdol.access.AccessLog)([path, clock, tag])           | Append-only JSONL access log, readable as a `Mapping` of key -> AccessStats.   |
+|------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------|
+| [`AccessStats`](_autosummary/xdol.access.html.md#xdol.access.AccessStats)([size, reads, writes, ...]) | Access statistics of one key (immutable: update with `dataclasses.replace`).   |
 
 ### *class* xdol.access.AccessLog(path=None, \*, clock=<built-in function time>, tag=None)
 
-Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
+Bases: [`Mapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping)
 
-Append-only JSONL access log with an in-memory aggregate.
+Append-only JSONL access log, readable as a `Mapping` of key -> AccessStats.
 
 * **Parameters:**
   * **path** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`PathLike`](https://docs.python.org/3/library/os.html#os.PathLike) | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – log file; `None` keeps everything in memory (tests).
@@ -95,20 +105,30 @@ Append-only JSONL access log with an in-memory aggregate.
   * **tag** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – label stamped on each event; defaults to `platform.node()`.
 
 A tracker never raises into a store’s read path: if the file cannot be written,
-a warning is issued once and counting continues in memory.
+a warning is issued once and counting continues in memory. Not thread-safe.
 
 #### compact()
 
 Rewrite the file as one snapshot line per key, atomically.
 
+Safe only when no other writer has the file open: another process appending
+to it keeps writing to the replaced file, and those events are lost.
+
 * **Return type:**
   [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
+#### stats(key)
+
+Alias of `self.get(key)`.
+
+* **Return type:**
+  [`AccessStats`](_autosummary/xdol.access.html.md#xdol.access.AccessStats) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
 ### *class* xdol.access.AccessStats(size=0, reads=0, writes=0, first_seen=0.0, last_access=0.0, last_read=0.0, pinned=False)
 
 Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
-Access statistics of one key.
+Access statistics of one key (immutable: update with `dataclasses.replace`).
 
 ### xdol.access.default_access_log_for(store, \*\*kwargs)
 
@@ -121,24 +141,33 @@ Without a `rootdir`, an in-memory log, with a warning.
 
 ### xdol.access.merge_stats(\*logs)
 
-Merge several logs (or `{key: AccessStats}` mappings) into one dict.
+Merge several `Mapping[key, AccessStats]` (e.g. logs) into one dict.
 
-Sums reads/writes, takes the latest `size`, min `first_seen`, max
-`last_access`/`last_read`, OR of `pinned`.
+Sums reads/writes, takes the `size` of the latest access, min `first_seen`
+(ignoring unknown zeros), max `last_access`/`last_read`, OR of `pinned`.
 
 * **Return type:**
   [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)
 
-### xdol.access.track_access(store, \*, tracker=None, clock=<built-in function time>, tag=None)
+### xdol.access.track_access(store, , tracker=None, clock=None, tag=None)
 
 Wrap `store` so reads, writes and deletes are recorded in `tracker`.
 
 `__contains__`, `__iter__` and `__len__` are never recorded. Without a
-`tracker`, [`default_access_log_for()`](_autosummary/xdol.access.html.md#xdol.access.default_access_log_for) picks one. The wrapped store is
+`tracker`, [`default_access_log_for()`](_autosummary/xdol.access.html.md#xdol.access.default_access_log_for) picks one, built with `clock` and
+`tag` (passing either alongside a `tracker` is an error: set them on the
+log). A value without `len` is recorded with size 0. The wrapped store is
 available as `.store` and the log as `.tracker`.
 
 * **Return type:**
   [`MutableMapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping)
+
+### xdol.access.value_size(v)
+
+`len(v)`, or `0` when `v` has no length (tracking never raises).
+
+* **Return type:**
+  [`int`](https://docs.python.org/3/builtins/functions.html#int)
 
 
 # _autosummary/xdol.html.md
@@ -1152,10 +1181,15 @@ A bounded hot store over a cold source of truth (write-through, GDSF release).
 `cold` first, then `hot`; reads are served from `hot` when present, else from
 `cold` (and admitted to `hot` when the policy says so). Placement is decided by a
 [`PlacementPolicy`](_autosummary/xdol.tiering.html.md#xdol.tiering.PlacementPolicy) (default [`GdsfPolicy`](_autosummary/xdol.tiering.html.md#xdol.tiering.GdsfPolicy): Greedy-Dual-Size-Frequency with
-aging, Cherkasova 1998) from the statistics of an [`xdol.access.AccessLog`](_autosummary/xdol.access.html.md#xdol.access.AccessLog).
+aging, Cherkasova 1998) from the statistics of an [`xdol.access.AccessLog`](_autosummary/xdol.access.html.md#xdol.access.AccessLog), whose
+clock is the store’s clock.
 
 Verbs are free functions, store first: [`sweep()`](_autosummary/xdol.tiering.html.md#xdol.tiering.sweep), [`pin()`](_autosummary/xdol.tiering.html.md#xdol.tiering.pin), `unpin()`,
 `status()`, [`prefetch()`](_autosummary/xdol.tiering.html.md#xdol.tiering.prefetch), [`local_paths()`](_autosummary/xdol.tiering.html.md#xdol.tiering.local_paths).
+
+Values must support `len` (their size in bytes): `__setitem__` raises `TypeError`
+before writing anything otherwise. A value read from `cold` without `len` counts
+as size 0. Single-threaded: there is no locking.
 
 ```pycon
 >>> hot, cold = {}, {}
@@ -1169,13 +1203,13 @@ Verbs are free functions, store first: [`sweep()`](_autosummary/xdol.tiering.htm
 
 ### Functions
 
-| [`local_paths`](_autosummary/xdol.tiering.html.md#xdol.tiering.local_paths)(store)    | Read-only `{key: real file path}`; materialises each key into `hot`.   |
-|------------------------------------------------------------------------|------------------------------------------------------------------------|
-| [`pin`](_autosummary/xdol.tiering.html.md#xdol.tiering.pin)(store, key)       | Protect `key`'s hot copy from release (persisted in the tracker).      |
-| [`prefetch`](_autosummary/xdol.tiering.html.md#xdol.tiering.prefetch)(store, keys) | Admit `keys` to hot regardless of policy.                              |
-| `status`(store)                                                        |                                                                        |
-| [`sweep`](_autosummary/xdol.tiering.html.md#xdol.tiering.sweep)(store)          | Release hot copies, lowest priority first, down to the low watermark.  |
-| `unpin`(store, key)                                                    |                                                                        |
+| [`local_paths`](_autosummary/xdol.tiering.html.md#xdol.tiering.local_paths)(store)          | Read-only `{key: real file path}`; materialises each key into `hot`.   |
+|------------------------------------------------------------------------------|------------------------------------------------------------------------|
+| [`pin`](_autosummary/xdol.tiering.html.md#xdol.tiering.pin)(store, key)             | Protect `key`'s hot copy from release (persisted in the tracker).      |
+| [`prefetch`](_autosummary/xdol.tiering.html.md#xdol.tiering.prefetch)(store, keys)       | Admit `keys` to hot regardless of policy, as reads served from cold.   |
+| `status`(store)                                                              |                                                                        |
+| [`sweep`](_autosummary/xdol.tiering.html.md#xdol.tiering.sweep)(store, \*[, exclude]) | Release hot copies, lowest priority first, down to the low watermark.  |
+| `unpin`(store, key)                                                          |                                                                        |
 
 ### Classes
 
@@ -1198,9 +1232,19 @@ Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 Greedy-Dual-Size-Frequency with aging, plus pins, minimum residency and
 second-hit admission.
 
-Priority `H = L + F * cost(size) / size` with `F = reads + writes`,
-`cost(size) = cost_per_request + cost_per_byte * size` and `L` the H of the last
-released key (per process; resets at restart).
+Each hot key carries `H = L + F * cost(size) / size`, fixed when it is accessed,
+with `F` its accesses since admission to hot, `cost(size) = cost_per_request +
+cost_per_byte * size` and `L` the H of the last released key at that time
+(per process; resets at restart). Releasing the lowest H raises `L`, so a key
+not accessed for a while loses to newer ones however often it was read. A key
+already hot when this process first sees it is seeded with its logged frequency.
+
+#### priority(frequency, size)
+
+H of a key accessed now with this frequency and size.
+
+* **Return type:**
+  [`float`](https://docs.python.org/3/builtins/functions.html#float)
 
 ### *exception* xdol.tiering.HotWriteError
 
@@ -1216,19 +1260,40 @@ Bases: [`Protocol`](https://docs.python.org/3/library/typing.html#typing.Protoco
 
 Decides what enters and leaves the hot tier.
 
+#### on_hot_access(key, stats, , admitted)
+
+`key` was accessed in hot; `admitted`: it was not there before.
+
+* **Return type:**
+  [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
+#### on_hot_drop(key)
+
+`key` left hot (released, deleted or overwritten with no hot copy).
+
+* **Return type:**
+  [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
 ### *class* xdol.tiering.SweepReport(keys_released, bytes_before, bytes_after)
 
 Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
-### *class* xdol.tiering.TieredStore(hot, cold, \*, budget_bytes, policy=None, tracker=None, clock=<built-in function time>)
+### *class* xdol.tiering.TieredStore(hot, cold, , budget_bytes, policy=None, tracker=None)
 
 Bases: [`MutableMapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping)
 
 Bounded hot store over a cold source of truth. See the module docstring.
 
 * **Parameters:**
-  **budget_bytes** ([`int`](https://docs.python.org/3/builtins/functions.html#int) | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – `None`: hot is a full mirror (never released, every read miss
-  admitted); `0`: cold-only; `> 0`: bounded.
+  * **budget_bytes** ([`int`](https://docs.python.org/3/builtins/functions.html#int) | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – `None`: hot is a full mirror (never released, every read miss
+    admitted); `0`: cold-only; `> 0`: bounded.
+  * **policy** ([`PlacementPolicy`](_autosummary/xdol.tiering.html.md#xdol.tiering.PlacementPolicy) | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – a [`PlacementPolicy`](_autosummary/xdol.tiering.html.md#xdol.tiering.PlacementPolicy); default [`GdsfPolicy`](_autosummary/xdol.tiering.html.md#xdol.tiering.GdsfPolicy).
+  * **tracker** ([`AccessLog`](_autosummary/xdol.access.html.md#xdol.access.AccessLog) | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – an `AccessLog` (its `clock` is the store’s clock); default
+    [`xdol.access.default_access_log_for()`](_autosummary/xdol.access.html.md#xdol.access.default_access_log_for) `(hot)`.
+
+Keys already in `hot` at construction are not recorded as accesses. Their size
+comes from the tracker, else from the file size when `hot` is file-backed, else
+counts as 0 until the key’s next hot hit.
 
 ### *exception* xdol.tiering.TieringError
 
@@ -1240,7 +1305,8 @@ Base class of tiering errors.
 
 Read-only `{key: real file path}`; materialises each key into `hot`.
 
-Requires `hot` to expose `rootdir` (raises `TypeError` otherwise).
+Requires `hot` to expose `rootdir` (raises `TypeError` otherwise); raises
+`FileNotFoundError` if the file is not there after materialisation.
 
 * **Return type:**
   [`Mapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping)
@@ -1254,16 +1320,19 @@ Protect `key`’s hot copy from release (persisted in the tracker).
 
 ### xdol.tiering.prefetch(store, keys)
 
-Admit `keys` to hot regardless of policy.
+Admit `keys` to hot regardless of policy, as reads served from cold.
+
+The release this may trigger never releases `keys`.
 
 * **Return type:**
   [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
-### xdol.tiering.sweep(store)
+### xdol.tiering.sweep(store, , exclude=())
 
 Release hot copies, lowest priority first, down to the low watermark.
 
-Never touches `cold`. Warns if every remaining key is protected.
+Never touches `cold`, nor the keys in `exclude`. Warns if every remaining key
+is protected.
 
 * **Return type:**
   [`SweepReport`](_autosummary/xdol.tiering.html.md#xdol.tiering.SweepReport)
@@ -1897,18 +1966,16 @@ A value that fails to decode raises [`CodecDecodeError`](_autosummary/xdol.x_cod
 
 # About this build
 
-This documentation was built on **2026-10-26 13:36 UTC** from commit <a href="https://github.com/i2mint/xdol/commit/119794f3dcce355be82f9a9e8be50da0c52683fc"><code>119794f</code></a> on branch <code>master</code>, for **xdol 0.1.21** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-10-26 14:00 UTC** from commit <a href="https://github.com/i2mint/xdol/commit/05270c3d10331cea1ad4f32112973d12653ff1ba"><code>05270c3</code></a> on branch <code>master</code>, for **xdol 0.1.22** (from <code>pyproject.toml</code>).
 
-#### WARNING
-The documentation and the package may be misaligned:
-
-- The documented version (0.1.21) is behind the latest release on PyPI (0.1.22): `pip install xdol` gives newer code than these docs describe.
+#### NOTE
+Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
 
 ## Source
 
 |                     |                                                                                                                                                    |
 |---------------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/i2mint/xdol/commit/119794f3dcce355be82f9a9e8be50da0c52683fc"><code>119794f3dcce355be82f9a9e8be50da0c52683fc</code></a> |
+| Commit              | <a href="https://github.com/i2mint/xdol/commit/05270c3d10331cea1ad4f32112973d12653ff1ba"><code>05270c3d10331cea1ad4f32112973d12653ff1ba</code></a> |
 | Branch              | <code>master</code>                                                                                                                                |
 | Tags at this commit | none                                                                                                                                               |
 | Working tree        | clean                                                                                                                                              |
@@ -1919,9 +1986,9 @@ The documentation and the package may be misaligned:
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>i2mint/xdol</code>                                                                   |
-| Run          | <a href="https://github.com/i2mint/xdol/actions/runs/40331884836">40331884836</a>          |
+| Run          | <a href="https://github.com/i2mint/xdol/actions/runs/40335355775">40335355775</a>          |
 | Ref          | <code>refs/heads/master</code>                                                             |
-| Event commit | <code>119794f3dcce355be82f9a9e8be50da0c52683fc</code> (in the history of the built commit) |
+| Event commit | <code>05270c3d10331cea1ad4f32112973d12653ff1ba</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -1946,13 +2013,13 @@ The documentation and the package may be misaligned:
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/xdol/0.1.22/">0.1.22</a>, newer than the documented version (0.1.21).
+Latest release: <a href="https://pypi.org/project/xdol/0.1.22/">0.1.22</a>, the same as the documented version.
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/i2mint/xdol && cd xdol
-git checkout 119794f3dcce355be82f9a9e8be50da0c52683fc
+git checkout 05270c3d10331cea1ad4f32112973d12653ff1ba
 pip install "epythet==0.2.22"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```

@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../_static/documentation_options.js?v=b3d22ae5"></script>
+    <script src="../../_static/documentation_options.js?v=842aa08f"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -411,7 +411,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.21" />
+  <meta name="docsearch:version" content="0.1.22" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -701,7 +701,8 @@ window.runMermaid = runMermaid;</script>
 <span></span><span class="sd">"""Persisted, mergeable per-key access statistics for any store.</span>
 
 <span class="sd">An :class:`AccessLog` is an append-only JSONL file of access events, folded into an</span>
-<span class="sd">in-memory ``{key: AccessStats}`` on open. :func:`track_access` wraps any</span>
+<span class="sd">in-memory ``{key: AccessStats}`` on open; the log itself is a read-only ``Mapping`` of</span>
+<span class="sd">key to (immutable) :class:`AccessStats`. :func:`track_access` wraps any</span>
 <span class="sd">``MutableMapping`` so reads, writes and deletes are recorded. The log is the</span>
 <span class="sd">``tracker`` of :class:`xdol.tiering.TieredStore`.</span>
 
@@ -714,6 +715,14 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">    {"k": key, "op": "read"|"write"|"delete"|"release"|"pin"|"unpin",</span>
 <span class="sd">     "n": bytes, "from": "hot"|"cold"|null, "ts": unix_seconds, "tag": str|null}</span>
 
+<span class="sd">Only ``k`` and ``op`` are required: an event without ``n`` leaves the size alone.</span>
+<span class="sd">Replay does not trust file order (several writers may append to one file): recency</span>
+<span class="sd">fields take the max timestamp seen, ``first_seen`` the min.</span>
+
+<span class="sd">Keys must be JSON scalars, in practice ``str``: a key that does not survive a JSON</span>
+<span class="sd">round trip (a tuple, a ``Path``...) is counted in memory but lost or changed on reopen,</span>
+<span class="sd">and recording one warns once.</span>
+
 <span class="sd">A compacted file holds ``{"k": key, "op": "snapshot", "stats": {...}}`` lines, folded as</span>
 <span class="sd">initial state.</span>
 
@@ -721,11 +730,11 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">&gt;&gt;&gt; store = track_access({'a': b'xyz'}, tracker=log)</span>
 <span class="sd">&gt;&gt;&gt; store['a']</span>
 <span class="sd">b'xyz'</span>
-<span class="sd">&gt;&gt;&gt; log.stats('a').reads</span>
+<span class="sd">&gt;&gt;&gt; log['a'].reads</span>
 <span class="sd">1</span>
 <span class="sd">&gt;&gt;&gt; 'a' in store  # membership is never recorded</span>
 <span class="sd">True</span>
-<span class="sd">&gt;&gt;&gt; log.stats('a').frequency</span>
+<span class="sd">&gt;&gt;&gt; log['a'].frequency</span>
 <span class="sd">1</span>
 <span class="sd">"""</span>
 
@@ -737,18 +746,19 @@ window.runMermaid = runMermaid;</script>
 <span class="kn">import</span><span class="w"> </span><span class="nn">tempfile</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Iterator</span><span class="p">,</span> <span class="n">MutableMapping</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">asdict</span><span class="p">,</span> <span class="n">dataclass</span><span class="p">,</span> <span class="n">fields</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Iterator</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">MutableMapping</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">asdict</span><span class="p">,</span> <span class="n">dataclass</span><span class="p">,</span> <span class="n">fields</span><span class="p">,</span> <span class="n">replace</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span>
 
 <span class="n">OPS</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"read"</span><span class="p">,</span> <span class="s2">"write"</span><span class="p">,</span> <span class="s2">"delete"</span><span class="p">,</span> <span class="s2">"release"</span><span class="p">,</span> <span class="s2">"pin"</span><span class="p">,</span> <span class="s2">"unpin"</span><span class="p">)</span>
+<span class="n">_CREATING_OPS</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"read"</span><span class="p">,</span> <span class="s2">"write"</span><span class="p">,</span> <span class="s2">"pin"</span><span class="p">)</span>  <span class="c1"># other ops on an unknown key are no-ops</span>
 
 
 <div class="viewcode-block" id="AccessStats">
 <a class="viewcode-back" href="../../_autosummary/xdol.access.html#xdol.access.AccessStats">[docs]</a>
-<span class="nd">@dataclass</span>
+<span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">AccessStats</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""Access statistics of one key."""</span>
+<span class="w">    </span><span class="sd">"""Access statistics of one key (immutable: update with ``dataclasses.replace``)."""</span>
 
     <span class="n">size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="n">reads</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span>
@@ -767,41 +777,82 @@ window.runMermaid = runMermaid;</script>
 <span class="n">_STATS_FIELDS</span> <span class="o">=</span> <span class="p">{</span><span class="n">f</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">fields</span><span class="p">(</span><span class="n">AccessStats</span><span class="p">)}</span>
 
 
+<div class="viewcode-block" id="value_size">
+<a class="viewcode-back" href="../../_autosummary/xdol.access.html#xdol.access.value_size">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">value_size</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""``len(v)``, or ``0`` when ``v`` has no length (tracking never raises)."""</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>
+        <span class="k">return</span> <span class="mi">0</span></div>
+
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_min_nonzero</span><span class="p">(</span><span class="n">a</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">b</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""The smaller of two timestamps, ``0.0`` meaning unknown."""</span>
+    <span class="k">return</span> <span class="nb">min</span><span class="p">((</span><span class="n">t</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span> <span class="k">if</span> <span class="n">t</span><span class="p">),</span> <span class="n">default</span><span class="o">=</span><span class="mf">0.0</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_survives_json</span><span class="p">(</span><span class="n">key</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+    <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">key</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">True</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">back</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">key</span><span class="p">))</span>
+    <span class="k">except</span> <span class="p">(</span><span class="ne">TypeError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">):</span>
+        <span class="k">return</span> <span class="kc">False</span>
+    <span class="k">return</span> <span class="nb">type</span><span class="p">(</span><span class="n">back</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">type</span><span class="p">(</span><span class="n">key</span><span class="p">)</span> <span class="ow">and</span> <span class="n">back</span> <span class="o">==</span> <span class="n">key</span>
+
+
 <span class="k">def</span><span class="w"> </span><span class="nf">_apply</span><span class="p">(</span><span class="n">stats_by_key</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">op</span><span class="p">,</span> <span class="n">nbytes</span><span class="p">,</span> <span class="n">ts</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""Fold one event into ``stats_by_key`` (shared by live recording and replay)."""</span>
+<span class="w">    </span><span class="sd">"""Fold one event into ``stats_by_key`` (shared by live recording and replay).</span>
+
+<span class="sd">    ``nbytes=None`` leaves the size alone. Order-independent: recency is a max,</span>
+<span class="sd">    ``first_seen`` a min, and the size comes from the latest read or write.</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="n">op</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">OPS</span><span class="p">:</span>
+        <span class="k">return</span>
     <span class="k">if</span> <span class="n">op</span> <span class="o">==</span> <span class="s2">"delete"</span><span class="p">:</span>
         <span class="n">stats_by_key</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
         <span class="k">return</span>
     <span class="n">st</span> <span class="o">=</span> <span class="n">stats_by_key</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">st</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">st</span> <span class="o">=</span> <span class="n">stats_by_key</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">AccessStats</span><span class="p">(</span><span class="n">first_seen</span><span class="o">=</span><span class="n">ts</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">op</span> <span class="o">==</span> <span class="s2">"read"</span><span class="p">:</span>
-        <span class="n">st</span><span class="o">.</span><span class="n">reads</span> <span class="o">+=</span> <span class="mi">1</span>
-        <span class="n">st</span><span class="o">.</span><span class="n">size</span> <span class="o">=</span> <span class="n">nbytes</span>
-        <span class="n">st</span><span class="o">.</span><span class="n">last_access</span> <span class="o">=</span> <span class="n">st</span><span class="o">.</span><span class="n">last_read</span> <span class="o">=</span> <span class="n">ts</span>
-    <span class="k">elif</span> <span class="n">op</span> <span class="o">==</span> <span class="s2">"write"</span><span class="p">:</span>
-        <span class="n">st</span><span class="o">.</span><span class="n">writes</span> <span class="o">+=</span> <span class="mi">1</span>
-        <span class="n">st</span><span class="o">.</span><span class="n">size</span> <span class="o">=</span> <span class="n">nbytes</span>
-        <span class="n">st</span><span class="o">.</span><span class="n">last_access</span> <span class="o">=</span> <span class="n">ts</span>
-    <span class="k">elif</span> <span class="n">op</span> <span class="o">==</span> <span class="s2">"pin"</span><span class="p">:</span>
-        <span class="n">st</span><span class="o">.</span><span class="n">pinned</span> <span class="o">=</span> <span class="kc">True</span>
-    <span class="k">elif</span> <span class="n">op</span> <span class="o">==</span> <span class="s2">"unpin"</span><span class="p">:</span>
-        <span class="n">st</span><span class="o">.</span><span class="n">pinned</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">if</span> <span class="n">op</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">_CREATING_OPS</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="n">st</span> <span class="o">=</span> <span class="n">AccessStats</span><span class="p">(</span><span class="n">first_seen</span><span class="o">=</span><span class="n">ts</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">op</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"read"</span><span class="p">,</span> <span class="s2">"write"</span><span class="p">):</span>
+        <span class="n">changes</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
+            <span class="n">first_seen</span><span class="o">=</span><span class="n">_min_nonzero</span><span class="p">(</span><span class="n">st</span><span class="o">.</span><span class="n">first_seen</span><span class="p">,</span> <span class="n">ts</span><span class="p">),</span>
+            <span class="n">last_access</span><span class="o">=</span><span class="nb">max</span><span class="p">(</span><span class="n">st</span><span class="o">.</span><span class="n">last_access</span><span class="p">,</span> <span class="n">ts</span><span class="p">),</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">nbytes</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">ts</span> <span class="o">&gt;=</span> <span class="n">st</span><span class="o">.</span><span class="n">last_access</span><span class="p">:</span>
+            <span class="n">changes</span><span class="p">[</span><span class="s2">"size"</span><span class="p">]</span> <span class="o">=</span> <span class="n">nbytes</span>
+        <span class="k">if</span> <span class="n">op</span> <span class="o">==</span> <span class="s2">"read"</span><span class="p">:</span>
+            <span class="n">changes</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">reads</span><span class="o">=</span><span class="n">st</span><span class="o">.</span><span class="n">reads</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">last_read</span><span class="o">=</span><span class="nb">max</span><span class="p">(</span><span class="n">st</span><span class="o">.</span><span class="n">last_read</span><span class="p">,</span> <span class="n">ts</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">changes</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">writes</span><span class="o">=</span><span class="n">st</span><span class="o">.</span><span class="n">writes</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">st</span> <span class="o">=</span> <span class="n">replace</span><span class="p">(</span><span class="n">st</span><span class="p">,</span> <span class="o">**</span><span class="n">changes</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">op</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"pin"</span><span class="p">,</span> <span class="s2">"unpin"</span><span class="p">):</span>
+        <span class="n">st</span> <span class="o">=</span> <span class="n">replace</span><span class="p">(</span><span class="n">st</span><span class="p">,</span> <span class="n">pinned</span><span class="o">=</span><span class="n">op</span> <span class="o">==</span> <span class="s2">"pin"</span><span class="p">)</span>
     <span class="c1"># "release": the hot copy went away; frequency history is kept deliberately.</span>
+    <span class="n">stats_by_key</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">st</span>
 
 
 <div class="viewcode-block" id="AccessLog">
 <a class="viewcode-back" href="../../_autosummary/xdol.access.html#xdol.access.AccessLog">[docs]</a>
-<span class="k">class</span><span class="w"> </span><span class="nc">AccessLog</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""Append-only JSONL access log with an in-memory aggregate.</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">AccessLog</span><span class="p">(</span><span class="n">Mapping</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Append-only JSONL access log, readable as a ``Mapping`` of key -&gt; AccessStats.</span>
 
 <span class="sd">    :param path: log file; ``None`` keeps everything in memory (tests).</span>
 <span class="sd">    :param clock: callable returning unix seconds.</span>
 <span class="sd">    :param tag: label stamped on each event; defaults to ``platform.node()``.</span>
 
 <span class="sd">    A tracker never raises into a store's read path: if the file cannot be written,</span>
-<span class="sd">    a warning is issued once and counting continues in memory.</span>
+<span class="sd">    a warning is issued once and counting continues in memory. Not thread-safe.</span>
 <span class="sd">    """</span>
+
+    <span class="c1"># a log is a resource, not a value: keep identity semantics (Mapping drops them)</span>
+    <span class="fm">__eq__</span> <span class="o">=</span> <span class="nb">object</span><span class="o">.</span><span class="fm">__eq__</span>
+    <span class="fm">__hash__</span> <span class="o">=</span> <span class="nb">object</span><span class="o">.</span><span class="fm">__hash__</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
@@ -815,16 +866,17 @@ window.runMermaid = runMermaid;</script>
         <span class="bp">self</span><span class="o">.</span><span class="n">tag</span> <span class="o">=</span> <span class="n">platform</span><span class="o">.</span><span class="n">node</span><span class="p">()</span> <span class="k">if</span> <span class="n">tag</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">tag</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_stats</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">AccessStats</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_fh</span> <span class="o">=</span> <span class="kc">None</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_warned</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_warned_io</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_warned_key</span> <span class="o">=</span> <span class="kc">False</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">path</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">):</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_fold_file</span><span class="p">()</span>
 
     <span class="c1"># -- reading -----------------------------------------------------------</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">_fold_file</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8"</span><span class="p">)</span> <span class="k">as</span> <span class="n">fh</span><span class="p">:</span>
-            <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">fh</span><span class="p">:</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">,</span> <span class="s2">"rb"</span><span class="p">)</span> <span class="k">as</span> <span class="n">fh</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">raw</span> <span class="ow">in</span> <span class="n">fh</span><span class="p">:</span>
                 <span class="k">try</span><span class="p">:</span>
-                    <span class="n">ev</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+                    <span class="n">ev</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">raw</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s2">"utf-8"</span><span class="p">))</span>
                     <span class="n">key</span><span class="p">,</span> <span class="n">op</span> <span class="o">=</span> <span class="n">ev</span><span class="p">[</span><span class="s2">"k"</span><span class="p">],</span> <span class="n">ev</span><span class="p">[</span><span class="s2">"op"</span><span class="p">]</span>
                     <span class="k">if</span> <span class="n">op</span> <span class="o">==</span> <span class="s2">"snapshot"</span><span class="p">:</span>
                         <span class="n">data</span> <span class="o">=</span> <span class="p">{</span>
@@ -832,14 +884,15 @@ window.runMermaid = runMermaid;</script>
                         <span class="p">}</span>
                         <span class="bp">self</span><span class="o">.</span><span class="n">_stats</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">AccessStats</span><span class="p">(</span><span class="o">**</span><span class="n">data</span><span class="p">)</span>
                     <span class="k">else</span><span class="p">:</span>
-                        <span class="n">_apply</span><span class="p">(</span>
-                            <span class="bp">self</span><span class="o">.</span><span class="n">_stats</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">op</span><span class="p">,</span> <span class="n">ev</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"n"</span><span class="p">)</span> <span class="ow">or</span> <span class="mi">0</span><span class="p">,</span> <span class="n">ev</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"ts"</span><span class="p">)</span> <span class="ow">or</span> <span class="mf">0.0</span>
-                        <span class="p">)</span>
+                        <span class="n">_apply</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_stats</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">op</span><span class="p">,</span> <span class="n">ev</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"n"</span><span class="p">),</span> <span class="n">ev</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"ts"</span><span class="p">)</span> <span class="ow">or</span> <span class="mf">0.0</span><span class="p">)</span>
                 <span class="k">except</span> <span class="p">(</span><span class="ne">ValueError</span><span class="p">,</span> <span class="ne">KeyError</span><span class="p">,</span> <span class="ne">TypeError</span><span class="p">,</span> <span class="ne">AttributeError</span><span class="p">):</span>
-                    <span class="k">continue</span>  <span class="c1"># torn or foreign line: skip, never fail on open</span>
+                    <span class="k">continue</span>  <span class="c1"># torn, undecodable or foreign line: skip, never fail</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">stats</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AccessStats</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_stats</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AccessStats</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_stats</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__contains__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_stats</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">:</span>
         <span class="k">return</span> <span class="nb">iter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_stats</span><span class="p">)</span>
@@ -847,10 +900,28 @@ window.runMermaid = runMermaid;</script>
     <span class="k">def</span><span class="w"> </span><span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
         <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_stats</span><span class="p">)</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">items</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_stats</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+<div class="viewcode-block" id="AccessLog.stats">
+<a class="viewcode-back" href="../../_autosummary/xdol.access.html#xdol.access.AccessLog.stats">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">stats</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AccessStats</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Alias of ``self.get(key)``."""</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_stats</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">)</span></div>
+
 
     <span class="c1"># -- writing -----------------------------------------------------------</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_warn_once</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">flag</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">message</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">flag</span><span class="p">):</span>
+            <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">flag</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_open_for_append</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">fh</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">,</span> <span class="s2">"ab"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">fh</span><span class="o">.</span><span class="n">tell</span><span class="p">():</span>  <span class="c1"># a torn last line (crash mid-write) must not eat our event</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">,</span> <span class="s2">"rb"</span><span class="p">)</span> <span class="k">as</span> <span class="n">r</span><span class="p">:</span>
+                <span class="n">r</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">SEEK_END</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">r</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">!=</span> <span class="sa">b</span><span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="p">:</span>
+                    <span class="n">fh</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">b</span><span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">fh</span>
+
     <span class="k">def</span><span class="w"> </span><span class="nf">record</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">op</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">nbytes</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">served_from</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">op</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">OPS</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Unknown op </span><span class="si">{</span><span class="n">op</span><span class="si">!r}</span><span class="s2">; expected one of </span><span class="si">{</span><span class="n">OPS</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
@@ -858,6 +929,12 @@ window.runMermaid = runMermaid;</script>
         <span class="n">_apply</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_stats</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">op</span><span class="p">,</span> <span class="n">nbytes</span><span class="p">,</span> <span class="n">ts</span><span class="p">)</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">path</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">return</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">_survives_json</span><span class="p">(</span><span class="n">key</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_warn_once</span><span class="p">(</span>
+                <span class="s2">"_warned_key"</span><span class="p">,</span>
+                <span class="sa">f</span><span class="s2">"AccessLog key </span><span class="si">{</span><span class="n">key</span><span class="si">!r}</span><span class="s2"> does not survive a JSON round trip: its "</span>
+                <span class="s2">"stats will be lost or changed on reopen (use str keys)."</span><span class="p">,</span>
+            <span class="p">)</span>
         <span class="n">event</span> <span class="o">=</span> <span class="p">{</span>
             <span class="s2">"k"</span><span class="p">:</span> <span class="n">key</span><span class="p">,</span>
             <span class="s2">"op"</span><span class="p">:</span> <span class="n">op</span><span class="p">,</span>
@@ -868,26 +945,27 @@ window.runMermaid = runMermaid;</script>
         <span class="p">}</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fh</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">_fh</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">,</span> <span class="s2">"a"</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8"</span><span class="p">)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_fh</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">event</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="nb">str</span><span class="p">)</span> <span class="o">+</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_fh</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_open_for_append</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_fh</span><span class="o">.</span><span class="n">write</span><span class="p">((</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">event</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="nb">str</span><span class="p">)</span> <span class="o">+</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="p">)</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s2">"utf-8"</span><span class="p">))</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_fh</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
         <span class="k">except</span> <span class="ne">OSError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_warned</span><span class="p">:</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">_warned</span> <span class="o">=</span> <span class="kc">True</span>
-                <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
-                    <span class="sa">f</span><span class="s2">"AccessLog cannot write to </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="si">!r}</span><span class="s2"> (</span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">); "</span>
-                    <span class="s2">"counting in memory only."</span>
-                <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_warn_once</span><span class="p">(</span>
+                <span class="s2">"_warned_io"</span><span class="p">,</span>
+                <span class="sa">f</span><span class="s2">"AccessLog cannot write to </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="si">!r}</span><span class="s2"> (</span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">); "</span>
+                <span class="s2">"counting in memory only."</span><span class="p">,</span>
+            <span class="p">)</span>
 
 <div class="viewcode-block" id="AccessLog.compact">
 <a class="viewcode-back" href="../../_autosummary/xdol.access.html#xdol.access.AccessLog.compact">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">compact</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">"""Rewrite the file as one snapshot line per key, atomically."""</span>
+<span class="w">        </span><span class="sd">"""Rewrite the file as one snapshot line per key, atomically.</span>
+
+<span class="sd">        Safe only when no other writer has the file open: another process appending</span>
+<span class="sd">        to it keeps writing to the replaced file, and those events are lost.</span>
+<span class="sd">        """</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">path</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">return</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fh</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_fh</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_fh</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
         <span class="n">directory</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">))</span>
         <span class="n">fd</span><span class="p">,</span> <span class="n">tmp</span> <span class="o">=</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">mkstemp</span><span class="p">(</span><span class="nb">dir</span><span class="o">=</span><span class="n">directory</span><span class="p">,</span> <span class="n">suffix</span><span class="o">=</span><span class="s2">".tmp"</span><span class="p">)</span>
         <span class="k">try</span><span class="p">:</span>
@@ -911,33 +989,29 @@ window.runMermaid = runMermaid;</script>
 
 <div class="viewcode-block" id="merge_stats">
 <a class="viewcode-back" href="../../_autosummary/xdol.access.html#xdol.access.merge_stats">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">merge_stats</span><span class="p">(</span><span class="o">*</span><span class="n">logs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""Merge several logs (or ``{key: AccessStats}`` mappings) into one dict.</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">merge_stats</span><span class="p">(</span><span class="o">*</span><span class="n">logs</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Merge several ``Mapping[key, AccessStats]`` (e.g. logs) into one dict.</span>
 
-<span class="sd">    Sums reads/writes, takes the latest ``size``, min ``first_seen``, max</span>
-<span class="sd">    ``last_access``/``last_read``, OR of ``pinned``.</span>
+<span class="sd">    Sums reads/writes, takes the ``size`` of the latest access, min ``first_seen``</span>
+<span class="sd">    (ignoring unknown zeros), max ``last_access``/``last_read``, OR of ``pinned``.</span>
 <span class="sd">    """</span>
     <span class="n">out</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">AccessStats</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
-    <span class="n">latest</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
     <span class="k">for</span> <span class="n">log</span> <span class="ow">in</span> <span class="n">logs</span><span class="p">:</span>
-        <span class="n">items</span> <span class="o">=</span> <span class="n">log</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">log</span><span class="p">,</span> <span class="s2">"items"</span><span class="p">)</span> <span class="k">else</span> <span class="n">log</span>
-        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">st</span> <span class="ow">in</span> <span class="n">items</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">st</span> <span class="ow">in</span> <span class="n">log</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
             <span class="n">cur</span> <span class="o">=</span> <span class="n">out</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">cur</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="n">out</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">AccessStats</span><span class="p">(</span><span class="o">**</span><span class="n">asdict</span><span class="p">(</span><span class="n">st</span><span class="p">))</span>
-                <span class="n">latest</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">st</span><span class="o">.</span><span class="n">last_access</span>
+                <span class="n">out</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">st</span>
                 <span class="k">continue</span>
-            <span class="n">cur</span><span class="o">.</span><span class="n">reads</span> <span class="o">+=</span> <span class="n">st</span><span class="o">.</span><span class="n">reads</span>
-            <span class="n">cur</span><span class="o">.</span><span class="n">writes</span> <span class="o">+=</span> <span class="n">st</span><span class="o">.</span><span class="n">writes</span>
-            <span class="k">if</span> <span class="n">st</span><span class="o">.</span><span class="n">last_access</span> <span class="o">&gt;=</span> <span class="n">latest</span><span class="p">[</span><span class="n">key</span><span class="p">]:</span>
-                <span class="n">cur</span><span class="o">.</span><span class="n">size</span> <span class="o">=</span> <span class="n">st</span><span class="o">.</span><span class="n">size</span>
-                <span class="n">latest</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">st</span><span class="o">.</span><span class="n">last_access</span>
-            <span class="n">cur</span><span class="o">.</span><span class="n">first_seen</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span>
-                <span class="p">(</span><span class="n">t</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="p">(</span><span class="n">cur</span><span class="o">.</span><span class="n">first_seen</span><span class="p">,</span> <span class="n">st</span><span class="o">.</span><span class="n">first_seen</span><span class="p">)</span> <span class="k">if</span> <span class="n">t</span><span class="p">),</span> <span class="n">default</span><span class="o">=</span><span class="mf">0.0</span>
+            <span class="n">out</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">replace</span><span class="p">(</span>
+                <span class="n">cur</span><span class="p">,</span>
+                <span class="n">reads</span><span class="o">=</span><span class="n">cur</span><span class="o">.</span><span class="n">reads</span> <span class="o">+</span> <span class="n">st</span><span class="o">.</span><span class="n">reads</span><span class="p">,</span>
+                <span class="n">writes</span><span class="o">=</span><span class="n">cur</span><span class="o">.</span><span class="n">writes</span> <span class="o">+</span> <span class="n">st</span><span class="o">.</span><span class="n">writes</span><span class="p">,</span>
+                <span class="n">size</span><span class="o">=</span><span class="n">st</span><span class="o">.</span><span class="n">size</span> <span class="k">if</span> <span class="n">st</span><span class="o">.</span><span class="n">last_access</span> <span class="o">&gt;=</span> <span class="n">cur</span><span class="o">.</span><span class="n">last_access</span> <span class="k">else</span> <span class="n">cur</span><span class="o">.</span><span class="n">size</span><span class="p">,</span>
+                <span class="n">first_seen</span><span class="o">=</span><span class="n">_min_nonzero</span><span class="p">(</span><span class="n">cur</span><span class="o">.</span><span class="n">first_seen</span><span class="p">,</span> <span class="n">st</span><span class="o">.</span><span class="n">first_seen</span><span class="p">),</span>
+                <span class="n">last_access</span><span class="o">=</span><span class="nb">max</span><span class="p">(</span><span class="n">cur</span><span class="o">.</span><span class="n">last_access</span><span class="p">,</span> <span class="n">st</span><span class="o">.</span><span class="n">last_access</span><span class="p">),</span>
+                <span class="n">last_read</span><span class="o">=</span><span class="nb">max</span><span class="p">(</span><span class="n">cur</span><span class="o">.</span><span class="n">last_read</span><span class="p">,</span> <span class="n">st</span><span class="o">.</span><span class="n">last_read</span><span class="p">),</span>
+                <span class="n">pinned</span><span class="o">=</span><span class="n">cur</span><span class="o">.</span><span class="n">pinned</span> <span class="ow">or</span> <span class="n">st</span><span class="o">.</span><span class="n">pinned</span><span class="p">,</span>
             <span class="p">)</span>
-            <span class="n">cur</span><span class="o">.</span><span class="n">last_access</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">cur</span><span class="o">.</span><span class="n">last_access</span><span class="p">,</span> <span class="n">st</span><span class="o">.</span><span class="n">last_access</span><span class="p">)</span>
-            <span class="n">cur</span><span class="o">.</span><span class="n">last_read</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">cur</span><span class="o">.</span><span class="n">last_read</span><span class="p">,</span> <span class="n">st</span><span class="o">.</span><span class="n">last_read</span><span class="p">)</span>
-            <span class="n">cur</span><span class="o">.</span><span class="n">pinned</span> <span class="o">=</span> <span class="n">cur</span><span class="o">.</span><span class="n">pinned</span> <span class="ow">or</span> <span class="n">st</span><span class="o">.</span><span class="n">pinned</span>
     <span class="k">return</span> <span class="n">out</span></div>
 
 
@@ -978,12 +1052,12 @@ window.runMermaid = runMermaid;</script>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">):</span>
         <span class="n">v</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_store</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_tracker</span><span class="o">.</span><span class="n">record</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="s2">"read"</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">v</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_tracker</span><span class="o">.</span><span class="n">record</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="s2">"read"</span><span class="p">,</span> <span class="n">value_size</span><span class="p">(</span><span class="n">v</span><span class="p">))</span>
         <span class="k">return</span> <span class="n">v</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_store</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_tracker</span><span class="o">.</span><span class="n">record</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="s2">"write"</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">v</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_tracker</span><span class="o">.</span><span class="n">record</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="s2">"write"</span><span class="p">,</span> <span class="n">value_size</span><span class="p">(</span><span class="n">v</span><span class="p">))</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__delitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">):</span>
         <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">_store</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
@@ -1005,17 +1079,22 @@ window.runMermaid = runMermaid;</script>
     <span class="n">store</span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
     <span class="n">tracker</span><span class="p">:</span> <span class="n">AccessLog</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">clock</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[],</span> <span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">,</span>
+    <span class="n">clock</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[],</span> <span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">tag</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">MutableMapping</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Wrap ``store`` so reads, writes and deletes are recorded in ``tracker``.</span>
 
 <span class="sd">    ``__contains__``, ``__iter__`` and ``__len__`` are never recorded. Without a</span>
-<span class="sd">    ``tracker``, :func:`default_access_log_for` picks one. The wrapped store is</span>
+<span class="sd">    ``tracker``, :func:`default_access_log_for` picks one, built with ``clock`` and</span>
+<span class="sd">    ``tag`` (passing either alongside a ``tracker`` is an error: set them on the</span>
+<span class="sd">    log). A value without ``len`` is recorded with size 0. The wrapped store is</span>
 <span class="sd">    available as ``.store`` and the log as ``.tracker``.</span>
 <span class="sd">    """</span>
     <span class="k">if</span> <span class="n">tracker</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">clock</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span> <span class="k">if</span> <span class="n">clock</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">clock</span>
         <span class="n">tracker</span> <span class="o">=</span> <span class="n">default_access_log_for</span><span class="p">(</span><span class="n">store</span><span class="p">,</span> <span class="n">clock</span><span class="o">=</span><span class="n">clock</span><span class="p">,</span> <span class="n">tag</span><span class="o">=</span><span class="n">tag</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">clock</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">tag</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"clock and tag configure the default tracker; set them on it"</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">_TrackedStore</span><span class="p">(</span><span class="n">store</span><span class="p">,</span> <span class="n">tracker</span><span class="p">)</span></div>
 
 </pre></div>

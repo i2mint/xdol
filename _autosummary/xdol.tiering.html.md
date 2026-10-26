@@ -6,10 +6,15 @@ A bounded hot store over a cold source of truth (write-through, GDSF release).
 `cold` first, then `hot`; reads are served from `hot` when present, else from
 `cold` (and admitted to `hot` when the policy says so). Placement is decided by a
 [`PlacementPolicy`](#xdol.tiering.PlacementPolicy) (default [`GdsfPolicy`](#xdol.tiering.GdsfPolicy): Greedy-Dual-Size-Frequency with
-aging, Cherkasova 1998) from the statistics of an [`xdol.access.AccessLog`](xdol.access.html.md#xdol.access.AccessLog).
+aging, Cherkasova 1998) from the statistics of an [`xdol.access.AccessLog`](xdol.access.html.md#xdol.access.AccessLog), whose
+clock is the store’s clock.
 
 Verbs are free functions, store first: [`sweep()`](#xdol.tiering.sweep), [`pin()`](#xdol.tiering.pin), `unpin()`,
 `status()`, [`prefetch()`](#xdol.tiering.prefetch), [`local_paths()`](#xdol.tiering.local_paths).
+
+Values must support `len` (their size in bytes): `__setitem__` raises `TypeError`
+before writing anything otherwise. A value read from `cold` without `len` counts
+as size 0. Single-threaded: there is no locking.
 
 ```pycon
 >>> hot, cold = {}, {}
@@ -23,13 +28,13 @@ Verbs are free functions, store first: [`sweep()`](#xdol.tiering.sweep), [`pin()
 
 ### Functions
 
-| [`local_paths`](#xdol.tiering.local_paths)(store)    | Read-only `{key: real file path}`; materialises each key into `hot`.   |
-|------------------------------------------------------------------------|------------------------------------------------------------------------|
-| [`pin`](#xdol.tiering.pin)(store, key)       | Protect `key`'s hot copy from release (persisted in the tracker).      |
-| [`prefetch`](#xdol.tiering.prefetch)(store, keys) | Admit `keys` to hot regardless of policy.                              |
-| `status`(store)                                                        |                                                                        |
-| [`sweep`](#xdol.tiering.sweep)(store)          | Release hot copies, lowest priority first, down to the low watermark.  |
-| `unpin`(store, key)                                                    |                                                                        |
+| [`local_paths`](#xdol.tiering.local_paths)(store)          | Read-only `{key: real file path}`; materialises each key into `hot`.   |
+|------------------------------------------------------------------------------|------------------------------------------------------------------------|
+| [`pin`](#xdol.tiering.pin)(store, key)             | Protect `key`'s hot copy from release (persisted in the tracker).      |
+| [`prefetch`](#xdol.tiering.prefetch)(store, keys)       | Admit `keys` to hot regardless of policy, as reads served from cold.   |
+| `status`(store)                                                              |                                                                        |
+| [`sweep`](#xdol.tiering.sweep)(store, \*[, exclude]) | Release hot copies, lowest priority first, down to the low watermark.  |
+| `unpin`(store, key)                                                          |                                                                        |
 
 ### Classes
 
@@ -52,9 +57,19 @@ Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 Greedy-Dual-Size-Frequency with aging, plus pins, minimum residency and
 second-hit admission.
 
-Priority `H = L + F * cost(size) / size` with `F = reads + writes`,
-`cost(size) = cost_per_request + cost_per_byte * size` and `L` the H of the last
-released key (per process; resets at restart).
+Each hot key carries `H = L + F * cost(size) / size`, fixed when it is accessed,
+with `F` its accesses since admission to hot, `cost(size) = cost_per_request +
+cost_per_byte * size` and `L` the H of the last released key at that time
+(per process; resets at restart). Releasing the lowest H raises `L`, so a key
+not accessed for a while loses to newer ones however often it was read. A key
+already hot when this process first sees it is seeded with its logged frequency.
+
+#### priority(frequency, size)
+
+H of a key accessed now with this frequency and size.
+
+* **Return type:**
+  [`float`](https://docs.python.org/3/builtins/functions.html#float)
 
 ### *exception* xdol.tiering.HotWriteError
 
@@ -70,19 +85,40 @@ Bases: [`Protocol`](https://docs.python.org/3/library/typing.html#typing.Protoco
 
 Decides what enters and leaves the hot tier.
 
+#### on_hot_access(key, stats, , admitted)
+
+`key` was accessed in hot; `admitted`: it was not there before.
+
+* **Return type:**
+  [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
+#### on_hot_drop(key)
+
+`key` left hot (released, deleted or overwritten with no hot copy).
+
+* **Return type:**
+  [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
 ### *class* xdol.tiering.SweepReport(keys_released, bytes_before, bytes_after)
 
 Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
-### *class* xdol.tiering.TieredStore(hot, cold, \*, budget_bytes, policy=None, tracker=None, clock=<built-in function time>)
+### *class* xdol.tiering.TieredStore(hot, cold, , budget_bytes, policy=None, tracker=None)
 
 Bases: [`MutableMapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping)
 
 Bounded hot store over a cold source of truth. See the module docstring.
 
 * **Parameters:**
-  **budget_bytes** ([`int`](https://docs.python.org/3/builtins/functions.html#int) | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – `None`: hot is a full mirror (never released, every read miss
-  admitted); `0`: cold-only; `> 0`: bounded.
+  * **budget_bytes** ([`int`](https://docs.python.org/3/builtins/functions.html#int) | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – `None`: hot is a full mirror (never released, every read miss
+    admitted); `0`: cold-only; `> 0`: bounded.
+  * **policy** ([`PlacementPolicy`](#xdol.tiering.PlacementPolicy) | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – a [`PlacementPolicy`](#xdol.tiering.PlacementPolicy); default [`GdsfPolicy`](#xdol.tiering.GdsfPolicy).
+  * **tracker** ([`AccessLog`](xdol.access.html.md#xdol.access.AccessLog) | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – an `AccessLog` (its `clock` is the store’s clock); default
+    [`xdol.access.default_access_log_for()`](xdol.access.html.md#xdol.access.default_access_log_for) `(hot)`.
+
+Keys already in `hot` at construction are not recorded as accesses. Their size
+comes from the tracker, else from the file size when `hot` is file-backed, else
+counts as 0 until the key’s next hot hit.
 
 ### *exception* xdol.tiering.TieringError
 
@@ -94,7 +130,8 @@ Base class of tiering errors.
 
 Read-only `{key: real file path}`; materialises each key into `hot`.
 
-Requires `hot` to expose `rootdir` (raises `TypeError` otherwise).
+Requires `hot` to expose `rootdir` (raises `TypeError` otherwise); raises
+`FileNotFoundError` if the file is not there after materialisation.
 
 * **Return type:**
   [`Mapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping)
@@ -108,16 +145,19 @@ Protect `key`’s hot copy from release (persisted in the tracker).
 
 ### xdol.tiering.prefetch(store, keys)
 
-Admit `keys` to hot regardless of policy.
+Admit `keys` to hot regardless of policy, as reads served from cold.
+
+The release this may trigger never releases `keys`.
 
 * **Return type:**
   [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
-### xdol.tiering.sweep(store)
+### xdol.tiering.sweep(store, , exclude=())
 
 Release hot copies, lowest priority first, down to the low watermark.
 
-Never touches `cold`. Warns if every remaining key is protected.
+Never touches `cold`, nor the keys in `exclude`. Warns if every remaining key
+is protected.
 
 * **Return type:**
   [`SweepReport`](#xdol.tiering.SweepReport)

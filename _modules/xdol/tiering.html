@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../_static/documentation_options.js?v=b3d22ae5"></script>
+    <script src="../../_static/documentation_options.js?v=842aa08f"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -411,7 +411,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.21" />
+  <meta name="docsearch:version" content="0.1.22" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -704,10 +704,15 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">``cold`` first, then ``hot``; reads are served from ``hot`` when present, else from</span>
 <span class="sd">``cold`` (and admitted to ``hot`` when the policy says so). Placement is decided by a</span>
 <span class="sd">:class:`PlacementPolicy` (default :class:`GdsfPolicy`: Greedy-Dual-Size-Frequency with</span>
-<span class="sd">aging, Cherkasova 1998) from the statistics of an :class:`xdol.access.AccessLog`.</span>
+<span class="sd">aging, Cherkasova 1998) from the statistics of an :class:`xdol.access.AccessLog`, whose</span>
+<span class="sd">clock is the store's clock.</span>
 
 <span class="sd">Verbs are free functions, store first: :func:`sweep`, :func:`pin`, :func:`unpin`,</span>
 <span class="sd">:func:`status`, :func:`prefetch`, :func:`local_paths`.</span>
+
+<span class="sd">Values must support ``len`` (their size in bytes): ``__setitem__`` raises ``TypeError``</span>
+<span class="sd">before writing anything otherwise. A value read from ``cold`` without ``len`` counts</span>
+<span class="sd">as size 0. Single-threaded: there is no locking.</span>
 
 <span class="sd">&gt;&gt;&gt; hot, cold = {}, {}</span>
 <span class="sd">&gt;&gt;&gt; store = TieredStore(hot, cold, budget_bytes=None, tracker=AccessLog())</span>
@@ -721,13 +726,12 @@ window.runMermaid = runMermaid;</script>
 <span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">Iterator</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">MutableMapping</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span><span class="p">,</span> <span class="n">field</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">Iterator</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">MutableMapping</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="n">replace</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Protocol</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">xdol.access</span><span class="w"> </span><span class="kn">import</span> <span class="n">AccessLog</span><span class="p">,</span> <span class="n">AccessStats</span><span class="p">,</span> <span class="n">default_access_log_for</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">xdol.access</span><span class="w"> </span><span class="kn">import</span> <span class="n">AccessLog</span><span class="p">,</span> <span class="n">AccessStats</span><span class="p">,</span> <span class="n">default_access_log_for</span><span class="p">,</span> <span class="n">value_size</span>
 
 
 <div class="viewcode-block" id="TieringError">
@@ -747,6 +751,13 @@ window.runMermaid = runMermaid;</script>
 
 
 
+<span class="k">def</span><span class="w"> </span><span class="nf">_exceeds_watermark</span><span class="p">(</span>
+    <span class="n">hot_bytes</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">budget_bytes</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="n">watermark</span><span class="p">:</span> <span class="nb">float</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Whether ``hot_bytes &gt; watermark * budget_bytes``; never when unbounded."""</span>
+    <span class="k">return</span> <span class="n">budget_bytes</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">hot_bytes</span> <span class="o">&gt;</span> <span class="n">watermark</span> <span class="o">*</span> <span class="n">budget_bytes</span>
+
+
 <div class="viewcode-block" id="PlacementPolicy">
 <a class="viewcode-back" href="../../_autosummary/xdol.tiering.html#xdol.tiering.PlacementPolicy">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">PlacementPolicy</span><span class="p">(</span><span class="n">Protocol</span><span class="p">):</span>
@@ -756,6 +767,18 @@ window.runMermaid = runMermaid;</script>
     <span class="n">low_watermark</span><span class="p">:</span> <span class="nb">float</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">admit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">stats</span><span class="p">:</span> <span class="n">AccessStats</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">now</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span> <span class="o">...</span>
+
+<div class="viewcode-block" id="PlacementPolicy.on_hot_access">
+<a class="viewcode-back" href="../../_autosummary/xdol.tiering.html#xdol.tiering.PlacementPolicy.on_hot_access">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">on_hot_access</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">stats</span><span class="p">:</span> <span class="n">AccessStats</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">admitted</span><span class="p">:</span> <span class="nb">bool</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""``key`` was accessed in hot; ``admitted``: it was not there before."""</span></div>
+
+
+<div class="viewcode-block" id="PlacementPolicy.on_hot_drop">
+<a class="viewcode-back" href="../../_autosummary/xdol.tiering.html#xdol.tiering.PlacementPolicy.on_hot_drop">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">on_hot_drop</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""``key`` left hot (released, deleted or overwritten with no hot copy)."""</span></div>
+
 
     <span class="k">def</span><span class="w"> </span><span class="nf">to_release</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
@@ -775,9 +798,12 @@ window.runMermaid = runMermaid;</script>
 <span class="w">    </span><span class="sd">"""Greedy-Dual-Size-Frequency with aging, plus pins, minimum residency and</span>
 <span class="sd">    second-hit admission.</span>
 
-<span class="sd">    Priority ``H = L + F * cost(size) / size`` with ``F = reads + writes``,</span>
-<span class="sd">    ``cost(size) = cost_per_request + cost_per_byte * size`` and ``L`` the H of the last</span>
-<span class="sd">    released key (per process; resets at restart).</span>
+<span class="sd">    Each hot key carries ``H = L + F * cost(size) / size``, fixed when it is accessed,</span>
+<span class="sd">    with ``F`` its accesses since admission to hot, ``cost(size) = cost_per_request +</span>
+<span class="sd">    cost_per_byte * size`` and ``L`` the H of the last released key at that time</span>
+<span class="sd">    (per process; resets at restart). Releasing the lowest H raises ``L``, so a key</span>
+<span class="sd">    not accessed for a while loses to newer ones however often it was read. A key</span>
+<span class="sd">    already hot when this process first sees it is seeded with its logged frequency.</span>
 <span class="sd">    """</span>
 
     <span class="n">high_watermark</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.85</span>
@@ -788,18 +814,46 @@ window.runMermaid = runMermaid;</script>
     <span class="n">cost_per_request</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span>
     <span class="n">cost_per_byte</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span>
     <span class="n">_aging</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">init</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="nb">repr</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">_entries</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">dict</span><span class="p">,</span> <span class="n">init</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="nb">repr</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>  <span class="c1"># k: (F, H)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">admit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">stats</span><span class="p">:</span> <span class="n">AccessStats</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">now</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">admit_after_reads</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">True</span>
         <span class="k">return</span> <span class="p">(</span>
             <span class="n">stats</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
             <span class="ow">and</span> <span class="n">stats</span><span class="o">.</span><span class="n">reads</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">admit_after_reads</span> <span class="o">-</span> <span class="mi">1</span>
             <span class="ow">and</span> <span class="n">now</span> <span class="o">-</span> <span class="n">stats</span><span class="o">.</span><span class="n">last_read</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">admit_window_s</span>
         <span class="p">)</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">priority</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">stats</span><span class="p">:</span> <span class="n">AccessStats</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
-        <span class="n">size</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">stats</span><span class="o">.</span><span class="n">size</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+<div class="viewcode-block" id="GdsfPolicy.priority">
+<a class="viewcode-back" href="../../_autosummary/xdol.tiering.html#xdol.tiering.GdsfPolicy.priority">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">priority</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">frequency</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">size</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""H of a key accessed now with this frequency and size."""</span>
+        <span class="n">size</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">size</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
         <span class="n">cost</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cost_per_request</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">cost_per_byte</span> <span class="o">*</span> <span class="n">size</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_aging</span> <span class="o">+</span> <span class="n">stats</span><span class="o">.</span><span class="n">frequency</span> <span class="o">*</span> <span class="n">cost</span> <span class="o">/</span> <span class="n">size</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_aging</span> <span class="o">+</span> <span class="n">frequency</span> <span class="o">*</span> <span class="n">cost</span> <span class="o">/</span> <span class="n">size</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_set</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">frequency</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">size</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+        <span class="n">h</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">priority</span><span class="p">(</span><span class="n">frequency</span><span class="p">,</span> <span class="n">size</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_entries</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">frequency</span><span class="p">,</span> <span class="n">h</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">h</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">on_hot_access</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">stats</span><span class="p">:</span> <span class="n">AccessStats</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">admitted</span><span class="p">:</span> <span class="nb">bool</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">admitted</span><span class="p">:</span>
+            <span class="n">f</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="k">elif</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_entries</span><span class="p">:</span>
+            <span class="n">f</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_entries</span><span class="p">[</span><span class="n">key</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">f</span> <span class="o">=</span> <span class="n">stats</span><span class="o">.</span><span class="n">frequency</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_set</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">stats</span><span class="o">.</span><span class="n">size</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">on_hot_drop</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_entries</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_h</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">stats</span><span class="p">:</span> <span class="n">AccessStats</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+        <span class="n">entry</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_entries</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">entry</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="k">if</span> <span class="n">entry</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">_set</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">stats</span><span class="o">.</span><span class="n">frequency</span><span class="p">,</span> <span class="n">stats</span><span class="o">.</span><span class="n">size</span><span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">is_protected</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">stats</span><span class="p">:</span> <span class="n">AccessStats</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">now</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">stats</span><span class="o">.</span><span class="n">pinned</span> <span class="ow">or</span> <span class="n">now</span> <span class="o">-</span> <span class="n">stats</span><span class="o">.</span><span class="n">last_access</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_residency_s</span>
@@ -812,21 +866,23 @@ window.runMermaid = runMermaid;</script>
         <span class="n">budget_bytes</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
         <span class="n">now</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">:</span>
-        <span class="k">if</span> <span class="n">hot_bytes</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">high_watermark</span> <span class="o">*</span> <span class="n">budget_bytes</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">_exceeds_watermark</span><span class="p">(</span><span class="n">hot_bytes</span><span class="p">,</span> <span class="n">budget_bytes</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">high_watermark</span><span class="p">):</span>
             <span class="k">return</span>
+        <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_entries</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="o">-</span> <span class="n">hot_stats</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">_entries</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
         <span class="n">ranked</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span>
             <span class="p">(</span>
-                <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">priority</span><span class="p">(</span><span class="n">st</span><span class="p">),</span> <span class="n">k</span><span class="p">)</span>
+                <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_h</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">st</span><span class="p">),</span> <span class="n">k</span><span class="p">)</span>
                 <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">st</span> <span class="ow">in</span> <span class="n">hot_stats</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
                 <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_protected</span><span class="p">(</span><span class="n">st</span><span class="p">,</span> <span class="n">now</span><span class="o">=</span><span class="n">now</span><span class="p">)</span>
             <span class="p">),</span>
-            <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">pk</span><span class="p">:</span> <span class="n">pk</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+            <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">hk</span><span class="p">:</span> <span class="n">hk</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
         <span class="p">)</span>
         <span class="k">for</span> <span class="n">h</span><span class="p">,</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">ranked</span><span class="p">:</span>
-            <span class="c1"># Lazy: the consumer stops pulling at the low watermark, so the aging</span>
-            <span class="c1"># value reflects the last key actually released.</span>
+            <span class="c1"># Lazy: the consumer stops pulling at the low watermark, so L reflects</span>
+            <span class="c1"># the last key actually released.</span>
             <span class="k">yield</span> <span class="n">k</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_aging</span> <span class="o">=</span> <span class="n">h</span></div>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_aging</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_aging</span><span class="p">,</span> <span class="n">h</span><span class="p">)</span></div>
 
 
 
@@ -840,6 +896,30 @@ window.runMermaid = runMermaid;</script>
 
 
 
+<span class="k">def</span><span class="w"> </span><span class="nf">_hot_path</span><span class="p">(</span><span class="n">hot</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">hot</span><span class="p">,</span> <span class="s2">"_id_of_key"</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">hot</span><span class="o">.</span><span class="n">_id_of_key</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">hot</span><span class="o">.</span><span class="n">rootdir</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_file_size</span><span class="p">(</span><span class="n">hot</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Size of ``key``'s file when ``hot`` is file-backed, without reading it."""</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">getsize</span><span class="p">(</span><span class="n">_hot_path</span><span class="p">(</span><span class="n">hot</span><span class="p">,</span> <span class="n">key</span><span class="p">))</span>
+    <span class="k">except</span> <span class="p">(</span><span class="ne">OSError</span><span class="p">,</span> <span class="ne">TypeError</span><span class="p">,</span> <span class="ne">AttributeError</span><span class="p">):</span>
+        <span class="k">return</span> <span class="kc">None</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_require_size</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+            <span class="s2">"TieredStore values must support len() (their size in bytes); "</span>
+            <span class="sa">f</span><span class="s2">"got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">v</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">"</span>
+        <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="kc">None</span>
+
+
 <div class="viewcode-block" id="TieredStore">
 <a class="viewcode-back" href="../../_autosummary/xdol.tiering.html#xdol.tiering.TieredStore">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">TieredStore</span><span class="p">(</span><span class="n">MutableMapping</span><span class="p">):</span>
@@ -847,6 +927,13 @@ window.runMermaid = runMermaid;</script>
 
 <span class="sd">    :param budget_bytes: ``None``: hot is a full mirror (never released, every read miss</span>
 <span class="sd">        admitted); ``0``: cold-only; ``&gt; 0``: bounded.</span>
+<span class="sd">    :param policy: a :class:`PlacementPolicy`; default :class:`GdsfPolicy`.</span>
+<span class="sd">    :param tracker: an :class:`AccessLog` (its ``clock`` is the store's clock); default</span>
+<span class="sd">        :func:`xdol.access.default_access_log_for` ``(hot)``.</span>
+
+<span class="sd">    Keys already in ``hot`` at construction are not recorded as accesses. Their size</span>
+<span class="sd">    comes from the tracker, else from the file size when ``hot`` is file-backed, else</span>
+<span class="sd">    counts as 0 until the key's next hot hit.</span>
 <span class="sd">    """</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
@@ -857,23 +944,18 @@ window.runMermaid = runMermaid;</script>
         <span class="n">budget_bytes</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">policy</span><span class="p">:</span> <span class="n">PlacementPolicy</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">tracker</span><span class="p">:</span> <span class="n">AccessLog</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">clock</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[],</span> <span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_hot</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cold</span> <span class="o">=</span> <span class="n">hot</span><span class="p">,</span> <span class="n">cold</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_budget</span> <span class="o">=</span> <span class="n">budget_bytes</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_policy</span> <span class="o">=</span> <span class="n">GdsfPolicy</span><span class="p">()</span> <span class="k">if</span> <span class="n">policy</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">policy</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_tracker</span> <span class="o">=</span> <span class="n">default_access_log_for</span><span class="p">(</span><span class="n">hot</span><span class="p">)</span> <span class="k">if</span> <span class="n">tracker</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">tracker</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_clock</span> <span class="o">=</span> <span class="n">clock</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_hot_sizes</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_hot_bytes</span> <span class="o">=</span> <span class="mi">0</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_last_sweep</span><span class="p">:</span> <span class="n">SweepReport</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">hot</span><span class="p">):</span>
             <span class="n">st</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tracker</span><span class="o">.</span><span class="n">stats</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">st</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="n">size</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">hot</span><span class="p">[</span><span class="n">k</span><span class="p">])</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">_tracker</span><span class="o">.</span><span class="n">record</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="s2">"write"</span><span class="p">,</span> <span class="n">size</span><span class="p">)</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">size</span> <span class="o">=</span> <span class="n">st</span><span class="o">.</span><span class="n">size</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_hot_sizes</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">size</span>
+            <span class="n">known</span> <span class="o">=</span> <span class="n">st</span><span class="o">.</span><span class="n">size</span> <span class="k">if</span> <span class="n">st</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="mi">0</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_set_size</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">known</span> <span class="ow">or</span> <span class="n">_file_size</span><span class="p">(</span><span class="n">hot</span><span class="p">,</span> <span class="n">k</span><span class="p">)</span> <span class="ow">or</span> <span class="mi">0</span><span class="p">)</span>
 
     <span class="n">hot</span> <span class="o">=</span> <span class="nb">property</span><span class="p">(</span><span class="k">lambda</span> <span class="bp">self</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_hot</span><span class="p">)</span>
     <span class="n">cold</span> <span class="o">=</span> <span class="nb">property</span><span class="p">(</span><span class="k">lambda</span> <span class="bp">self</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cold</span><span class="p">)</span>
@@ -882,56 +964,81 @@ window.runMermaid = runMermaid;</script>
     <span class="n">budget_bytes</span> <span class="o">=</span> <span class="nb">property</span><span class="p">(</span><span class="k">lambda</span> <span class="bp">self</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_budget</span><span class="p">)</span>
 
     <span class="c1"># -- private bookkeeping ------------------------------------------------</span>
-    <span class="nd">@property</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">_hot_bytes</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
-        <span class="k">return</span> <span class="nb">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_hot_sizes</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_now</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tracker</span><span class="o">.</span><span class="n">clock</span><span class="p">()</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">_put_hot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_set_size</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">size</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_hot_bytes</span> <span class="o">+=</span> <span class="n">size</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">_hot_sizes</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_hot_sizes</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">size</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_put_hot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">size</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Write ``k`` to hot; return whether it was newly admitted."""</span>
+        <span class="n">admitted</span> <span class="o">=</span> <span class="n">k</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_hot_sizes</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_hot</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_hot_sizes</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_set_size</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">size</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">admitted</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_drop_hot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_hot</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_hot_sizes</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">_hot</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>  <span class="c1"># not .pop: MutableMapping.pop reads the value first</span>
+        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+            <span class="k">pass</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_hot_bytes</span> <span class="o">-=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_hot_sizes</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_policy</span><span class="o">.</span><span class="n">on_hot_drop</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">_check_release</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="k">if</span> <span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_budget</span>
-            <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_hot_bytes</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_policy</span><span class="o">.</span><span class="n">high_watermark</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_budget</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_touched</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">admitted</span><span class="p">:</span> <span class="nb">bool</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_policy</span><span class="o">.</span><span class="n">on_hot_access</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tracker</span><span class="o">.</span><span class="n">stats</span><span class="p">(</span><span class="n">k</span><span class="p">),</span> <span class="n">admitted</span><span class="o">=</span><span class="n">admitted</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_check_release</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">exclude</span><span class="p">:</span> <span class="n">Iterable</span> <span class="o">=</span> <span class="p">())</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_budget</span> <span class="ow">and</span> <span class="n">_exceeds_watermark</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_hot_bytes</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_budget</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_policy</span><span class="o">.</span><span class="n">high_watermark</span>
         <span class="p">):</span>
-            <span class="n">sweep</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+            <span class="n">sweep</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">exclude</span><span class="o">=</span><span class="n">exclude</span><span class="p">)</span>
 
     <span class="c1"># -- MutableMapping -----------------------------------------------------</span>
     <span class="k">def</span><span class="w"> </span><span class="fm">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
+        <span class="n">size</span> <span class="o">=</span> <span class="n">_require_size</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_cold</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_budget</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="k">try</span><span class="p">:</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">_put_hot</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
-            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">_drop_hot</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">_tracker</span><span class="o">.</span><span class="n">record</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="s2">"write"</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">v</span><span class="p">))</span>
-                <span class="k">raise</span> <span class="n">HotWriteError</span><span class="p">(</span><span class="n">k</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">e</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_tracker</span><span class="o">.</span><span class="n">record</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="s2">"write"</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">v</span><span class="p">))</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_budget</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_drop_hot</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>  <span class="c1"># never leave a stale hot copy behind</span>
+                <span class="n">admitted</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">admitted</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_put_hot</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">size</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_tracker</span><span class="o">.</span><span class="n">record</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="s2">"write"</span><span class="p">,</span> <span class="n">size</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_drop_hot</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="n">HotWriteError</span><span class="p">(</span><span class="n">k</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">e</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_tracker</span><span class="o">.</span><span class="n">record</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="s2">"write"</span><span class="p">,</span> <span class="n">size</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">admitted</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_touched</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">admitted</span><span class="o">=</span><span class="n">admitted</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_check_release</span><span class="p">()</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__delitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">):</span>
-        <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cold</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
+        <span class="c1"># Hot first: a failure then leaves the record in cold, never a deleted</span>
+        <span class="c1"># record still served from hot.</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_drop_hot</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+        <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cold</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_tracker</span><span class="o">.</span><span class="n">record</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="s2">"delete"</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">):</span>
-        <span class="n">now</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_clock</span><span class="p">()</span>
-        <span class="n">served_from</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">now</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_now</span><span class="p">()</span>
+        <span class="n">served_from</span><span class="p">,</span> <span class="n">admitted</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">False</span>
         <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_hot</span><span class="p">:</span>
             <span class="k">try</span><span class="p">:</span>
                 <span class="n">v</span><span class="p">,</span> <span class="n">served_from</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_hot</span><span class="p">[</span><span class="n">k</span><span class="p">],</span> <span class="s2">"hot"</span>
             <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">_hot_sizes</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_drop_hot</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">served_from</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">v</span><span class="p">,</span> <span class="n">served_from</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cold</span><span class="p">[</span><span class="n">k</span><span class="p">],</span> <span class="s2">"cold"</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_admits</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">now</span><span class="p">):</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">_admit</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_tracker</span><span class="o">.</span><span class="n">record</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="s2">"read"</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">v</span><span class="p">),</span> <span class="n">served_from</span><span class="o">=</span><span class="n">served_from</span><span class="p">)</span>
+                <span class="n">admitted</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_admit</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
+        <span class="n">size</span> <span class="o">=</span> <span class="n">value_size</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">served_from</span> <span class="o">==</span> <span class="s2">"hot"</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_set_size</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">size</span><span class="p">)</span>  <span class="c1"># also learns sizes unknown at startup</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_tracker</span><span class="o">.</span><span class="n">record</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="s2">"read"</span><span class="p">,</span> <span class="n">size</span><span class="p">,</span> <span class="n">served_from</span><span class="o">=</span><span class="n">served_from</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">served_from</span> <span class="o">==</span> <span class="s2">"hot"</span> <span class="ow">or</span> <span class="n">admitted</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_touched</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">admitted</span><span class="o">=</span><span class="n">admitted</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_check_release</span><span class="p">()</span>
         <span class="k">return</span> <span class="n">v</span>
 
@@ -942,12 +1049,13 @@ window.runMermaid = runMermaid;</script>
             <span class="k">return</span> <span class="kc">False</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_policy</span><span class="o">.</span><span class="n">admit</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tracker</span><span class="o">.</span><span class="n">stats</span><span class="p">(</span><span class="n">k</span><span class="p">),</span> <span class="n">now</span><span class="o">=</span><span class="n">now</span><span class="p">)</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">_admit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_admit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
         <span class="k">try</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_put_hot</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_put_hot</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">value_size</span><span class="p">(</span><span class="n">v</span><span class="p">))</span>
         <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_drop_hot</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
             <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Could not admit </span><span class="si">{</span><span class="n">k</span><span class="si">!r}</span><span class="s2"> to the hot tier: </span><span class="si">{</span><span class="n">e</span><span class="si">!r}</span><span class="s2">"</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">False</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__contains__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_hot</span> <span class="ow">or</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cold</span>
@@ -965,37 +1073,35 @@ window.runMermaid = runMermaid;</script>
 
 <div class="viewcode-block" id="sweep">
 <a class="viewcode-back" href="../../_autosummary/xdol.tiering.html#xdol.tiering.sweep">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">sweep</span><span class="p">(</span><span class="n">store</span><span class="p">:</span> <span class="n">TieredStore</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">SweepReport</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">sweep</span><span class="p">(</span><span class="n">store</span><span class="p">:</span> <span class="n">TieredStore</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">exclude</span><span class="p">:</span> <span class="n">Iterable</span> <span class="o">=</span> <span class="p">())</span> <span class="o">-&gt;</span> <span class="n">SweepReport</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Release hot copies, lowest priority first, down to the low watermark.</span>
 
-<span class="sd">    Never touches ``cold``. Warns if every remaining key is protected.</span>
+<span class="sd">    Never touches ``cold``, nor the keys in ``exclude``. Warns if every remaining key</span>
+<span class="sd">    is protected.</span>
 <span class="sd">    """</span>
     <span class="n">before</span> <span class="o">=</span> <span class="n">store</span><span class="o">.</span><span class="n">_hot_bytes</span>
     <span class="n">budget</span> <span class="o">=</span> <span class="n">store</span><span class="o">.</span><span class="n">_budget</span>
     <span class="n">released</span><span class="p">:</span> <span class="nb">list</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="k">if</span> <span class="n">budget</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">target</span> <span class="o">=</span> <span class="n">store</span><span class="o">.</span><span class="n">_policy</span><span class="o">.</span><span class="n">low_watermark</span> <span class="o">*</span> <span class="n">budget</span>
-        <span class="n">hot_stats</span> <span class="o">=</span> <span class="p">{</span>
-            <span class="n">k</span><span class="p">:</span> <span class="n">store</span><span class="o">.</span><span class="n">_tracker</span><span class="o">.</span><span class="n">stats</span><span class="p">(</span><span class="n">k</span><span class="p">)</span> <span class="ow">or</span> <span class="n">AccessStats</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="n">size</span><span class="p">)</span>
-            <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">size</span> <span class="ow">in</span> <span class="n">store</span><span class="o">.</span><span class="n">_hot_sizes</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
-        <span class="p">}</span>
-        <span class="n">reached</span> <span class="o">=</span> <span class="n">store</span><span class="o">.</span><span class="n">_hot_bytes</span> <span class="o">&lt;=</span> <span class="n">target</span>
+        <span class="n">exclude</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">exclude</span><span class="p">)</span>
+        <span class="n">hot_stats</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">size</span> <span class="ow">in</span> <span class="n">store</span><span class="o">.</span><span class="n">_hot_sizes</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">st</span> <span class="o">=</span> <span class="n">store</span><span class="o">.</span><span class="n">_tracker</span><span class="o">.</span><span class="n">stats</span><span class="p">(</span><span class="n">k</span><span class="p">)</span> <span class="ow">or</span> <span class="n">AccessStats</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="n">size</span><span class="p">)</span>
+            <span class="c1"># excluded keys are presented to the policy as pinned</span>
+            <span class="n">hot_stats</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">replace</span><span class="p">(</span><span class="n">st</span><span class="p">,</span> <span class="n">pinned</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">exclude</span> <span class="k">else</span> <span class="n">st</span>
         <span class="n">candidates</span> <span class="o">=</span> <span class="n">store</span><span class="o">.</span><span class="n">_policy</span><span class="o">.</span><span class="n">to_release</span><span class="p">(</span>
-            <span class="n">hot_stats</span><span class="p">,</span>
-            <span class="n">hot_bytes</span><span class="o">=</span><span class="n">before</span><span class="p">,</span>
-            <span class="n">budget_bytes</span><span class="o">=</span><span class="n">budget</span><span class="p">,</span>
-            <span class="n">now</span><span class="o">=</span><span class="n">store</span><span class="o">.</span><span class="n">_clock</span><span class="p">(),</span>
+            <span class="n">hot_stats</span><span class="p">,</span> <span class="n">hot_bytes</span><span class="o">=</span><span class="n">before</span><span class="p">,</span> <span class="n">budget_bytes</span><span class="o">=</span><span class="n">budget</span><span class="p">,</span> <span class="n">now</span><span class="o">=</span><span class="n">store</span><span class="o">.</span><span class="n">_now</span><span class="p">()</span>
         <span class="p">)</span>
         <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">candidates</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">store</span><span class="o">.</span><span class="n">_hot_bytes</span> <span class="o">&lt;=</span> <span class="n">target</span><span class="p">:</span>
-                <span class="n">reached</span> <span class="o">=</span> <span class="kc">True</span>
                 <span class="k">break</span>
             <span class="n">store</span><span class="o">.</span><span class="n">_drop_hot</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
             <span class="n">store</span><span class="o">.</span><span class="n">_tracker</span><span class="o">.</span><span class="n">record</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="s2">"release"</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
             <span class="n">released</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">reached</span> <span class="o">=</span> <span class="n">store</span><span class="o">.</span><span class="n">_hot_bytes</span> <span class="o">&lt;=</span> <span class="n">target</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">reached</span> <span class="ow">and</span> <span class="n">before</span> <span class="o">&gt;</span> <span class="n">store</span><span class="o">.</span><span class="n">_policy</span><span class="o">.</span><span class="n">high_watermark</span> <span class="o">*</span> <span class="n">budget</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">store</span><span class="o">.</span><span class="n">_hot_bytes</span> <span class="o">&gt;</span> <span class="n">target</span> <span class="ow">and</span> <span class="n">_exceeds_watermark</span><span class="p">(</span>
+            <span class="n">before</span><span class="p">,</span> <span class="n">budget</span><span class="p">,</span> <span class="n">store</span><span class="o">.</span><span class="n">_policy</span><span class="o">.</span><span class="n">high_watermark</span>
+        <span class="p">):</span>
             <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
                 <span class="s2">"sweep could not reach the low watermark: remaining keys are protected."</span>
             <span class="p">)</span>
@@ -1020,11 +1126,19 @@ window.runMermaid = runMermaid;</script>
 <div class="viewcode-block" id="prefetch">
 <a class="viewcode-back" href="../../_autosummary/xdol.tiering.html#xdol.tiering.prefetch">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">prefetch</span><span class="p">(</span><span class="n">store</span><span class="p">:</span> <span class="n">TieredStore</span><span class="p">,</span> <span class="n">keys</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""Admit ``keys`` to hot regardless of policy."""</span>
+<span class="w">    </span><span class="sd">"""Admit ``keys`` to hot regardless of policy, as reads served from cold.</span>
+
+<span class="sd">    The release this may trigger never releases ``keys``.</span>
+<span class="sd">    """</span>
+    <span class="n">keys</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">keys</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">keys</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">k</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">store</span><span class="o">.</span><span class="n">_hot_sizes</span><span class="p">:</span>
-            <span class="n">store</span><span class="o">.</span><span class="n">_put_hot</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">store</span><span class="o">.</span><span class="n">_cold</span><span class="p">[</span><span class="n">k</span><span class="p">])</span>
-    <span class="n">store</span><span class="o">.</span><span class="n">_check_release</span><span class="p">()</span></div>
+            <span class="n">v</span> <span class="o">=</span> <span class="n">store</span><span class="o">.</span><span class="n">_cold</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
+            <span class="n">size</span> <span class="o">=</span> <span class="n">value_size</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+            <span class="n">store</span><span class="o">.</span><span class="n">_put_hot</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">size</span><span class="p">)</span>
+            <span class="n">store</span><span class="o">.</span><span class="n">_tracker</span><span class="o">.</span><span class="n">record</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="s2">"read"</span><span class="p">,</span> <span class="n">size</span><span class="p">,</span> <span class="n">served_from</span><span class="o">=</span><span class="s2">"cold"</span><span class="p">)</span>
+            <span class="n">store</span><span class="o">.</span><span class="n">_touched</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">admitted</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">store</span><span class="o">.</span><span class="n">_check_release</span><span class="p">(</span><span class="n">exclude</span><span class="o">=</span><span class="n">keys</span><span class="p">)</span></div>
 
 
 
@@ -1035,9 +1149,7 @@ window.runMermaid = runMermaid;</script>
         <span class="s2">"budget_bytes"</span><span class="p">:</span> <span class="n">store</span><span class="o">.</span><span class="n">_budget</span><span class="p">,</span>
         <span class="s2">"hot_keys"</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">store</span><span class="o">.</span><span class="n">_hot_sizes</span><span class="p">),</span>
         <span class="s2">"cold_keys"</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">store</span><span class="o">.</span><span class="n">_cold</span><span class="p">),</span>
-        <span class="s2">"pinned"</span><span class="p">:</span> <span class="nb">sorted</span><span class="p">(</span>
-            <span class="p">(</span><span class="n">k</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">store</span><span class="o">.</span><span class="n">_tracker</span> <span class="k">if</span> <span class="n">store</span><span class="o">.</span><span class="n">_tracker</span><span class="o">.</span><span class="n">stats</span><span class="p">(</span><span class="n">k</span><span class="p">)</span><span class="o">.</span><span class="n">pinned</span><span class="p">),</span> <span class="n">key</span><span class="o">=</span><span class="nb">str</span>
-        <span class="p">),</span>
+        <span class="s2">"pinned"</span><span class="p">:</span> <span class="nb">sorted</span><span class="p">((</span><span class="n">k</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">st</span> <span class="ow">in</span> <span class="n">store</span><span class="o">.</span><span class="n">_tracker</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">st</span><span class="o">.</span><span class="n">pinned</span><span class="p">),</span> <span class="n">key</span><span class="o">=</span><span class="nb">str</span><span class="p">),</span>
         <span class="s2">"last_sweep"</span><span class="p">:</span> <span class="kc">None</span> <span class="k">if</span> <span class="n">last</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="nb">vars</span><span class="p">(</span><span class="n">last</span><span class="p">)</span><span class="o">.</span><span class="n">copy</span><span class="p">(),</span>
     <span class="p">}</span>
 
@@ -1046,15 +1158,12 @@ window.runMermaid = runMermaid;</script>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">store</span><span class="p">:</span> <span class="n">TieredStore</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_store</span> <span class="o">=</span> <span class="n">store</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">_path</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-        <span class="n">hot</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_store</span><span class="o">.</span><span class="n">_hot</span>
-        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">hot</span><span class="p">,</span> <span class="s2">"_id_of_key"</span><span class="p">):</span>
-            <span class="k">return</span> <span class="n">hot</span><span class="o">.</span><span class="n">_id_of_key</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">hot</span><span class="o">.</span><span class="n">rootdir</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span>
-
     <span class="k">def</span><span class="w"> </span><span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
         <span class="n">prefetch</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_store</span><span class="p">,</span> <span class="p">[</span><span class="n">key</span><span class="p">])</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_path</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+        <span class="n">path</span> <span class="o">=</span> <span class="n">_hot_path</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_store</span><span class="o">.</span><span class="n">_hot</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">FileNotFoundError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">key</span><span class="si">!r}</span><span class="s2"> was not materialised at </span><span class="si">{</span><span class="n">path</span><span class="si">!r}</span><span class="s2">"</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">path</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="nb">iter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_store</span><span class="p">)</span>
@@ -1068,7 +1177,8 @@ window.runMermaid = runMermaid;</script>
 <span class="k">def</span><span class="w"> </span><span class="nf">local_paths</span><span class="p">(</span><span class="n">store</span><span class="p">:</span> <span class="n">TieredStore</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Mapping</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Read-only ``{key: real file path}``; materialises each key into ``hot``.</span>
 
-<span class="sd">    Requires ``hot`` to expose ``rootdir`` (raises ``TypeError`` otherwise).</span>
+<span class="sd">    Requires ``hot`` to expose ``rootdir`` (raises ``TypeError`` otherwise); raises</span>
+<span class="sd">    ``FileNotFoundError`` if the file is not there after materialisation.</span>
 <span class="sd">    """</span>
     <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">store</span><span class="o">.</span><span class="n">_hot</span><span class="p">,</span> <span class="s2">"rootdir"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">"local_paths requires a hot store with a 'rootdir'"</span><span class="p">)</span>

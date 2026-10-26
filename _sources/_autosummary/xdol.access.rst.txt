@@ -11,6 +11,7 @@ xdol.access
       default_access_log_for
       merge_stats
       track_access
+      value_size
    
    .. rubric:: Classes
 
