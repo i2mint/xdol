@@ -1,5 +1,5 @@
 {
-  "collection_duration_seconds": 3.400428533554077,
+  "collection_duration_seconds": 3.3692946434020996,
   "commit_message": "access: safe multi-process compaction, automatic compaction, delete tombstones (#23) (#43)\n\n* access: lock-guarded multi-process compaction, compaction while recording, delete tombstones (#23)\n\n* access: _LockedAppender (fork-safe, read-only lock fallback), tombstone line kind, merge_stats own-tombstone rule (review of #23)\n\n* access: tombstones wipe older late events, unstamped events follow the baseline, compaction only under a held lock, tracker never raises on compaction (re-review of #23)",
   "commit_sha": "54a87e1aa6052c4231820e3d4e6cbd7282dc1cd8",
   "metrics": {
@@ -11,19 +11,19 @@
       "statements_total": 0
     },
     "umpyre_stats": {
-      "comment_lines": 14713,
-      "comment_lines_ratio": 0.05553332830074734,
-      "docs_lines": 38614,
-      "empty_lines": 34211,
-      "empty_lines_ratio": 0.1291273495885861,
-      "files_analyzed": 587,
-      "function_lines": 117603,
-      "function_lines_ratio": 0.4438854080169095,
-      "mean_lines_per_function": 16.540506329113924,
-      "num_classes": 1684,
-      "num_functions": 7110,
+      "comment_lines": 14825,
+      "comment_lines_ratio": 0.05551935406555216,
+      "docs_lines": 38651,
+      "empty_lines": 34528,
+      "empty_lines_ratio": 0.12930672898316256,
+      "files_analyzed": 597,
+      "function_lines": 119118,
+      "function_lines_ratio": 0.4460947330577027,
+      "mean_lines_per_function": 16.539572341016385,
+      "num_classes": 1696,
+      "num_functions": 7202,
       "pypi_version": "0.1.30",
-      "total_lines": 264940
+      "total_lines": 267024
     },
     "wily": {
       "cyclomatic_avg": 0.0,
@@ -42,6 +42,6 @@
   },
   "python_version": "3.10",
   "schema_version": "1.0",
-  "timestamp": "2026-10-26T20:17:39.252524Z",
+  "timestamp": "2026-10-26T20:17:45.608833Z",
   "workflow_status": {}
 }
