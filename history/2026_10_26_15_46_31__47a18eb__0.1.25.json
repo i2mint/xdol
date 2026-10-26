@@ -1,0 +1,47 @@
+{
+  "collection_duration_seconds": 2.8430187702178955,
+  "commit_message": "access/tiering: typed, timestamp-ordered replay; budget 0 = no hot tier; GDSF restart seeding (#33)\n\n* access/tiering: typed replay, timestamp-ordered delete/pin, budget 0 = no hot tier, persist policy state (closes #29)\n\n* access/tiering: parse-sort-fold replay, drop policy-state meta, fresh GDSF seeding on restart (review of #29)\n\n* access: clamp clock, coerce sizes, unstamped lines after all earlier; stronger tests (re-review of #29)",
+  "commit_sha": "47a18eb62b3334feee0203b93ea2a2976744cdbf",
+  "metrics": {
+    "coverage": {
+      "branch_coverage": 0.0,
+      "error": "No coverage file found",
+      "line_coverage": 0.0,
+      "statements_covered": 0,
+      "statements_total": 0
+    },
+    "umpyre_stats": {
+      "comment_lines": 14812,
+      "comment_lines_ratio": 0.0555764006663765,
+      "docs_lines": 38521,
+      "empty_lines": 34440,
+      "empty_lines_ratio": 0.1292230110012157,
+      "files_analyzed": 597,
+      "function_lines": 118745,
+      "function_lines_ratio": 0.44554548319800685,
+      "mean_lines_per_function": 16.565987723214285,
+      "num_classes": 1694,
+      "num_functions": 7168,
+      "pypi_version": "0.1.25",
+      "total_lines": 266516
+    },
+    "wily": {
+      "cyclomatic_avg": 0.0,
+      "error": "wily report failed: Usage: wily report [OPTIONS] FILE [METRICS]...\nTry 'wily report --help' for help.\n\nError: Invalid value for '-f' / '--format': 'json' is not one of 'CONSOLE', 'HTML'.\n",
+      "files_analyzed": 0,
+      "maintainability_index": 0.0,
+      "total_loc": 0
+    },
+    "workflow_status": {
+      "last_run_status": "success",
+      "last_success_timestamp": "2026-10-26T15:45:06Z",
+      "recent_failure_count": 0,
+      "run_url": "https://github.com/i2mint/xdol/actions/runs/40352206501",
+      "total_runs_analyzed": 10
+    }
+  },
+  "python_version": "3.10",
+  "schema_version": "1.0",
+  "timestamp": "2026-10-26T15:46:30.374654Z",
+  "workflow_status": {}
+}
