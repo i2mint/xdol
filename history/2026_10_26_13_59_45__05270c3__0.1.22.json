@@ -1,0 +1,47 @@
+{
+  "collection_duration_seconds": 4.156550884246826,
+  "commit_message": "access/tiering: fix adversarial-review findings; real GDSF aging (review of #18, #20) (#28)\n\n* xdol.access: fix adversarial-review findings; AccessLog is a Mapping\n\n- Warn once when a key does not survive a JSON round trip; document str keys.\n- track_access never raises from tracking: size falls back to 0 without len.\n- An event without \"n\" keeps the size; replay is order-independent (max recency,\n  min first_seen, size from the latest access), consistent with merge_stats.\n- A torn last line gets a newline before the first append; the file is read in\n  binary and each line decoded inside the try (undecodable lines are skipped).\n- Unknown ops, and release/unpin on an unknown key, create no phantom entries.\n- AccessStats is frozen (no shared mutable state handed out).\n- AccessLog is a Mapping of key -> AccessStats (stats() kept as alias of get);\n  merge_stats takes Mappings, no duck typing.\n- track_access: clock/tag alongside a tracker is an error (no silent divergence).\n- compact() documents that it is safe only with no other writer.\n- Tests killing the reviewer's surviving mutants.\n\n* xdol.tiering: fix adversarial-review findings; real GDSF aging\n\n- budget_bytes=0: a write drops any hot copy instead of leaving it stale.\n- prefetch records a read served from cold and its release step never releases\n  the keys it was asked for (sweep(..., exclude=)); local_paths raises\n  FileNotFoundError if the file is still missing.\n- GDSF per Cherkasova: H = L + F*C/S fixed at access time, L := H of the\n  released key, F counts accesses since admission. Kept inside the policy via a\n  new PlacementPolicy.on_hot_access hook; keys already hot are seeded with their\n  logged frequency.\n- Running hot-bytes total instead of an O(n) sum per op.\n- TieredStore has no clock argument: it uses the tracker's clock.\n- Startup over an existing hot store records nothing and reads no values: sizes\n  come from the log, else the file size, else are learnt on the next hot hit.\n- admit_after_reads <= 1 always admits.\n- __setitem__ raises TypeError for a value without len before any write.\n- __delitem__ drops the hot copy before deleting from cold.\n- One exceeds_watermark helper; dead code removed; single-threaded documented.\n- Tests: aging, bounded local_paths, overwrite/delete bookkeeping, startup with\n  an existing hot store, admit_after_reads=1, item larger than budget, hot write\n  error state, no stray warning.\n\n* tests(tiering): hot Files use permanent deletion (Windows trash needs pywin32 and warns)\n\n* tiering/access: re-review cuts \u2014 on_hot_drop (no policy-entry leak), release never reads the value, AccessLog keeps identity, private _exceeds_watermark, one hot-bytes name",
+  "commit_sha": "05270c3d10331cea1ad4f32112973d12653ff1ba",
+  "metrics": {
+    "coverage": {
+      "branch_coverage": 0.0,
+      "error": "No coverage file found",
+      "line_coverage": 0.0,
+      "statements_covered": 0,
+      "statements_total": 0
+    },
+    "umpyre_stats": {
+      "comment_lines": 14812,
+      "comment_lines_ratio": 0.0556482274619419,
+      "docs_lines": 38408,
+      "empty_lines": 34389,
+      "empty_lines_ratio": 0.1291984130562193,
+      "files_analyzed": 596,
+      "function_lines": 118498,
+      "function_lines_ratio": 0.44519333363389085,
+      "mean_lines_per_function": 16.573146853146852,
+      "num_classes": 1692,
+      "num_functions": 7150,
+      "pypi_version": "0.1.22",
+      "total_lines": 266172
+    },
+    "wily": {
+      "cyclomatic_avg": 0.0,
+      "error": "wily report failed: Usage: wily report [OPTIONS] FILE [METRICS]...\nTry 'wily report --help' for help.\n\nError: Invalid value for '-f' / '--format': 'json' is not one of 'CONSOLE', 'HTML'.\n",
+      "files_analyzed": 0,
+      "maintainability_index": 0.0,
+      "total_loc": 0
+    },
+    "workflow_status": {
+      "last_run_status": "success",
+      "last_success_timestamp": "2026-10-26T13:56:57Z",
+      "recent_failure_count": 0,
+      "run_url": "https://github.com/i2mint/xdol/actions/runs/40334924633",
+      "total_runs_analyzed": 10
+    }
+  },
+  "python_version": "3.10",
+  "schema_version": "1.0",
+  "timestamp": "2026-10-26T13:59:45.314177Z",
+  "workflow_status": {}
+}
