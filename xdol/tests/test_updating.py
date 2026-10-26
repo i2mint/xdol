@@ -592,3 +592,45 @@ def test_update_files_by_timestamp_with_key_selection():
         # Clean up
         shutil.rmtree(target_dir)
         shutil.rmtree(source_dir)
+
+
+def test_backfill_never_overwrites():
+    from xdol.updating import backfill
+
+    master, copy = {"a": 1}, {"a": 9, "b": 2}
+    stats = backfill(copy, master)
+    assert master == {"a": 1, "b": 2} and stats.added == 1 and stats.updated == 0
+
+
+def test_reconcile_prefers_master_and_honours_policy():
+    from xdol.updating import reconcile, DefaultPolicy
+
+    master, copy = {"a": 1, "b": 2}, {"a": 9}
+    reconcile(master, copy)
+    assert copy == {"a": 1, "b": 2}
+    master, copy = {"a": 1, "b": 2}, {"a": 9}
+    reconcile(master, copy, policy=DefaultPolicy.PREFER_TARGET)
+    assert copy == {"a": 9, "b": 2}
+
+
+def test_verify_reports_three_sets_and_writes_nothing():
+    from xdol.updating import verify
+
+    copy, master = {"a": 1, "b": 2, "c": 3}, {"a": 1, "b": 20, "d": 4}
+    before = dict(copy), dict(master)
+    r = verify(copy, master)
+    assert (r.only_in_copy, r.only_in_master, r.mismatched) == (["c"], ["d"], ["b"])
+    assert not r.ok and (copy, master) == before
+    assert verify(copy, master, keys=["a"]).ok
+
+
+def test_verify_key_info_does_not_read_values():
+    from xdol.updating import verify
+
+    class NoRead(dict):
+        def __getitem__(self, k):
+            raise AssertionError("value read")
+
+    c, m = NoRead(a=1, b=2), NoRead(a=1, b=2)
+    sizes = {"a": 1, "b": 2}
+    assert verify(c, m, key_info=lambda s, k: sizes[k]).ok
