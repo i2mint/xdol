@@ -12,6 +12,7 @@
 - [xdol.paths](xdol.paths.html.md): Tools for manipulating paths.
 - [xdol.pystores](xdol.pystores.html.md): Stores for python objects
 - [xdol.registry](xdol.registry.html.md): A typed dict-backed plugin registry.
+- [xdol.tiering](xdol.tiering.html.md): A bounded hot store over a cold source of truth (write-through, GDSF release).
 - [xdol.updating](xdol.updating.html.md): mapping using customizable policies to determine which items to update. It offers
 - [xdol.util](xdol.util.html.md): Utility functions for xdol.
 - [xdol.x_codecs](xdol.x_codecs.html.md): Extra codecs: object &lt;-&gt; bytes pairs, and stores that apply them.

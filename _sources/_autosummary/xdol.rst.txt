@@ -16,6 +16,7 @@
    paths
    pystores
    registry
+   tiering
    updating
    util
    x_codecs

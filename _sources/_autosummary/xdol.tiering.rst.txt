@@ -1,0 +1,33 @@
+xdol.tiering
+============
+
+.. automodule:: xdol.tiering
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      local_paths
+      pin
+      prefetch
+      status
+      sweep
+      unpin
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      GdsfPolicy
+      PlacementPolicy
+      SweepReport
+      TieredStore
+   
+   .. rubric:: Exceptions
+
+   .. autosummary::
+   
+      HotWriteError
+      TieringError
+   

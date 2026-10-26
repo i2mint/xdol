@@ -5,7 +5,7 @@ Persisted, mergeable per-key access statistics for any store.
 An [`AccessLog`](#xdol.access.AccessLog) is an append-only JSONL file of access events, folded into an
 in-memory `{key: AccessStats}` on open. [`track_access()`](#xdol.access.track_access) wraps any
 `MutableMapping` so reads, writes and deletes are recorded. The log is the
-`tracker` of `xdol.tiering.TieredStore`.
+`tracker` of [`xdol.tiering.TieredStore`](xdol.tiering.html.md#xdol.tiering.TieredStore).
 
 Filesystem atime cannot do this job (under `relatime` it is never a count, and any
 backup pass resets it), hence an explicit log.

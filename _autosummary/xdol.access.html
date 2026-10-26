@@ -44,7 +44,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../_static/documentation_options.js?v=3d116926"></script>
+    <script src="../_static/documentation_options.js?v=17aaaefc"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -58,7 +58,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.19" />
+  <meta name="docsearch:version" content="0.1.20" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -312,6 +312,7 @@
 <li class="toctree-l2"><a class="reference internal" href="xdol.paths.html">xdol.paths</a></li>
 <li class="toctree-l2"><a class="reference internal" href="xdol.pystores.html">xdol.pystores</a></li>
 <li class="toctree-l2"><a class="reference internal" href="xdol.registry.html">xdol.registry</a></li>
+<li class="toctree-l2"><a class="reference internal" href="xdol.tiering.html">xdol.tiering</a></li>
 <li class="toctree-l2"><a class="reference internal" href="xdol.updating.html">xdol.updating</a></li>
 <li class="toctree-l2"><a class="reference internal" href="xdol.util.html">xdol.util</a></li>
 <li class="toctree-l2"><a class="reference internal" href="xdol.x_codecs.html">xdol.x_codecs</a></li>
@@ -386,7 +387,7 @@
 <p>An <a class="reference internal" href="#xdol.access.AccessLog" title="xdol.access.AccessLog"><code class="xref py py-class docutils literal notranslate"><span class="pre">AccessLog</span></code></a> is an append-only JSONL file of access events, folded into an
 in-memory <code class="docutils literal notranslate"><span class="pre">{key:</span> <span class="pre">AccessStats}</span></code> on open. <a class="reference internal" href="#xdol.access.track_access" title="xdol.access.track_access"><code class="xref py py-func docutils literal notranslate"><span class="pre">track_access()</span></code></a> wraps any
 <code class="docutils literal notranslate"><span class="pre">MutableMapping</span></code> so reads, writes and deletes are recorded. The log is the
-<code class="docutils literal notranslate"><span class="pre">tracker</span></code> of <code class="xref py py-class docutils literal notranslate"><span class="pre">xdol.tiering.TieredStore</span></code>.</p>
+<code class="docutils literal notranslate"><span class="pre">tracker</span></code> of <a class="reference internal" href="xdol.tiering.html#xdol.tiering.TieredStore" title="xdol.tiering.TieredStore"><code class="xref py py-class docutils literal notranslate"><span class="pre">xdol.tiering.TieredStore</span></code></a>.</p>
 <p>Filesystem atime cannot do this job (under <code class="docutils literal notranslate"><span class="pre">relatime</span></code> it is never a count, and any
 backup pass resets it), hence an explicit log.</p>
 <p>Event schema, one JSON object per line (plain string keys, so a filesystem tracer that
