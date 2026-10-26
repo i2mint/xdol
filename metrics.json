@@ -1,7 +1,7 @@
 {
-  "collection_duration_seconds": 3.2543835639953613,
-  "commit_message": "tiering: max_item_fraction on TieredStore (read and write paths), admit signature restored, one release per hot drop (#24)\n\nReview of the #24 change:\n- PlacementPolicy.admit back to (key, stats, *, now); max_item_fraction moves to\n  TieredStore.__init__ (validated, 0 < x <= 1, default 1.0), applied to read-miss\n  admission and write-through; prefetch/local_paths stay exempt.\n- admitted_at means 'hot since': _drop_hot records exactly one release per actual\n  drop; deletes record only the delete.\n- merge_stats takes admitted_at from the log with the latest last_access.\n- __getitem__ sizes the value once; admit events carry no size.\n- warn-once-per-stuck-episode extracted into a helper.\n- Tests: default-policy oversize scenario, write-path oversize, validation,\n  compact/reopen and old snapshots, merge_stats, reopen with protection checked.",
-  "commit_sha": "f93bc000f416cce682fed127ec93f3763186e911",
+  "collection_duration_seconds": 2.9249210357666016,
+  "commit_message": "Merge f93bc000f416cce682fed127ec93f3763186e911 into 5074e1f0d53f48b7f764a30e64030c0acb86231f",
+  "commit_sha": "74e6d44e154fda2ceacd4905f6e753ea9653ca8e",
   "metrics": {
     "coverage": {
       "branch_coverage": 0.0,
@@ -22,26 +22,26 @@
       "mean_lines_per_function": 16.560089124077425,
       "num_classes": 1695,
       "num_functions": 7181,
-      "pypi_version": "0.1.27",
+      "pypi_version": "0.1.28",
       "total_lines": 266740
     },
     "wily": {
       "cyclomatic_avg": 0.0,
-      "error": "wily build failed: \u001b[31mFailed to setup archiver: 'Dirty repository, make sure you commit/stash files first'\u001b[0m\n",
+      "error": "wily report failed: Usage: wily report [OPTIONS] FILE [METRICS]...\nTry 'wily report --help' for help.\n\nError: Invalid value for '-f' / '--format': 'json' is not one of 'CONSOLE', 'HTML'.\n",
       "files_analyzed": 0,
       "maintainability_index": 0.0,
       "total_loc": 0
     },
     "workflow_status": {
       "last_run_status": "success",
-      "last_success_timestamp": "2026-10-26T18:15:47Z",
+      "last_success_timestamp": "2026-10-26T18:20:24Z",
       "recent_failure_count": 0,
-      "run_url": "https://github.com/i2mint/xdol/actions/runs/40375949899",
+      "run_url": "https://github.com/i2mint/xdol/actions/runs/40376684611",
       "total_runs_analyzed": 10
     }
   },
   "python_version": "3.10",
   "schema_version": "1.0",
-  "timestamp": "2026-10-26T18:20:18.835253Z",
+  "timestamp": "2026-10-26T18:22:02.863704Z",
   "workflow_status": {}
 }
