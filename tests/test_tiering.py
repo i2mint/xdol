@@ -333,34 +333,83 @@ def test_release_does_not_read_the_hot_value(tmp_path):
     assert list(hot) == []
 
 
-def test_lru_releases_oldest_access_first():
+def make_lru(budget, **kw):
     clock = Clock()
+    kw = {"min_residency_s": 0, "admit_after_reads": 1, **kw}
     s = TieredStore(
         {},
         {},
-        budget_bytes=20,
-        policy=LruPolicy(min_residency_s=0, admit_after_reads=1),
+        budget_bytes=budget,
+        policy=LruPolicy(**kw),
         tracker=AccessLog(clock=clock),
     )
-    for k in "abc":
+    return s, clock
+
+
+def test_lru_hot_hit_refreshes_recency():
+    s, clock = make_lru(20)
+    s["a"] = b"x" * 6
+    clock.t += 1
+    s["b"] = b"x" * 6
+    clock.t += 1
+    s["a"]  # hot hit: a is now more recent than b
+    clock.t += 1
+    s["c"] = b"x" * 6  # 18 > 17
+    assert set(s.hot) == {"a", "c"}
+
+
+def test_lru_ignores_frequency():
+    s, clock = make_lru(20)
+    s["a"] = b"x" * 6
+    s["b"] = b"x" * 6
+    for _ in range(5):
         clock.t += 1
-        s[k] = b"x" * 6
+        s["b"]  # b is read often, but long ago
+    clock.t += 10
+    s["a"]  # a is read once, most recently (GDSF would keep b)
     clock.t += 1
-    s["a"]  # a is now the most recent; b is the oldest
-    clock.t += 1
-    s["d"] = b"x" * 6  # 24 > 17: release oldest until under the low watermark
-    assert "b" not in s.hot and "a" in s.hot and "d" in s.hot
-    assert set(s.cold) == set("abcd")
+    s["c"] = b"x" * 6
+    assert set(s.hot) == {"a", "c"}
 
 
 def test_lru_respects_pins_and_residency():
-    s = TieredStore(
+    s, clock = make_lru(10)
+    s["a"] = b"x" * 6
+    pin(s, "a")
+    clock.t += 1
+    s["b"] = b"y" * 6  # over budget: the pinned a is spared
+    assert set(s.hot) == {"a"}
+    s2 = TieredStore(
         {}, {}, budget_bytes=10, policy=LruPolicy(), tracker=AccessLog(clock=Clock())
     )
-    s["a"] = b"x" * 6
+    s2["a"] = b"x" * 6
     with pytest.warns(UserWarning, match="protected"):
-        s["b"] = b"y" * 6  # default residency protects both
-    assert len(s.hot) == 2
+        s2["b"] = b"y" * 6  # default residency protects both
+    assert len(s2.hot) == 2
+
+
+def test_local_paths_access_counts_as_use(tmp_path):
+    s, clock = make(100, hot=_files(tmp_path), cold={"a": b"xx"})
+    paths = local_paths(s)
+    paths["a"]
+    before = s.tracker["a"]
+    clock.t += 5
+    paths["a"]  # already hot: still recorded as a use
+    assert s.tracker["a"].reads == before.reads + 1
+    assert s.tracker["a"].last_access > before.last_access
+
+
+def test_local_paths_default_rejects_relative_path(tmp_path):
+    class Wrapped(dict):  # like a wrap_kvs-wrapped Files: ids are not full paths
+        rootdir = str(tmp_path) + os.sep
+
+        def _id_of_key(self, key):
+            return key
+
+    hot = Wrapped()
+    s, _ = make(None, hot=hot, cold={"a": b"x"})
+    with pytest.raises(TypeError, match="path_of"):
+        local_paths(s)["a"]
 
 
 def test_local_paths_path_of_and_contains(tmp_path):

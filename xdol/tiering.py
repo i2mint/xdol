@@ -107,14 +107,11 @@ class _ResidencyPolicy:
     def is_protected(self, stats: AccessStats, *, now: float) -> bool:
         return stats.pinned or now - stats.last_access < self.min_residency_s
 
-
-@dataclass(kw_only=True)
-class LruPolicy(_ResidencyPolicy):
-    """Least-recently-used release: the simple alternative to :class:`GdsfPolicy`.
-
-    Once hot bytes pass the high watermark, unprotected hot keys are released
-    oldest-``last_access`` first (the consumer stops at the low watermark).
-    """
+    def _release_order(
+        self, candidates: list[tuple[Any, AccessStats]], *, now: float
+    ) -> Iterator:
+        """Keys of the unprotected ``(key, stats)`` candidates, first to release first."""
+        raise NotImplementedError
 
     def to_release(
         self,
@@ -126,13 +123,26 @@ class LruPolicy(_ResidencyPolicy):
     ) -> Iterator:
         if not _exceeds_watermark(hot_bytes, budget_bytes, self.high_watermark):
             return
-        unprotected = (
-            (st.last_access, k)
-            for k, st in hot_stats.items()
-            if not self.is_protected(st, now=now)
-        )
-        for _, k in sorted(unprotected, key=lambda t: t[0]):
-            yield k
+        self._forget_unknown(hot_stats.keys())
+        candidates = [
+            (k, st) for k, st in hot_stats.items() if not self.is_protected(st, now=now)
+        ]
+        yield from self._release_order(candidates, now=now)
+
+    def _forget_unknown(self, hot_keys) -> None:
+        """Hook: drop per-key policy state for keys no longer hot."""
+
+
+@dataclass(kw_only=True)
+class LruPolicy(_ResidencyPolicy):
+    """Least-recently-used release: the simple alternative to :class:`GdsfPolicy`.
+
+    Once hot bytes pass the high watermark, unprotected hot keys are released
+    oldest-``last_access`` first (the consumer stops at the low watermark).
+    """
+
+    def _release_order(self, candidates, *, now: float) -> Iterator:
+        yield from (k for k, _ in sorted(candidates, key=lambda ks: ks[1].last_access))
 
 
 @dataclass(kw_only=True)
@@ -150,8 +160,10 @@ class GdsfPolicy(_ResidencyPolicy):
 
     cost_per_request: float = 1.0
     cost_per_byte: float = 0.0
-    _aging: float = field(default=0.0, init=False, repr=False)
-    _entries: dict = field(default_factory=dict, init=False, repr=False)  # k: (F, H)
+    _aging: float = field(default=0.0, init=False, repr=False, compare=False)
+    _entries: dict = field(
+        default_factory=dict, init=False, repr=False, compare=False
+    )  # k: (F, H)
 
     def priority(self, frequency: int, size: int) -> float:
         """H of a key accessed now with this frequency and size."""
@@ -180,25 +192,13 @@ class GdsfPolicy(_ResidencyPolicy):
         entry = self._entries.get(key)
         return entry[1] if entry else self._set(key, stats.frequency, stats.size)
 
-    def to_release(
-        self,
-        hot_stats: Mapping[Any, AccessStats],
-        *,
-        hot_bytes: int,
-        budget_bytes: int,
-        now: float,
-    ) -> Iterator:
-        if not _exceeds_watermark(hot_bytes, budget_bytes, self.high_watermark):
-            return
-        for k in self._entries.keys() - hot_stats.keys():
+    def _forget_unknown(self, hot_keys) -> None:
+        for k in self._entries.keys() - hot_keys:
             del self._entries[k]
+
+    def _release_order(self, candidates, *, now: float) -> Iterator:
         ranked = sorted(
-            (
-                (self._h(k, st), k)
-                for k, st in hot_stats.items()
-                if not self.is_protected(st, now=now)
-            ),
-            key=lambda hk: hk[0],
+            ((self._h(k, st), k) for k, st in candidates), key=lambda hk: hk[0]
         )
         for h, k in ranked:
             # Lazy: the consumer stops pulling at the low watermark, so L reflects
@@ -218,6 +218,18 @@ def _hot_path(hot, key) -> str:
     if hasattr(hot, "_id_of_key"):
         return hot._id_of_key(key)
     return os.path.join(hot.rootdir, key)
+
+
+def _checked_hot_path(hot, key) -> str:
+    """``_hot_path``, but only when it is an absolute path under ``hot.rootdir``."""
+    path = _hot_path(hot, key)
+    root = os.path.abspath(hot.rootdir)
+    if not os.path.isabs(path) or os.path.commonpath([root, path]) != root:
+        raise TypeError(
+            f"Cannot locate {key!r} in the hot store (got {path!r}, not under "
+            f"{root!r}); pass local_paths(..., path_of=...)"
+        )
+    return path
 
 
 def _file_size(hot, key) -> int | None:
@@ -469,7 +481,14 @@ class _LocalPaths(Mapping):
         return key in self._store  # checks hot/cold; never fetches
 
     def __getitem__(self, key) -> str:
-        prefetch(self._store, [key])
+        store = self._store
+        was_hot = key in store._hot_sizes
+        prefetch(store, [key])
+        if (
+            was_hot
+        ):  # using the file is an access (recency/frequency), though nothing is read
+            store._tracker.record(key, "read", store._hot_sizes[key], served_from="hot")
+            store._touched(key, admitted=False)
         path = self._path_of(key)
         if not os.path.exists(path):
             raise FileNotFoundError(f"{key!r} was not materialised at {path!r}")
@@ -488,8 +507,8 @@ def local_paths(
     """Read-only ``{key: real file path}``; materialises each key into ``hot``.
 
     ``path_of(key)`` gives the file path of ``key`` in ``hot``. The default duck-types
-    a ``dol.Files``-like hot store (its ``_id_of_key`` or ``rootdir``; ``TypeError`` if it
-    has neither); pass ``path_of`` for any other layout, e.g. a ``wrap_kvs``-wrapped store.
+    a ``dol.Files``-like hot store (``rootdir`` and ``_id_of_key``; ``TypeError`` if there
+    is no ``rootdir``, or the path is not an absolute one under it); pass ``path_of`` for any other layout, e.g. a ``wrap_kvs``-wrapped store.
     ``FileNotFoundError`` is raised if the file is not there after materialisation.
     ``key in paths`` checks the store without fetching.
     """
@@ -497,5 +516,5 @@ def local_paths(
         hot = store._hot
         if getattr(hot, "rootdir", None) is None:
             raise TypeError("local_paths requires a hot store with a 'rootdir'")
-        path_of = lambda key: _hot_path(hot, key)  # noqa: E731
+        path_of = lambda key: _checked_hot_path(hot, key)  # noqa: E731
     return _LocalPaths(store, path_of)
