@@ -442,7 +442,9 @@ def _random_log_lines(rng):
                 "size": rng.randint(0, 9),
                 "last_access": float(rng.randint(0, 20)),
             }
-            lines.append(json.dumps({"k": rng.choice("abc"), "op": "snapshot", "stats": stats}))
+            lines.append(
+                json.dumps({"k": rng.choice("abc"), "op": "snapshot", "stats": stats})
+            )
             continue
         ev = {
             "k": rng.choice("abc"),
@@ -493,7 +495,11 @@ def test_snapshot_after_events_still_applied_first(tmp_path):
     p = tmp_path / "cat.jsonl"
     lines = [
         {"k": "a", "op": "read", "n": 1, "ts": 10},
-        {"k": "a", "op": "snapshot", "stats": {"reads": 4, "size": 1, "last_access": 5.0}},
+        {
+            "k": "a",
+            "op": "snapshot",
+            "stats": {"reads": 4, "size": 1, "last_access": 5.0},
+        },
     ]
     p.write_text("".join(json.dumps(e) + "\n" for e in lines))
     assert AccessLog(p)["a"].reads == 5

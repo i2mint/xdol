@@ -12,7 +12,7 @@ backup pass resets it), hence an explicit log.
 Event schema, one JSON object per line (plain string keys, so a filesystem tracer that
 only knows paths can append to the same file)::
 
-    {"k": key, "op": "read"|"write"|"delete"|"release"|"pin"|"unpin",
+    {"k": key, "op": "read"|"write"|"delete"|"admit"|"release"|"pin"|"unpin",
      "n": bytes, "from": "hot"|"cold"|null, "ts": unix_seconds, "tag": str|null}
 
 Only ``k`` and ``op`` are required: an event without ``n`` leaves the size alone.
@@ -57,7 +57,7 @@ from typing import Any, get_type_hints
 
 from dol import atomic_write
 
-OPS = ("read", "write", "delete", "release", "pin", "unpin")
+OPS = ("read", "write", "delete", "admit", "release", "pin", "unpin")
 _CREATING_OPS = ("read", "write", "pin")  # other ops on an unknown key are no-ops
 
 
@@ -72,6 +72,7 @@ class AccessStats:
     last_access: float = 0.0
     last_read: float = 0.0
     pinned: bool = False
+    admitted_at: float = 0.0  # when the hot copy was admitted; 0.0: unknown or not hot
 
     @property
     def frequency(self) -> int:
@@ -238,7 +239,10 @@ def _apply(stats_by_key: dict, key, op, nbytes, ts) -> None:
         st = replace(st, **changes)
     elif op in ("pin", "unpin"):
         st = replace(st, pinned=op == "pin")
-    # "release": the hot copy went away; frequency history is kept deliberately.
+    elif op == "admit":
+        st = replace(st, admitted_at=ts)
+    elif op == "release":  # frequency history is kept deliberately
+        st = replace(st, admitted_at=0.0)
     stats_by_key[key] = st
 
 
@@ -298,8 +302,7 @@ class AccessLog(Mapping):
                 except OSError as e:  # a constructor never raises over compaction
                     self._warn_once(
                         "_warned_compact",
-                        f"AccessLog could not compact {self.path!r} ({e}); "
-                        "left as is.",
+                        f"AccessLog could not compact {self.path!r} ({e}); left as is.",
                     )
 
     # -- reading -----------------------------------------------------------
@@ -433,6 +436,7 @@ def merge_stats(*logs: Mapping) -> dict:
                 last_access=max(cur.last_access, st.last_access),
                 last_read=max(cur.last_read, st.last_read),
                 pinned=cur.pinned or st.pinned,
+                admitted_at=max(cur.admitted_at, st.admitted_at),
             )
     return out
 

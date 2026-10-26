@@ -60,7 +60,15 @@ class PlacementPolicy(Protocol):
     high_watermark: float
     low_watermark: float
 
-    def admit(self, key, stats: AccessStats | None, *, now: float) -> bool: ...
+    def admit(
+        self,
+        key,
+        stats: AccessStats | None,
+        *,
+        now: float,
+        size: int = 0,
+        budget_bytes: int | None = None,
+    ) -> bool: ...
 
     def on_hot_access(self, key, stats: AccessStats, *, admitted: bool) -> None:
         """``key`` was accessed in hot; ``admitted``: it was not there before."""
@@ -90,8 +98,25 @@ class _ResidencyPolicy:
     min_residency_s: float = 7 * 86400
     admit_after_reads: int = 2
     admit_window_s: float = 30 * 86400
+    max_item_fraction: float | None = (
+        None  # refuse items above this share of the budget
+    )
 
-    def admit(self, key, stats: AccessStats | None, *, now: float) -> bool:
+    def admit(
+        self,
+        key,
+        stats: AccessStats | None,
+        *,
+        now: float,
+        size: int = 0,
+        budget_bytes: int | None = None,
+    ) -> bool:
+        if (
+            self.max_item_fraction is not None
+            and budget_bytes is not None
+            and size > self.max_item_fraction * budget_bytes
+        ):
+            return False
         if self.admit_after_reads <= 1:
             return True
         return (
@@ -107,7 +132,10 @@ class _ResidencyPolicy:
         pass
 
     def is_protected(self, stats: AccessStats, *, now: float) -> bool:
-        return stats.pinned or now - stats.last_access < self.min_residency_s
+        # residency counts from admission; unknown (e.g. admitted before it was logged)
+        # falls back to the last access
+        since = stats.admitted_at or stats.last_access
+        return stats.pinned or now - since < self.min_residency_s
 
     def _release_order(
         self, candidates: list[tuple[Any, AccessStats]], *, now: float
@@ -269,6 +297,7 @@ class TieredStore(MutableMapping):
         self._hot_sizes: dict = {}
         self._hot_bytes = 0
         self._last_sweep: SweepReport | None = None
+        self._warned_protected = False
         for k in list(hot):
             st = self._tracker.stats(k)
             known = st.size if st is not None else 0
@@ -304,6 +333,8 @@ class TieredStore(MutableMapping):
         self._policy.on_hot_drop(k)
 
     def _touched(self, k, *, admitted: bool) -> None:
+        if admitted:
+            self._tracker.record(k, "admit", self._hot_sizes.get(k, 0))
         self._policy.on_hot_access(k, self._tracker.stats(k), admitted=admitted)
 
     def _check_release(self, *, exclude: Iterable = ()) -> None:
@@ -348,7 +379,7 @@ class TieredStore(MutableMapping):
                 self._drop_hot(k)
         if served_from is None:
             v, served_from = self._cold[k], "cold"
-            if self._admits(k, now):
+            if self._admits(k, now, size=value_size(v)):
                 admitted = self._admit(k, v)
         size = value_size(v)
         if served_from == "hot":
@@ -359,12 +390,14 @@ class TieredStore(MutableMapping):
         self._check_release()
         return v
 
-    def _admits(self, k, now: float) -> bool:
+    def _admits(self, k, now: float, *, size: int) -> bool:
         if self._budget is None:
             return True
         if self._budget == 0:
             return False
-        return self._policy.admit(k, self._tracker.stats(k), now=now)
+        return self._policy.admit(
+            k, self._tracker.stats(k), now=now, size=size, budget_bytes=self._budget
+        )
 
     def _admit(self, k, v) -> bool:
         try:
@@ -422,12 +455,14 @@ def sweep(store: TieredStore, *, exclude: Iterable = ()) -> SweepReport:
             if store._hot_bytes <= target:
                 break
             _release(store, k, released)
-        if store._hot_bytes > target and _exceeds_watermark(
+        stuck = store._hot_bytes > target and _exceeds_watermark(
             before, budget, store._policy.high_watermark
-        ):
+        )
+        if stuck and not store._warned_protected:  # once per stuck episode
             warnings.warn(
                 "sweep could not reach the low watermark: remaining keys are protected."
             )
+        store._warned_protected = stuck
     report = SweepReport(released, before, store._hot_bytes)
     store._last_sweep = report
     return report

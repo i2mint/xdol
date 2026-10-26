@@ -147,7 +147,8 @@ def test_all_protected_warns():
     s["a"] = b"x" * 6
     with pytest.warns(UserWarning, match="protected"):
         s["b"] = b"y" * 6  # the inline sweep warns too
-    with pytest.warns(UserWarning, match="protected"):
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")  # still stuck: warned once, not again
         sweep(s)
     assert len(s.hot) == 2
 
@@ -532,3 +533,47 @@ def test_wrapped_hot_files_sized_at_startup(tmp_path):
     hot = KeyCodecs.suffixed(".bin")(Files(str(tmp_path) + os.sep))
     s, _ = make(100, hot=hot)
     assert status(s)["hot_bytes"] == 5
+
+
+def test_max_item_fraction_refuses_admission_but_serves_from_cold():
+    s, _ = make(
+        10,
+        admit_after_reads=1,
+        max_item_fraction=0.5,
+        cold={"big": b"x" * 100, "small": b"y" * 4},
+    )
+    assert s["big"] == b"x" * 100 and s["big"] == b"x" * 100
+    assert "big" not in s.hot
+    s["small"]
+    assert "small" in s.hot
+
+
+def test_residency_counts_from_admission_not_last_touch():
+    clock = Clock()
+    log = AccessLog(clock=clock)
+    s = TieredStore(
+        {},
+        {"a": b"x" * 6, "b": b"y" * 6},
+        budget_bytes=10,
+        policy=GdsfPolicy(admit_after_reads=1, min_residency_s=100),
+        tracker=log,
+    )
+    s["a"]
+    assert log["a"].admitted_at == clock()
+    for _ in range(5):  # keeps touching a: last_access moves, admission does not
+        clock.t += 30
+        s["a"]
+    assert log["a"].last_access > log["a"].admitted_at + 100
+    s["b"]  # a is past its residency (admitted 150s ago), b is fresh
+    assert "a" not in s.hot and "b" in s.hot
+    assert log["a"].admitted_at == 0.0  # release clears it
+
+
+def test_admitted_at_survives_reopen(tmp_path):
+    clock = Clock()
+    path = tmp_path / "log.jsonl"
+    log = AccessLog(path, clock=clock)
+    s = TieredStore({}, {"a": b"x"}, budget_bytes=None, tracker=log)
+    s["a"]
+    log.close()
+    assert AccessLog(path).stats("a").admitted_at == clock()
