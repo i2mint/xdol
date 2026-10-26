@@ -5,6 +5,7 @@ import warnings
 
 import pytest
 from dol import Files
+from dol.trash import permanent_delete
 
 from xdol import AccessLog, AccessStats, GdsfPolicy, HotWriteError, TieredStore
 from xdol.tiering import local_paths, pin, prefetch, status, sweep, unpin
@@ -158,9 +159,7 @@ def test_status_and_prefetch():
 
 
 def test_local_paths_with_files_hot(tmp_path):
-    root = tmp_path / "hot"
-    root.mkdir()
-    s, _ = make(0, hot=Files(str(root) + os.sep), cold={"a": b"data"})
+    s, _ = make(0, hot=_files(tmp_path), cold={"a": b"data"})
     p = local_paths(s)["a"]
     assert open(p, "rb").read() == b"data"
     s2, _ = make(0)
@@ -181,7 +180,8 @@ def _files(tmp_path, name="hot", **contents):
     root.mkdir()
     for k, v in contents.items():
         (root / k).write_bytes(v)
-    return Files(str(root) + os.sep)
+    # permanent deletion: the default trash needs pywin32 on Windows and warns
+    return Files(str(root) + os.sep, delete_func=permanent_delete)
 
 
 def test_gdsf_aging_raises_l_and_new_keys_inherit_it():
