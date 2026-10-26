@@ -260,7 +260,7 @@ class TieredStore(MutableMapping):
     """Bounded hot store over a cold source of truth. See the module docstring.
 
     :param budget_bytes: ``None``: hot is a full mirror (never released, every read miss
-        admitted); ``0``: cold-only, no hot tier (reads and writes skip hot, but only
+        admitted); ``0``: cold-only, no hot tier (writes skip hot and read misses are not admitted, but only
         :func:`sweep` enforces it: :func:`prefetch` and :func:`local_paths` still fill
         hot until the next sweep, which releases every hot copy, protected or not);
         ``> 0``: bounded.

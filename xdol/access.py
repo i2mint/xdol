@@ -212,6 +212,7 @@ class AccessLog(Mapping):
         self._fh = None
         self._warned_io = False
         self._warned_key = False
+        self._last_ts = 0.0  # the clock may step back: events never go back in time
         if self.path is not None and os.path.exists(self.path):
             self._fold_file()
 
@@ -228,11 +229,12 @@ class AccessLog(Mapping):
                     self._stats[key] = stats
                     continue
                 if ts is None:
-                    ts = last_ts  # unstamped: ordered right after the line before it
-                last_ts = ts
+                    ts = last_ts  # unstamped: ordered after every line before it
+                last_ts = max(last_ts, ts)
                 events.append((ts, seq, key, op, n))
         for ts, _, key, op, n in sorted(events, key=lambda e: e[:2]):
             _apply(self._stats, key, op, n, ts)
+        self._last_ts = last_ts
 
     def __getitem__(self, key) -> AccessStats:
         return self._stats[key]
@@ -268,7 +270,8 @@ class AccessLog(Mapping):
     def record(self, key, op: str, nbytes: int = 0, *, served_from=None) -> None:
         if op not in OPS:
             raise ValueError(f"Unknown op {op!r}; expected one of {OPS}")
-        ts = self.clock()
+        ts = self._last_ts = max(self.clock(), self._last_ts)
+        nbytes = int(nbytes) if _is_finite(nbytes) else 0  # a tracker never raises
         _apply(self._stats, key, op, nbytes, ts)
         if self.path is None:
             return

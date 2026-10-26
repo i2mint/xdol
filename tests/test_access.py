@@ -395,3 +395,31 @@ def test_float_size_survives_compact_and_reopen(tmp_path):
     assert log["a"].size == 3 and type(log["a"].size) is int
     log.compact()
     assert AccessLog(p)["a"].size == 3
+
+
+def test_replay_rejects_bool_in_int_field(tmp_path):
+    p = tmp_path / "log.jsonl"
+    _write_lines(p, {"k": "a", "op": "snapshot", "stats": {"reads": True}})
+    assert "a" not in AccessLog(p)
+
+
+def test_unstamped_line_is_ordered_after_every_earlier_line(tmp_path):
+    p = tmp_path / "log.jsonl"
+    _write_lines(
+        p,
+        {"k": "a", "op": "write", "n": 1, "ts": 5.0},
+        {"k": "b", "op": "write", "n": 1, "ts": 1.0},
+        {"k": "a", "op": "delete"},
+    )
+    assert "a" not in AccessLog(p) and "b" in AccessLog(p)
+
+
+def test_record_survives_bad_sizes_and_backwards_clock():
+    clock = Clock()
+    log = AccessLog(clock=clock)
+    log.record("a", "write", float("nan"))
+    log.record("a", "write", True)
+    assert log["a"].size == 0
+    clock.t -= 50  # the clock steps back (NTP): events never go back in time
+    log.record("a", "delete")
+    assert "a" not in log

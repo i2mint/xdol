@@ -496,7 +496,7 @@ def test_budget_zero_sweep_spares_excluded():
 def test_budget_zero_sweep_accepts_generator_exclude():
     s, _ = make(0, cold={"a": b"xx", "b": b"yy", "c": b"zz"})
     prefetch(s, ["a", "b", "c"])
-    sweep(s, exclude=(k for k in ["a", "b"]))
+    sweep(s, exclude=(k for k in ["b", "a"]))
     assert set(s.hot) == {"a", "b"}
 
 
@@ -522,6 +522,7 @@ def test_gdsf_after_restart_long_history_does_not_outrank_recent_hits(tmp_path):
 
     clock.t += DAY
     s = open_store()  # restart: "old" is hot, its policy entry is gone
+    s["old"]  # one hot hit after the restart seeds its entry
     s["new"] = b"n" * 4
     s["new"], s["new"]  # recent hits
     s["c"] = b"c" * 2  # crosses the high watermark: one or more keys must go
