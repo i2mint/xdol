@@ -1,5 +1,6 @@
 """Tests for xdol.access."""
 
+import itertools
 import json
 import os
 import warnings
@@ -333,12 +334,64 @@ def test_replay_orders_delete_and_pin_by_timestamp(tmp_path):
     assert not log["c"].pinned
 
 
-def test_meta_persists_and_survives_compact(tmp_path):
+_HISTORY = (  # (op, ts): out of order on purpose
+    ("write", 1.0),
+    ("pin", 2.0),
+    ("read", 15.0),
+    ("read", 5.0),
+    ("delete", 10.0),
+)
+
+
+def test_replay_in_any_file_order_equals_live_recording(tmp_path):
+    clock = Clock()
+    live = AccessLog(clock=clock)
+    for op, ts in sorted(_HISTORY, key=lambda e: e[1]):
+        clock.t = ts - 1  # Clock adds 1 before returning
+        live.record("a", op, 3)
+    expected = dict(live)
+    assert expected["a"].reads == 1 and not expected["a"].pinned
     p = tmp_path / "log.jsonl"
-    log = AccessLog(p, clock=Clock())
-    log.set_meta("policy", {"aging": 2.5})
-    log.set_meta("policy", {"aging": 3.5})
-    assert AccessLog(p).get_meta("policy") == {"aging": 3.5}
+    for order in itertools.permutations(_HISTORY):
+        _write_lines(p, *({"k": "a", "op": op, "n": 3, "ts": ts} for op, ts in order))
+        assert dict(AccessLog(p)) == expected, order
+
+
+def test_replay_delete_without_timestamp_still_deletes(tmp_path):
+    p = tmp_path / "log.jsonl"
+    _write_lines(
+        p,
+        {"k": "a", "op": "write", "n": 1, "ts": 5.0},
+        {"k": "a", "op": "pin", "ts": 6.0},
+        {"k": "a", "op": "delete"},
+    )
+    assert "a" not in AccessLog(p)
+
+
+def test_replay_skips_non_finite_and_falsy_wrong_typed_numbers(tmp_path):
+    p = tmp_path / "log.jsonl"
+    good = {"k": "a", "op": "read", "n": 5, "ts": 10.0}
+    bad = [
+        {**good, "ts": float("nan")},
+        {**good, "ts": float("inf")},
+        {**good, "n": float("nan")},
+        {**good, "n": float("-inf")},
+        {**good, "ts": []},
+        {**good, "ts": ""},
+        {**good, "ts": False},
+        {**good, "n": False},
+        {**good, "ts": 10**400},
+    ]
+    p.write_text("".join(json.dumps(e) + "\n" for e in [good, *bad]))  # NaN, Infinity
+    log = AccessLog(p)
+    assert log["a"].reads == 1 and log["a"].size == 5
+    assert log["a"].last_access == 10.0
+
+
+def test_float_size_survives_compact_and_reopen(tmp_path):
+    p = tmp_path / "log.jsonl"
+    _write_lines(p, {"k": "a", "op": "write", "n": 3.0, "ts": 1.0})
+    log = AccessLog(p)
+    assert log["a"].size == 3 and type(log["a"].size) is int
     log.compact()
-    assert AccessLog(p).get_meta("policy") == {"aging": 3.5}
-    assert AccessLog(p).get_meta("nope", 7) == 7
+    assert AccessLog(p)["a"].size == 3

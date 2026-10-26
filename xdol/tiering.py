@@ -31,16 +31,7 @@ from collections.abc import Callable, Iterable, Iterator, Mapping, MutableMappin
 from dataclasses import dataclass, field, replace
 from typing import Any, Protocol
 
-from xdol.access import (
-    AccessLog,
-    AccessStats,
-    _is_number,
-    default_access_log_for,
-    value_size,
-)
-
-
-_POLICY_META = "policy"  # tracker meta key holding the policy's state
+from xdol.access import AccessLog, AccessStats, default_access_log_for, value_size
 
 
 class TieringError(Exception):
@@ -84,9 +75,6 @@ class PlacementPolicy(Protocol):
         now: float,
     ) -> Iterable: ...
 
-    # Optional (looked up with getattr): ``get_state() -> dict`` and ``set_state(dict)``
-    # persist what the policy must remember across restarts, e.g. GDSF's aging.
-
 
 @dataclass(kw_only=True)
 class _ResidencyPolicy:
@@ -118,13 +106,6 @@ class _ResidencyPolicy:
 
     def is_protected(self, stats: AccessStats, *, now: float) -> bool:
         return stats.pinned or now - stats.last_access < self.min_residency_s
-
-    def get_state(self) -> dict:
-        """JSON-able state worth keeping across restarts (stored in the tracker)."""
-        return {}
-
-    def set_state(self, state: Mapping) -> None:
-        """Restore what :meth:`get_state` returned; ignore anything unusable."""
 
     def _release_order(
         self, candidates: list[tuple[Any, AccessStats]], *, now: float
@@ -174,7 +155,9 @@ class GdsfPolicy(_ResidencyPolicy):
     cost_per_byte * size`` and ``L`` the H of the last released key at that time
     (per process; resets at restart). Releasing the lowest H raises ``L``, so a key
     not accessed for a while loses to newer ones however often it was read. A key
-    already hot when this process first sees it is seeded with its logged frequency.
+    already hot when this process first sees it starts fresh, ``F = 1``, as if just
+    admitted: its logged history (often long, all of it older than ``L``'s reset)
+    would otherwise keep it favoured after every restart.
     """
 
     cost_per_request: float = 1.0
@@ -201,7 +184,7 @@ class GdsfPolicy(_ResidencyPolicy):
         elif key in self._entries:
             f = self._entries[key][0] + 1
         else:
-            f = stats.frequency
+            f = 1  # first seen by this process: fresh, as if just admitted
         self._set(key, f, stats.size)
 
     def on_hot_drop(self, key) -> None:
@@ -209,15 +192,7 @@ class GdsfPolicy(_ResidencyPolicy):
 
     def _h(self, key, stats: AccessStats) -> float:
         entry = self._entries.get(key)
-        return entry[1] if entry else self._set(key, stats.frequency, stats.size)
-
-    def get_state(self) -> dict:
-        return {"aging": self._aging}
-
-    def set_state(self, state: Mapping) -> None:
-        aging = state.get("aging")
-        if _is_number(aging):
-            self._aging = float(aging)
+        return entry[1] if entry else self._set(key, 1, stats.size)
 
     def _forget_unknown(self, hot_keys) -> None:
         for k in self._entries.keys() - hot_keys:
@@ -285,7 +260,10 @@ class TieredStore(MutableMapping):
     """Bounded hot store over a cold source of truth. See the module docstring.
 
     :param budget_bytes: ``None``: hot is a full mirror (never released, every read miss
-        admitted); ``0``: cold-only; ``> 0``: bounded.
+        admitted); ``0``: cold-only, no hot tier (reads and writes skip hot, but only
+        :func:`sweep` enforces it: :func:`prefetch` and :func:`local_paths` still fill
+        hot until the next sweep, which releases every hot copy, protected or not);
+        ``> 0``: bounded.
     :param policy: a :class:`PlacementPolicy`; default :class:`GdsfPolicy`.
     :param tracker: an :class:`AccessLog` (its ``clock`` is the store's clock); default
         :func:`xdol.access.default_access_log_for` ``(hot)``.
@@ -308,9 +286,6 @@ class TieredStore(MutableMapping):
         self._budget = budget_bytes
         self._policy = GdsfPolicy() if policy is None else policy
         self._tracker = default_access_log_for(hot) if tracker is None else tracker
-        state = self._tracker.get_meta(_POLICY_META)
-        if isinstance(state, Mapping) and hasattr(self._policy, "set_state"):
-            self._policy.set_state(state)
         self._hot_sizes: dict = {}
         self._hot_bytes = 0
         self._last_sweep: SweepReport | None = None
@@ -438,14 +413,6 @@ def _release(store: TieredStore, key, released: list) -> None:
     released.append(key)
 
 
-def _save_policy_state(store: TieredStore) -> None:
-    get_state = getattr(store._policy, "get_state", None)
-    if get_state is not None and (state := get_state()) != store._tracker.get_meta(
-        _POLICY_META
-    ):
-        store._tracker.set_meta(_POLICY_META, state)
-
-
 def sweep(store: TieredStore, *, exclude: Iterable = ()) -> SweepReport:
     """Release hot copies, lowest priority first, down to the low watermark.
 
@@ -457,7 +424,8 @@ def sweep(store: TieredStore, *, exclude: Iterable = ()) -> SweepReport:
     budget = store._budget
     released: list = []
     if budget == 0:  # no hot tier: release everything, whatever the policy protects
-        for k in [k for k in store._hot_sizes if k not in set(exclude)]:
+        exclude = set(exclude)
+        for k in [k for k in store._hot_sizes if k not in exclude]:
             _release(store, k, released)
     elif budget is not None:
         target = store._policy.low_watermark * budget
@@ -480,7 +448,6 @@ def sweep(store: TieredStore, *, exclude: Iterable = ()) -> SweepReport:
             warnings.warn(
                 "sweep could not reach the low watermark: remaining keys are protected."
             )
-        _save_policy_state(store)
     report = SweepReport(released, before, store._hot_bytes)
     store._last_sweep = report
     return report

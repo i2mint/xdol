@@ -493,23 +493,36 @@ def test_budget_zero_sweep_spares_excluded():
     assert set(s.hot) == {"a"}
 
 
-def test_gdsf_aging_survives_restart(tmp_path):
+def test_budget_zero_sweep_accepts_generator_exclude():
+    s, _ = make(0, cold={"a": b"xx", "b": b"yy", "c": b"zz"})
+    prefetch(s, ["a", "b", "c"])
+    sweep(s, exclude=(k for k in ["a", "b"]))
+    assert set(s.hot) == {"a", "b"}
+
+
+def test_gdsf_after_restart_long_history_does_not_outrank_recent_hits(tmp_path):
     clock = Clock()
     path = tmp_path / "log.jsonl"
+    hot, cold = {}, {}
 
     def open_store():
         return TieredStore(
-            {},
-            {},
+            hot,
+            cold,
             budget_bytes=10,
             policy=GdsfPolicy(min_residency_s=0, admit_after_reads=1),
             tracker=AccessLog(path, clock=clock),
         )
 
     s = open_store()
-    s["a"] = b"x" * 6
-    s["b"] = b"y" * 6  # releases one key: aging rises
-    aging = s.policy._aging
-    assert aging > 0
+    s["old"] = b"o" * 4
+    for _ in range(20):
+        s["old"]  # long history, all before the restart
     s.tracker.close()
-    assert open_store().policy._aging == aging
+
+    clock.t += DAY
+    s = open_store()  # restart: "old" is hot, its policy entry is gone
+    s["new"] = b"n" * 4
+    s["new"], s["new"]  # recent hits
+    s["c"] = b"c" * 2  # crosses the high watermark: one or more keys must go
+    assert "old" not in s.hot and "new" in s.hot

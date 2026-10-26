@@ -16,15 +16,20 @@ only knows paths can append to the same file)::
      "n": bytes, "from": "hot"|"cold"|null, "ts": unix_seconds, "tag": str|null}
 
 Only ``k`` and ``op`` are required: an event without ``n`` leaves the size alone.
-Replay does not trust file order (several writers may append to one file): recency
-fields take the max timestamp seen, ``first_seen`` the min.
+Replay does not trust file order (several writers may append to one file): it parses
+every line (a torn or ill-typed one, e.g. a NaN ``ts`` or a string ``n``, is skipped),
+applies the snapshot lines first, then folds the other events in ``(ts, line number)``
+order, exactly as live recording folds them. So a ``delete`` clears a key (pin
+included) and only later-stamped events bring it back. An event without ``ts`` is
+ordered right after the line before it in the file (it takes that line's timestamp,
+``0`` at the top of the file): an unstamped ``delete`` still deletes what came before.
 
 Keys must be JSON scalars, in practice ``str``: a key that does not survive a JSON
 round trip (a tuple, a ``Path``...) is counted in memory but lost or changed on reopen,
 and recording one warns once.
 
 A compacted file holds ``{"k": key, "op": "snapshot", "stats": {...}}`` lines, folded as
-initial state.
+initial state (the baseline the events after it build on).
 
 >>> log = AccessLog()
 >>> store = track_access({'a': b'xyz'}, tracker=log)
@@ -41,13 +46,14 @@ True
 from __future__ import annotations
 
 import json
+import math
 import os
 import platform
 import time
 import warnings
 from collections.abc import Callable, Iterator, Mapping, MutableMapping
-from dataclasses import asdict, dataclass, fields, replace
-from typing import Any
+from dataclasses import asdict, dataclass, replace
+from typing import Any, get_type_hints
 
 from xdol.util import atomic_write
 
@@ -70,9 +76,6 @@ class AccessStats:
     @property
     def frequency(self) -> int:
         return self.reads + self.writes
-
-
-_STATS_FIELDS = {f.name for f in fields(AccessStats)}
 
 
 def value_size(v) -> int:
@@ -98,35 +101,57 @@ def _survives_json(key) -> bool:
     return type(back) is type(key) and back == key
 
 
-def _is_number(x) -> bool:
-    return isinstance(x, (int, float)) and not isinstance(x, bool)
+def _is_finite(x) -> bool:
+    """A finite real number (not a ``bool``, not NaN or infinity)."""
+    return isinstance(x, (int, float)) and not isinstance(x, bool) and math.isfinite(x)
 
 
-_FIELD_CHECKS = {  # AccessStats field -> type check (a foreign line must not poison replay)
-    "size": lambda x: isinstance(x, int) and not isinstance(x, bool),
-    "reads": lambda x: isinstance(x, int) and not isinstance(x, bool),
-    "writes": lambda x: isinstance(x, int) and not isinstance(x, bool),
-    "first_seen": _is_number,
-    "last_access": _is_number,
-    "last_read": _is_number,
-    "pinned": lambda x: isinstance(x, bool),
+_TYPE_CHECKS = {
+    int: lambda x: isinstance(x, int) and not isinstance(x, bool),
+    float: _is_finite,
+    bool: lambda x: isinstance(x, bool),
 }
-assert set(_FIELD_CHECKS) == _STATS_FIELDS
+_FIELD_CHECKS = {  # derived from AccessStats: a foreign line must not poison replay
+    name: _TYPE_CHECKS[t] for name, t in get_type_hints(AccessStats).items()
+}
 
 
 def _stats_from_snapshot(data: dict) -> AccessStats:
     """``AccessStats`` from a snapshot's dict; unknown fields dropped, bad types rejected."""
-    data = {k: v for k, v in data.items() if k in _STATS_FIELDS}
+    data = {k: v for k, v in data.items() if k in _FIELD_CHECKS}
     if not all(_FIELD_CHECKS[k](v) for k, v in data.items()):
         raise TypeError("snapshot field with the wrong type")
     return AccessStats(**data)
 
 
+def _parse_event(raw: bytes):
+    """``(key, op, n, ts, stats)`` from one log line, or ``None`` to skip the line.
+
+    ``k`` and ``op`` are required and ``k`` must be hashable; ``ts`` (absent: ``None``)
+    and ``n`` must be finite real numbers when present; ``stats`` is set only for a
+    ``snapshot`` line. Torn, undecodable and foreign lines all give ``None``.
+    """
+    try:
+        ev = json.loads(raw)
+        key, op = ev["k"], ev["op"]
+        hash(key)
+        if op == "snapshot":
+            return key, op, None, None, _stats_from_snapshot(ev["stats"])
+        ts, n = ev.get("ts"), ev.get("n")
+        if op in OPS and all(x is None or _is_finite(x) for x in (ts, n)):
+            return key, op, n, ts, None
+    except (ValueError, KeyError, TypeError, AttributeError, OverflowError):
+        pass
+    return None
+
+
 def _apply(stats_by_key: dict, key, op, nbytes, ts) -> None:
     """Fold one event into ``stats_by_key`` (shared by live recording and replay).
 
-    ``nbytes=None`` leaves the size alone. Order-independent: recency is a max,
-    ``first_seen`` a min, and the size comes from the latest read or write.
+    ``nbytes=None`` leaves the size alone. Recency is a max, ``first_seen`` a min and
+    the size comes from the latest read or write; ``delete`` drops the entry (pin
+    included), so a later read or write recreates it unpinned. Replay sorts events by
+    timestamp before folding them, so it gives what live recording gave.
     """
     if op not in OPS:
         return
@@ -144,7 +169,7 @@ def _apply(stats_by_key: dict, key, op, nbytes, ts) -> None:
             last_access=max(st.last_access, ts),
         )
         if nbytes is not None and ts >= st.last_access:
-            changes["size"] = nbytes
+            changes["size"] = int(nbytes)  # snapshots hold an int size
         if op == "read":
             changes.update(reads=st.reads + 1, last_read=max(st.last_read, ts))
         else:
@@ -163,7 +188,9 @@ class AccessLog(Mapping):
     :param clock: callable returning unix seconds.
     :param tag: label stamped on each event; defaults to ``platform.node()``.
 
-    A tracker never raises into a store's read path: if the file cannot be written,
+    Opening replays the file in timestamp order (see the module docstring), so the
+    stats equal what recording those events live would give. A tracker never raises
+    into a store's read path: if the file cannot be written,
     a warning is issued once and counting continues in memory. Not thread-safe.
     """
 
@@ -185,44 +212,27 @@ class AccessLog(Mapping):
         self._fh = None
         self._warned_io = False
         self._warned_key = False
-        self._meta: dict[str, Any] = {}  # small JSON values (e.g. a policy's state)
-        self._meta_ts: dict[str, float] = {}
         if self.path is not None and os.path.exists(self.path):
             self._fold_file()
 
     # -- reading -----------------------------------------------------------
     def _fold_file(self) -> None:
-        """Replay the file. Recency is order-independent; so are delete/pin/unpin, which
-        are ordered by their timestamps (a write-ahead merge of several writers' lines)."""
-        state_ts: dict = {}  # key -> ts of the last applied delete/pin/unpin
-        deleted_at: dict = {}  # key -> ts of its delete: earlier reads/writes are void
+        """Replay the file: parse, sort, fold (see the module docstring for the rule)."""
+        events, last_ts = [], 0.0
         with open(self.path, "rb") as fh:
-            for raw in fh:
-                try:
-                    ev = json.loads(raw.decode("utf-8"))
-                    key, op = ev["k"], ev["op"]
-                    ts, n = ev.get("ts") or 0.0, ev.get("n")
-                    if not _is_number(ts) or not (n is None or _is_number(n)):
-                        raise TypeError("timestamp or size of the wrong type")
-                    if op == "snapshot":
-                        self._stats[key] = _stats_from_snapshot(ev["stats"])
-                    elif op == "meta":
-                        if ts >= self._meta_ts.get(key, 0.0):
-                            self._meta[key], self._meta_ts[key] = ev["value"], ts
-                    elif op in ("delete", "pin", "unpin"):
-                        if ts < state_ts.get(key, 0.0):
-                            continue  # superseded by a later-stamped line seen earlier
-                        state_ts[key] = ts
-                        st = self._stats.get(key)
-                        if op == "delete":
-                            deleted_at[key] = max(ts, deleted_at.get(key, 0.0))
-                            if st is not None and st.last_access > ts:
-                                continue  # a later access is already folded in: keep it
-                        _apply(self._stats, key, op, n, ts)
-                    elif ts > deleted_at.get(key, -1.0):
-                        _apply(self._stats, key, op, n, ts)
-                except (ValueError, KeyError, TypeError, AttributeError):
+            for seq, raw in enumerate(fh):
+                if (ev := _parse_event(raw)) is None:
                     continue  # torn, undecodable or foreign line: skip, never fail
+                key, op, n, ts, stats = ev
+                if op == "snapshot":  # the compacted baseline: applied first
+                    self._stats[key] = stats
+                    continue
+                if ts is None:
+                    ts = last_ts  # unstamped: ordered right after the line before it
+                last_ts = ts
+                events.append((ts, seq, key, op, n))
+        for ts, _, key, op, n in sorted(events, key=lambda e: e[:2]):
+            _apply(self._stats, key, op, n, ts)
 
     def __getitem__(self, key) -> AccessStats:
         return self._stats[key]
@@ -239,10 +249,6 @@ class AccessLog(Mapping):
     def stats(self, key) -> AccessStats | None:
         """Alias of ``self.get(key)``."""
         return self._stats.get(key)
-
-    def get_meta(self, name: str, default=None):
-        """A small JSON value stored with the log by :meth:`set_meta`."""
-        return self._meta.get(name, default)
 
     # -- writing -----------------------------------------------------------
     def _warn_once(self, flag: str, message: str) -> None:
@@ -280,20 +286,6 @@ class AccessLog(Mapping):
             "ts": ts,
             "tag": self.tag,
         }
-        self._append(event)
-
-    def set_meta(self, name: str, value) -> None:
-        """Store a small JSON value (last write wins by timestamp) alongside the stats.
-
-        Used for state that should survive a restart but belongs to no key, e.g. a
-        placement policy's aging clock. Like :meth:`record`, never raises on I/O errors.
-        """
-        ts = self.clock()
-        self._meta[name], self._meta_ts[name] = value, ts
-        if self.path is not None:
-            self._append({"k": name, "op": "meta", "value": value, "ts": ts})
-
-    def _append(self, event: dict) -> None:
         try:
             if self._fh is None:
                 self._fh = self._open_for_append()
@@ -315,21 +307,16 @@ class AccessLog(Mapping):
         if self.path is None:
             return
         self.close()
-        events = (
-            *(
-                {"k": key, "op": "snapshot", "stats": asdict(st)}
-                for key, st in self._stats.items()
-            ),
-            *(
-                {"k": name, "op": "meta", "value": v, "ts": self._meta_ts[name]}
-                for name, v in self._meta.items()
-            ),
-        )
         atomic_write(
             self.path,
             (
-                (json.dumps(event, default=str) + "\n").encode("utf-8")
-                for event in events
+                (
+                    json.dumps(
+                        {"k": key, "op": "snapshot", "stats": asdict(st)}, default=str
+                    )
+                    + "\n"
+                ).encode("utf-8")
+                for key, st in self._stats.items()
             ),
         )
 
