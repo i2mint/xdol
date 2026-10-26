@@ -1,44 +1,46 @@
 metric,value
 schema_version,1.0
-timestamp,2026-10-26T13:36:25.766412Z
-commit_sha,119794f3dcce355be82f9a9e8be50da0c52683fc
-commit_message,"updating: backfill decides on presence only; safe default content hash (review of #19) (#27)
+timestamp,2026-10-26T13:45:00.832653Z
+commit_sha,3be2fdbae4145ff5339d90d1bb3dde1ee6db8ca8
+commit_message,"xdol.tiering: fix adversarial-review findings; real GDSF aging
 
-* Fix backfill reads/None-overwrite and content_hash_key_info (review of #19)
-
-- backfill decides on key presence only (PREFER_TARGET with a presence key
-  info): it reads no master value and each pushed copy value once, and a
-  None-valued master key is no longer overwritten.
-- content_hash_key_info hashes str/bytes-like values with a type tag (str via
-  surrogatepass) and returns any other value as is, so verify compares it
-  with == instead of a repr() digest.
-- Tests: None-valued master, read counter on backfill, key_info decides in
-  both directions (with .get blocked), reconcile stats, default content hash.
-- Rewrite the garbled module docstring; drop duplicate Iterable/Protocol
-  imports.
-
-* CI: collect xdol/ (package tests + doctests); fix two pystores doctests that could never pass
-
-testpaths only listed tests/, so xdol/tests/*.py and every module doctest
-were skipped in CI (CI passes --doctest-modules but no paths)."
+- budget_bytes=0: a write drops any hot copy instead of leaving it stale.
+- prefetch records a read served from cold and its release step never releases
+  the keys it was asked for (sweep(..., exclude=)); local_paths raises
+  FileNotFoundError if the file is still missing.
+- GDSF per Cherkasova: H = L + F*C/S fixed at access time, L := H of the
+  released key, F counts accesses since admission. Kept inside the policy via a
+  new PlacementPolicy.on_hot_access hook; keys already hot are seeded with their
+  logged frequency.
+- Running hot-bytes total instead of an O(n) sum per op.
+- TieredStore has no clock argument: it uses the tracker's clock.
+- Startup over an existing hot store records nothing and reads no values: sizes
+  come from the log, else the file size, else are learnt on the next hot hit.
+- admit_after_reads <= 1 always admits.
+- __setitem__ raises TypeError for a value without len before any write.
+- __delitem__ drops the hot copy before deleting from cold.
+- One exceeds_watermark helper; dead code removed; single-threaded documented.
+- Tests: aging, bounded local_paths, overwrite/delete bookkeeping, startup with
+  an existing hot store, admit_after_reads=1, item larger than budget, hot write
+  error state, no stray warning."
 python_version,3.10
-metrics.umpyre_stats.num_functions,7133
-metrics.umpyre_stats.num_classes,1692
-metrics.umpyre_stats.total_lines,265998
-metrics.umpyre_stats.empty_lines,34357
-metrics.umpyre_stats.comment_lines,14808
-metrics.umpyre_stats.docs_lines,38377
-metrics.umpyre_stats.function_lines,118375
-metrics.umpyre_stats.empty_lines_ratio,0.12916262528289688
-metrics.umpyre_stats.comment_lines_ratio,0.055669591500687975
-metrics.umpyre_stats.function_lines_ratio,0.44502214302363174
-metrics.umpyre_stats.mean_lines_per_function,16.59540165428291
-metrics.umpyre_stats.files_analyzed,596
+metrics.umpyre_stats.num_functions,7056
+metrics.umpyre_stats.num_classes,1680
+metrics.umpyre_stats.total_lines,264045
+metrics.umpyre_stats.empty_lines,34065
+metrics.umpyre_stats.comment_lines,14699
+metrics.umpyre_stats.docs_lines,38353
+metrics.umpyre_stats.function_lines,116945
+metrics.umpyre_stats.empty_lines_ratio,0.12901210021019144
+metrics.umpyre_stats.comment_lines_ratio,0.05566854134711886
+metrics.umpyre_stats.function_lines_ratio,0.4428979908727679
+metrics.umpyre_stats.mean_lines_per_function,16.573837868480727
+metrics.umpyre_stats.files_analyzed,586
 metrics.umpyre_stats.pypi_version,0.1.21
 metrics.workflow_status.last_run_status,success
-metrics.workflow_status.last_success_timestamp,2026-10-26T13:34:03Z
+metrics.workflow_status.last_success_timestamp,2026-10-26T13:37:36Z
 metrics.workflow_status.recent_failure_count,0
-metrics.workflow_status.run_url,https://github.com/i2mint/xdol/actions/runs/40331540978
+metrics.workflow_status.run_url,https://github.com/i2mint/xdol/actions/runs/40332166159
 metrics.workflow_status.total_runs_analyzed,10
 metrics.wily.cyclomatic_avg,0.0
 metrics.wily.maintainability_index,0.0
@@ -54,4 +56,4 @@ metrics.coverage.branch_coverage,0.0
 metrics.coverage.statements_covered,0
 metrics.coverage.statements_total,0
 metrics.coverage.error,No coverage file found
-collection_duration_seconds,3.7994391918182373
+collection_duration_seconds,3.3780691623687744
