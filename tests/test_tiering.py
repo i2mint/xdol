@@ -169,9 +169,9 @@ def test_local_paths_with_files_hot(tmp_path):
     s, _ = make(0, hot=_files(tmp_path), cold={"a": b"data"})
     p = local_paths(s)["a"]
     assert open(p, "rb").read() == b"data"
-    s2, _ = make(0)
+    s2, _ = make(0, cold={"a": b"x"})
     with pytest.raises(TypeError):
-        local_paths(s2)
+        local_paths(s2)["a"]
 
 
 def test_default_tracker_warns_without_rootdir():
@@ -399,17 +399,11 @@ def test_local_paths_access_counts_as_use(tmp_path):
     assert s.tracker["a"].last_access > before.last_access
 
 
-def test_local_paths_default_rejects_relative_path(tmp_path):
-    class Wrapped(dict):  # like a wrap_kvs-wrapped Files: ids are not full paths
-        rootdir = str(tmp_path) + os.sep
-
-        def _id_of_key(self, key):
-            return key
-
-    hot = Wrapped()
-    s, _ = make(None, hot=hot, cold={"a": b"x"})
-    with pytest.raises(TypeError, match="path_of"):
+def test_local_paths_default_needs_a_file_backed_hot_store():
+    s, _ = make(None, cold={"a": b"x"})  # a dict hot store
+    with pytest.raises(TypeError):
         local_paths(s)["a"]
+    assert "a" not in s.hot  # rejected before fetching
 
 
 def test_local_paths_path_of_and_contains(tmp_path):
@@ -438,18 +432,11 @@ def test_local_paths_relative_rootdir_ok(tmp_path, monkeypatch):
     assert open(local_paths(s)["a"], "rb").read() == b"x"
 
 
-def test_local_paths_path_outside_root_rejected(tmp_path):
-    # default guard: a hot store whose ids point outside its rootdir
-    class Out(dict):
-        rootdir = str(tmp_path / "root") + os.sep
-
-        def _id_of_key(self, key):
-            return str(tmp_path / "other" / key)
-
-    s2, _ = make(None, hot=Out(), cold={"a": b"x"})
-    with pytest.raises(TypeError, match="path_of"):
-        local_paths(s2)["a"]
-    assert "a" not in s2.hot  # rejected before fetching
+def test_local_paths_key_leaving_root_is_a_keyerror_and_not_fetched(tmp_path):
+    s, _ = make(None, hot=_files(tmp_path), cold={"../x": b"x"})
+    with pytest.raises(KeyError):
+        local_paths(s)["../x"]
+    assert "../x" not in s.hot
 
 
 def test_local_paths_refetches_file_deleted_behind_our_back(tmp_path):
@@ -527,3 +514,21 @@ def test_gdsf_after_restart_long_history_does_not_outrank_recent_hits(tmp_path):
     s["new"], s["new"]  # recent hits
     s["c"] = b"c" * 2  # crosses the high watermark: one or more keys must go
     assert "old" not in s.hot and "new" in s.hot
+
+
+def test_local_paths_default_follows_wrapped_files(tmp_path):
+    from dol import KeyCodecs
+
+    hot = KeyCodecs.suffixed(".bin")(Files(str(tmp_path) + os.sep))
+    s, _ = make(None, hot=hot, cold={"a": b"data"})
+    p = local_paths(s)["a"]
+    assert p == str(tmp_path / "a.bin") and open(p, "rb").read() == b"data"
+
+
+def test_wrapped_hot_files_sized_at_startup(tmp_path):
+    from dol import KeyCodecs
+
+    (tmp_path / "a.bin").write_bytes(b"12345")
+    hot = KeyCodecs.suffixed(".bin")(Files(str(tmp_path) + os.sep))
+    s, _ = make(100, hot=hot)
+    assert status(s)["hot_bytes"] == 5
