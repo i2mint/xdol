@@ -1,5 +1,5 @@
 {
-  "collection_duration_seconds": 3.4376461505889893,
+  "collection_duration_seconds": 3.2543835639953613,
   "commit_message": "tiering: max_item_fraction on TieredStore (read and write paths), admit signature restored, one release per hot drop (#24)\n\nReview of the #24 change:\n- PlacementPolicy.admit back to (key, stats, *, now); max_item_fraction moves to\n  TieredStore.__init__ (validated, 0 < x <= 1, default 1.0), applied to read-miss\n  admission and write-through; prefetch/local_paths stay exempt.\n- admitted_at means 'hot since': _drop_hot records exactly one release per actual\n  drop; deletes record only the delete.\n- merge_stats takes admitted_at from the log with the latest last_access.\n- __getitem__ sizes the value once; admit events carry no size.\n- warn-once-per-stuck-episode extracted into a helper.\n- Tests: default-policy oversize scenario, write-path oversize, validation,\n  compact/reopen and old snapshots, merge_stats, reopen with protection checked.",
   "commit_sha": "f93bc000f416cce682fed127ec93f3763186e911",
   "metrics": {
@@ -11,19 +11,19 @@
       "statements_total": 0
     },
     "umpyre_stats": {
-      "comment_lines": 14704,
-      "comment_lines_ratio": 0.05555891421316728,
-      "docs_lines": 38562,
-      "empty_lines": 34168,
-      "empty_lines_ratio": 0.12910343993712592,
-      "files_analyzed": 587,
-      "function_lines": 117403,
-      "function_lines_ratio": 0.4436060395381174,
-      "mean_lines_per_function": 16.561292142756383,
-      "num_classes": 1683,
-      "num_functions": 7089,
+      "comment_lines": 14816,
+      "comment_lines_ratio": 0.05554472520056984,
+      "docs_lines": 38599,
+      "empty_lines": 34485,
+      "empty_lines_ratio": 0.12928319712079178,
+      "files_analyzed": 597,
+      "function_lines": 118918,
+      "function_lines_ratio": 0.4458198995276299,
+      "mean_lines_per_function": 16.560089124077425,
+      "num_classes": 1695,
+      "num_functions": 7181,
       "pypi_version": "0.1.27",
-      "total_lines": 264656
+      "total_lines": 266740
     },
     "wily": {
       "cyclomatic_avg": 0.0,
@@ -42,6 +42,6 @@
   },
   "python_version": "3.10",
   "schema_version": "1.0",
-  "timestamp": "2026-10-26T18:20:12.641356Z",
+  "timestamp": "2026-10-26T18:20:18.835253Z",
   "workflow_status": {}
 }
