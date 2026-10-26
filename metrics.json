@@ -1,7 +1,7 @@
 {
-  "collection_duration_seconds": 3.1198251247406006,
-  "commit_message": "access: one replay-line generator; compact_above counts events; never raise on open\n\n- _replay_lines yields parsed lines with unstamped ts filled from the running\n  max; _fold_streaming / _fold_buffered are module-level folds over it.\n- compact_above counts event lines only (a compacted file is not rewritten on\n  every open); validated as None or a non-negative int.\n- auto-compaction failure warns once instead of raising from the constructor.\n- tests: seeded fuzz of streaming vs buffered folds, inode/mtime regression,\n  compaction-failure warning, compact_above validation.\n\nRefs #32",
-  "commit_sha": "0b9236f95f007d0eb15e7c217ebad3dd1708387d",
+  "collection_duration_seconds": 2.8488211631774902,
+  "commit_message": "access: buffered replay's last_ts floors at 0.0, as before (negative ts)\n\nRefs #32",
+  "commit_sha": "c53447f9fa389a0d6ef9fe8e21a211625a775edf",
   "metrics": {
     "coverage": {
       "branch_coverage": 0.0,
@@ -11,19 +11,19 @@
       "statements_total": 0
     },
     "umpyre_stats": {
-      "comment_lines": 14702,
-      "comment_lines_ratio": 0.0555633241244298,
-      "docs_lines": 38543,
-      "empty_lines": 34162,
-      "empty_lines_ratio": 0.1291085756181996,
-      "files_analyzed": 587,
-      "function_lines": 117357,
-      "function_lines_ratio": 0.4435277533172839,
-      "mean_lines_per_function": 16.559475095244814,
-      "num_classes": 1683,
-      "num_functions": 7087,
+      "comment_lines": 14815,
+      "comment_lines_ratio": 0.0555526390784599,
+      "docs_lines": 38580,
+      "empty_lines": 34479,
+      "empty_lines_ratio": 0.12928784628999115,
+      "files_analyzed": 597,
+      "function_lines": 118873,
+      "function_lines_ratio": 0.44574477658952166,
+      "mean_lines_per_function": 16.558434322329017,
+      "num_classes": 1695,
+      "num_functions": 7179,
       "pypi_version": "0.1.27",
-      "total_lines": 264599
+      "total_lines": 266684
     },
     "wily": {
       "cyclomatic_avg": 0.0,
@@ -34,14 +34,14 @@
     },
     "workflow_status": {
       "last_run_status": "success",
-      "last_success_timestamp": "2026-10-26T17:57:44Z",
+      "last_success_timestamp": "2026-10-26T18:03:49Z",
       "recent_failure_count": 0,
-      "run_url": "https://github.com/i2mint/xdol/actions/runs/40373303294",
+      "run_url": "https://github.com/i2mint/xdol/actions/runs/40374189605",
       "total_runs_analyzed": 10
     }
   },
   "python_version": "3.10",
   "schema_version": "1.0",
-  "timestamp": "2026-10-26T18:03:37.849196Z",
+  "timestamp": "2026-10-26T18:06:26.999343Z",
   "workflow_status": {}
 }
