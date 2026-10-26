@@ -298,8 +298,7 @@ class AccessLog(Mapping):
                 except OSError as e:  # a constructor never raises over compaction
                     self._warn_once(
                         "_warned_compact",
-                        f"AccessLog could not compact {self.path!r} ({e}); "
-                        "left as is.",
+                        f"AccessLog could not compact {self.path!r} ({e}); left as is.",
                     )
 
     # -- reading -----------------------------------------------------------
