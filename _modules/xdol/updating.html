@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../_static/documentation_options.js?v=17aaaefc"></script>
+    <script src="../../_static/documentation_options.js?v=b3d22ae5"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -411,7 +411,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.20" />
+  <meta name="docsearch:version" content="0.1.21" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -698,20 +698,21 @@ window.runMermaid = runMermaid;</script>
                 <article class="bd-article">
                   
   <h1>Source code for xdol.updating</h1><div class="highlight"><pre>
-<span></span><span class="sd">"""</span>
+<span></span><span class="sd">"""Controlled updates of one mapping from another, with customizable policies.</span>
 
-<span class="sd">mapping using customizable policies to determine which items to update. It offers</span>
-<span class="sd">a fine-grained approach to dictionary updates beyond the standard dict.update()</span>
-<span class="sd">method.</span>
+<span class="sd">``update_with_policy`` decides, key by key, whether to copy a source item into a</span>
+<span class="sd">target mapping. It goes beyond ``dict.update()`` with:</span>
 
-<span class="sd">Key Features:</span>
-<span class="sd">- Multiple built-in update policies (always update, update if different, prefer target, prefer source)</span>
-<span class="sd">- Support for custom update decision functions</span>
-<span class="sd">- Lazy value retrieval for performance optimization</span>
-<span class="sd">- Detailed statistics about update operations</span>
-<span class="sd">- Specialized update strategies (content hash comparison, timestamp-based updates)</span>
-<span class="sd">- File system-specific convenience functions</span>
+<span class="sd">- built-in policies (always update, update if different, prefer target, prefer source)</span>
+<span class="sd">- custom decision functions and custom "key info" extractors (compare sizes,</span>
+<span class="sd">  hashes or timestamps instead of reading values)</span>
+<span class="sd">- statistics about what was examined, updated, added, unchanged or deleted</span>
+<span class="sd">- specialized entry points (content-hash comparison, timestamps, local files)</span>
 
+<span class="sd">A last section names the operations on a master / copy pair (companions of</span>
+<span class="sd">``xdol.tiering``): ``backfill`` (push to master what only the copy has),</span>
+<span class="sd">``reconcile`` (update the copy from master) and ``verify`` (compare without</span>
+<span class="sd">writing).</span>
 
 <span class="sd">Custom update logic with a hash function:</span>
 
@@ -728,12 +729,6 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">{'examined': 2, 'updated': 0, 'added': 0, 'unchanged': 2, 'deleted': 0}</span>
 <span class="sd">&gt;&gt;&gt; target</span>
 <span class="sd">{'a': 'hello!', 'b': 'world', 'c': 'python'}</span>
-
-<span class="sd">Functions for controlled mapping updates with customizable policies.</span>
-
-<span class="sd">This module provides flexible functions to update a target mapping from a source</span>
-<span class="sd">mapping using customizable policies to determine which items to update.</span>
-
 <span class="sd">"""</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
@@ -744,7 +739,6 @@ window.runMermaid = runMermaid;</script>
     <span class="n">TypeVar</span><span class="p">,</span>
     <span class="n">Tuple</span><span class="p">,</span>
     <span class="n">Set</span><span class="p">,</span>
-    <span class="n">Protocol</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">Mapping</span><span class="p">,</span>
@@ -755,7 +749,6 @@ window.runMermaid = runMermaid;</script>
     <span class="n">Iterator</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Iterable</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">enum</span><span class="w"> </span><span class="kn">import</span> <span class="n">Enum</span><span class="p">,</span> <span class="n">auto</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">functools</span><span class="w"> </span><span class="kn">import</span> <span class="n">partial</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing_extensions</span><span class="w"> </span><span class="kn">import</span> <span class="n">Protocol</span>
@@ -1479,6 +1472,15 @@ window.runMermaid = runMermaid;</script>
     <span class="k">return</span> <span class="n">UpdateStats</span><span class="p">(</span><span class="o">**</span><span class="n">stats</span><span class="p">)</span>
 
 
+<span class="k">def</span><span class="w"> </span><span class="nf">_present</span><span class="p">(</span><span class="n">key</span><span class="p">:</span> <span class="n">K</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Presence-only key info: never reads a value.</span>
+
+<span class="sd">    ``update_with_policy`` only asks for the info of keys a mapping contains, so a</span>
+<span class="sd">    constant non-``None`` answer means "present" (even when the value is ``None``).</span>
+<span class="sd">    """</span>
+    <span class="k">return</span> <span class="kc">True</span>
+
+
 <div class="viewcode-block" id="backfill">
 <a class="viewcode-back" href="../../_autosummary/xdol.updating.html#xdol.updating.backfill">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">backfill</span><span class="p">(</span>
@@ -1489,6 +1491,9 @@ window.runMermaid = runMermaid;</script>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">UpdateStats</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Push to ``master`` the items that only ``copy`` has. Never overwrites.</span>
 
+<span class="sd">    Decisions use key presence only: the one value read is ``copy[k]`` for each key</span>
+<span class="sd">    actually pushed, so nothing is ever downloaded from a cold (e.g. S3) master.</span>
+
 <span class="sd">    &gt;&gt;&gt; master, copy = {'a': 1}, {'a': 9, 'b': 2}</span>
 <span class="sd">    &gt;&gt;&gt; backfill(copy, master).added</span>
 <span class="sd">    1</span>
@@ -1496,7 +1501,14 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">    {'a': 1, 'b': 2}</span>
 <span class="sd">    """</span>
     <span class="k">return</span> <span class="n">_as_update_stats</span><span class="p">(</span>
-        <span class="n">update_missing_only</span><span class="p">(</span><span class="n">master</span><span class="p">,</span> <span class="n">copy</span><span class="p">,</span> <span class="n">keys_to_consider</span><span class="o">=</span><span class="n">keys_to_consider</span><span class="p">)</span>
+        <span class="n">update_with_policy</span><span class="p">(</span>
+            <span class="n">master</span><span class="p">,</span>
+            <span class="n">copy</span><span class="p">,</span>
+            <span class="n">policy</span><span class="o">=</span><span class="n">DefaultPolicy</span><span class="o">.</span><span class="n">PREFER_TARGET</span><span class="p">,</span>
+            <span class="n">target_key_info</span><span class="o">=</span><span class="n">_present</span><span class="p">,</span>
+            <span class="n">source_key_info</span><span class="o">=</span><span class="n">_present</span><span class="p">,</span>
+            <span class="n">keys_to_consider</span><span class="o">=</span><span class="n">keys_to_consider</span><span class="p">,</span>
+        <span class="p">)</span>
     <span class="p">)</span></div>
 
 
@@ -1545,16 +1557,38 @@ window.runMermaid = runMermaid;</script>
 
 
 
+<span class="n">_STR_HASH_TAG</span> <span class="o">=</span> <span class="sa">b</span><span class="s2">"str:"</span>
+<span class="n">_BYTES_HASH_TAG</span> <span class="o">=</span> <span class="sa">b</span><span class="s2">"bytes:"</span>
+<span class="n">_STR_HASH_ENCODING</span> <span class="o">=</span> <span class="s2">"utf-8"</span>
+<span class="n">_STR_HASH_ERRORS</span> <span class="o">=</span> <span class="s2">"surrogatepass"</span>  <span class="c1"># lone surrogates must hash, not raise</span>
+
+
 <div class="viewcode-block" id="content_hash_key_info">
 <a class="viewcode-back" href="../../_autosummary/xdol.updating.html#xdol.updating.content_hash_key_info">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">content_hash_key_info</span><span class="p">(</span><span class="n">store</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="n">K</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""Default ``key_info`` for :func:`verify`: sha256 of the value's content."""</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">content_hash_key_info</span><span class="p">(</span><span class="n">store</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="n">K</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Default ``key_info`` for :func:`verify`.</span>
+
+<span class="sd">    Text and bytes-like values give a sha256 of their content, tagged by kind so</span>
+<span class="sd">    that ``'a'`` and ``b'a'`` differ. Any other value is returned as is, so</span>
+<span class="sd">    :func:`verify` compares it with ``==`` (``1 == 1.0``, dict order ignored).</span>
+
+<span class="sd">    &gt;&gt;&gt; h = lambda v: content_hash_key_info({'k': v}, 'k')</span>
+<span class="sd">    &gt;&gt;&gt; h(b'a') == h(bytearray(b'a')), h(b'a') == h('a')</span>
+<span class="sd">    (True, False)</span>
+<span class="sd">    &gt;&gt;&gt; h({'x': 1})</span>
+<span class="sd">    {'x': 1}</span>
+<span class="sd">    """</span>
     <span class="n">value</span> <span class="o">=</span> <span class="n">store</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
-        <span class="n">value</span> <span class="o">=</span> <span class="n">value</span><span class="o">.</span><span class="n">encode</span><span class="p">()</span>
-    <span class="k">elif</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="p">(</span><span class="nb">bytes</span><span class="p">,</span> <span class="nb">bytearray</span><span class="p">,</span> <span class="nb">memoryview</span><span class="p">)):</span>
-        <span class="n">value</span> <span class="o">=</span> <span class="nb">repr</span><span class="p">(</span><span class="n">value</span><span class="p">)</span><span class="o">.</span><span class="n">encode</span><span class="p">()</span>
-    <span class="k">return</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">sha256</span><span class="p">(</span><span class="n">value</span><span class="p">)</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()</span></div>
+        <span class="n">tag</span> <span class="o">=</span> <span class="n">_STR_HASH_TAG</span>
+        <span class="n">value</span> <span class="o">=</span> <span class="n">value</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="n">_STR_HASH_ENCODING</span><span class="p">,</span> <span class="n">errors</span><span class="o">=</span><span class="n">_STR_HASH_ERRORS</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="p">(</span><span class="nb">bytes</span><span class="p">,</span> <span class="nb">bytearray</span><span class="p">,</span> <span class="nb">memoryview</span><span class="p">)):</span>
+        <span class="n">tag</span> <span class="o">=</span> <span class="n">_BYTES_HASH_TAG</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">value</span>
+    <span class="n">hasher</span> <span class="o">=</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">sha256</span><span class="p">(</span><span class="n">tag</span><span class="p">)</span>
+    <span class="n">hasher</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">hasher</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()</span></div>
 
 
 

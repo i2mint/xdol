@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../_static/documentation_options.js?v=17aaaefc"></script>
+    <script src="../../_static/documentation_options.js?v=b3d22ae5"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -411,7 +411,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.20" />
+  <meta name="docsearch:version" content="0.1.21" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -850,9 +850,9 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">    ...</span>
 <span class="sd">    ...     reader = SetupCfgReader(tmpdir)</span>
 <span class="sd">    ...     assert len(reader) == 1</span>
-<span class="sd">    ...     assert 'proj1/setup.cfg' in reader</span>
-<span class="sd">    ...     assert 'requests' in reader['proj1/setup.cfg']</span>
-<span class="sd">    True</span>
+<span class="sd">    ...     key = os.path.join('proj1', 'setup.cfg')  # os-specific separator</span>
+<span class="sd">    ...     assert key in reader</span>
+<span class="sd">    ...     assert 'requests' in reader[key]</span>
 <span class="sd">    """</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">src</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">max_levels</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
@@ -921,9 +921,9 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">    ...</span>
 <span class="sd">    ...     reader = PyprojectReader(tmpdir)</span>
 <span class="sd">    ...     assert len(reader) == 1</span>
-<span class="sd">    ...     assert 'proj1/pyproject.toml' in reader</span>
-<span class="sd">    ...     assert 'requests' in reader['proj1/pyproject.toml']</span>
-<span class="sd">    True</span>
+<span class="sd">    ...     key = os.path.join('proj1', 'pyproject.toml')  # os-specific separator</span>
+<span class="sd">    ...     assert key in reader</span>
+<span class="sd">    ...     assert 'requests' in reader[key]</span>
 <span class="sd">    """</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">src</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">max_levels</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>

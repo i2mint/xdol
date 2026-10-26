@@ -44,7 +44,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../_static/documentation_options.js?v=17aaaefc"></script>
+    <script src="../_static/documentation_options.js?v=b3d22ae5"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -58,7 +58,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.20" />
+  <meta name="docsearch:version" content="0.1.21" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -630,9 +630,9 @@ Values are the string contents of the pyproject.toml files.</p>
 <span class="gp">...</span>
 <span class="gp">... </span>    <span class="n">reader</span> <span class="o">=</span> <span class="n">PyprojectReader</span><span class="p">(</span><span class="n">tmpdir</span><span class="p">)</span>
 <span class="gp">... </span>    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">reader</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span>
-<span class="gp">... </span>    <span class="k">assert</span> <span class="s1">'proj1/pyproject.toml'</span> <span class="ow">in</span> <span class="n">reader</span>
-<span class="gp">... </span>    <span class="k">assert</span> <span class="s1">'requests'</span> <span class="ow">in</span> <span class="n">reader</span><span class="p">[</span><span class="s1">'proj1/pyproject.toml'</span><span class="p">]</span>
-<span class="go">True</span>
+<span class="gp">... </span>    <span class="n">key</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s1">'proj1'</span><span class="p">,</span> <span class="s1">'pyproject.toml'</span><span class="p">)</span>  <span class="c1"># os-specific separator</span>
+<span class="gp">... </span>    <span class="k">assert</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">reader</span>
+<span class="gp">... </span>    <span class="k">assert</span> <span class="s1">'requests'</span> <span class="ow">in</span> <span class="n">reader</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
 </pre></div>
 </div>
 <dl class="py method">
@@ -672,9 +672,9 @@ Values are the string contents of the setup.cfg files.</p>
 <span class="gp">...</span>
 <span class="gp">... </span>    <span class="n">reader</span> <span class="o">=</span> <span class="n">SetupCfgReader</span><span class="p">(</span><span class="n">tmpdir</span><span class="p">)</span>
 <span class="gp">... </span>    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">reader</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span>
-<span class="gp">... </span>    <span class="k">assert</span> <span class="s1">'proj1/setup.cfg'</span> <span class="ow">in</span> <span class="n">reader</span>
-<span class="gp">... </span>    <span class="k">assert</span> <span class="s1">'requests'</span> <span class="ow">in</span> <span class="n">reader</span><span class="p">[</span><span class="s1">'proj1/setup.cfg'</span><span class="p">]</span>
-<span class="go">True</span>
+<span class="gp">... </span>    <span class="n">key</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s1">'proj1'</span><span class="p">,</span> <span class="s1">'setup.cfg'</span><span class="p">)</span>  <span class="c1"># os-specific separator</span>
+<span class="gp">... </span>    <span class="k">assert</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">reader</span>
+<span class="gp">... </span>    <span class="k">assert</span> <span class="s1">'requests'</span> <span class="ow">in</span> <span class="n">reader</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
 </pre></div>
 </div>
 <dl class="py method">
