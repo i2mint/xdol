@@ -1,6 +1,6 @@
 metric,value
 schema_version,1.0
-timestamp,2026-10-26T13:45:00.832653Z
+timestamp,2026-10-26T13:45:03.841110Z
 commit_sha,3be2fdbae4145ff5339d90d1bb3dde1ee6db8ca8
 commit_message,"xdol.tiering: fix adversarial-review findings; real GDSF aging
 
@@ -24,18 +24,18 @@ commit_message,"xdol.tiering: fix adversarial-review findings; real GDSF aging
   an existing hot store, admit_after_reads=1, item larger than budget, hot write
   error state, no stray warning."
 python_version,3.10
-metrics.umpyre_stats.num_functions,7056
-metrics.umpyre_stats.num_classes,1680
-metrics.umpyre_stats.total_lines,264045
-metrics.umpyre_stats.empty_lines,34065
-metrics.umpyre_stats.comment_lines,14699
-metrics.umpyre_stats.docs_lines,38353
-metrics.umpyre_stats.function_lines,116945
-metrics.umpyre_stats.empty_lines_ratio,0.12901210021019144
-metrics.umpyre_stats.comment_lines_ratio,0.05566854134711886
-metrics.umpyre_stats.function_lines_ratio,0.4428979908727679
-metrics.umpyre_stats.mean_lines_per_function,16.573837868480727
-metrics.umpyre_stats.files_analyzed,586
+metrics.umpyre_stats.num_functions,7148
+metrics.umpyre_stats.num_classes,1692
+metrics.umpyre_stats.total_lines,266129
+metrics.umpyre_stats.empty_lines,34382
+metrics.umpyre_stats.comment_lines,14811
+metrics.umpyre_stats.docs_lines,38390
+metrics.umpyre_stats.function_lines,118460
+metrics.umpyre_stats.empty_lines_ratio,0.1291929853567255
+metrics.umpyre_stats.comment_lines_ratio,0.05565346129132864
+metrics.umpyre_stats.function_lines_ratio,0.445122478196664
+metrics.umpyre_stats.mean_lines_per_function,16.57246782316732
+metrics.umpyre_stats.files_analyzed,596
 metrics.umpyre_stats.pypi_version,0.1.21
 metrics.workflow_status.last_run_status,success
 metrics.workflow_status.last_success_timestamp,2026-10-26T13:37:36Z
@@ -56,4 +56,4 @@ metrics.coverage.branch_coverage,0.0
 metrics.coverage.statements_covered,0
 metrics.coverage.statements_total,0
 metrics.coverage.error,No coverage file found
-collection_duration_seconds,3.3780691623687744
+collection_duration_seconds,3.3711774349212646

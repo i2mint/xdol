@@ -1,5 +1,5 @@
 {
-  "collection_duration_seconds": 3.3780691623687744,
+  "collection_duration_seconds": 3.3711774349212646,
   "commit_message": "xdol.tiering: fix adversarial-review findings; real GDSF aging\n\n- budget_bytes=0: a write drops any hot copy instead of leaving it stale.\n- prefetch records a read served from cold and its release step never releases\n  the keys it was asked for (sweep(..., exclude=)); local_paths raises\n  FileNotFoundError if the file is still missing.\n- GDSF per Cherkasova: H = L + F*C/S fixed at access time, L := H of the\n  released key, F counts accesses since admission. Kept inside the policy via a\n  new PlacementPolicy.on_hot_access hook; keys already hot are seeded with their\n  logged frequency.\n- Running hot-bytes total instead of an O(n) sum per op.\n- TieredStore has no clock argument: it uses the tracker's clock.\n- Startup over an existing hot store records nothing and reads no values: sizes\n  come from the log, else the file size, else are learnt on the next hot hit.\n- admit_after_reads <= 1 always admits.\n- __setitem__ raises TypeError for a value without len before any write.\n- __delitem__ drops the hot copy before deleting from cold.\n- One exceeds_watermark helper; dead code removed; single-threaded documented.\n- Tests: aging, bounded local_paths, overwrite/delete bookkeeping, startup with\n  an existing hot store, admit_after_reads=1, item larger than budget, hot write\n  error state, no stray warning.",
   "commit_sha": "3be2fdbae4145ff5339d90d1bb3dde1ee6db8ca8",
   "metrics": {
@@ -11,19 +11,19 @@
       "statements_total": 0
     },
     "umpyre_stats": {
-      "comment_lines": 14699,
-      "comment_lines_ratio": 0.05566854134711886,
-      "docs_lines": 38353,
-      "empty_lines": 34065,
-      "empty_lines_ratio": 0.12901210021019144,
-      "files_analyzed": 586,
-      "function_lines": 116945,
-      "function_lines_ratio": 0.4428979908727679,
-      "mean_lines_per_function": 16.573837868480727,
-      "num_classes": 1680,
-      "num_functions": 7056,
+      "comment_lines": 14811,
+      "comment_lines_ratio": 0.05565346129132864,
+      "docs_lines": 38390,
+      "empty_lines": 34382,
+      "empty_lines_ratio": 0.1291929853567255,
+      "files_analyzed": 596,
+      "function_lines": 118460,
+      "function_lines_ratio": 0.445122478196664,
+      "mean_lines_per_function": 16.57246782316732,
+      "num_classes": 1692,
+      "num_functions": 7148,
       "pypi_version": "0.1.21",
-      "total_lines": 264045
+      "total_lines": 266129
     },
     "wily": {
       "cyclomatic_avg": 0.0,
@@ -42,6 +42,6 @@
   },
   "python_version": "3.10",
   "schema_version": "1.0",
-  "timestamp": "2026-10-26T13:45:00.832653Z",
+  "timestamp": "2026-10-26T13:45:03.841110Z",
   "workflow_status": {}
 }
