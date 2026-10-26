@@ -1,0 +1,47 @@
+{
+  "collection_duration_seconds": 4.278942823410034,
+  "commit_message": "tiering: size-aware admission, residency since admission (#24) (#39)\n\n* tiering: max_item_fraction admission, residency from admission (admitted_at), warn once per stuck episode (#24)\n\n* tiering: max_item_fraction on TieredStore (read and write paths), admit signature restored, one release per hot drop (#24)\n\nReview of the #24 change:\n- PlacementPolicy.admit back to (key, stats, *, now); max_item_fraction moves to\n  TieredStore.__init__ (validated, 0 < x <= 1, default 1.0), applied to read-miss\n  admission and write-through; prefetch/local_paths stay exempt.\n- admitted_at means 'hot since': _drop_hot records exactly one release per actual\n  drop; deletes record only the delete.\n- merge_stats takes admitted_at from the log with the latest last_access.\n- __getitem__ sizes the value once; admit events carry no size.\n- warn-once-per-stuck-episode extracted into a helper.\n- Tests: default-policy oversize scenario, write-path oversize, validation,\n  compact/reopen and old snapshots, merge_stats, reopen with protection checked.",
+  "commit_sha": "3375cd28c26fcb126ab515d399e98d63623bd7e0",
+  "metrics": {
+    "coverage": {
+      "branch_coverage": 0.0,
+      "error": "No coverage file found",
+      "line_coverage": 0.0,
+      "statements_covered": 0,
+      "statements_total": 0
+    },
+    "umpyre_stats": {
+      "comment_lines": 14816,
+      "comment_lines_ratio": 0.05554472520056984,
+      "docs_lines": 38599,
+      "empty_lines": 34485,
+      "empty_lines_ratio": 0.12928319712079178,
+      "files_analyzed": 597,
+      "function_lines": 118918,
+      "function_lines_ratio": 0.4458198995276299,
+      "mean_lines_per_function": 16.560089124077425,
+      "num_classes": 1695,
+      "num_functions": 7181,
+      "pypi_version": "0.1.28",
+      "total_lines": 266740
+    },
+    "wily": {
+      "cyclomatic_avg": 0.0,
+      "error": "wily report failed: Usage: wily report [OPTIONS] FILE [METRICS]...\nTry 'wily report --help' for help.\n\nError: Invalid value for '-f' / '--format': 'json' is not one of 'CONSOLE', 'HTML'.\n",
+      "files_analyzed": 0,
+      "maintainability_index": 0.0,
+      "total_loc": 0
+    },
+    "workflow_status": {
+      "last_run_status": "success",
+      "last_success_timestamp": "2026-10-26T18:22:27Z",
+      "recent_failure_count": 0,
+      "run_url": "https://github.com/i2mint/xdol/actions/runs/40376982834",
+      "total_runs_analyzed": 10
+    }
+  },
+  "python_version": "3.10",
+  "schema_version": "1.0",
+  "timestamp": "2026-10-26T18:23:06.709727Z",
+  "workflow_status": {}
+}

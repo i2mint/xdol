@@ -1,6 +1,6 @@
 metric,value
 schema_version,1.0
-timestamp,2026-10-26T18:22:51.840007Z
+timestamp,2026-10-26T18:23:06.709727Z
 commit_sha,3375cd28c26fcb126ab515d399e98d63623bd7e0
 commit_message,"tiering: size-aware admission, residency since admission (#24) (#39)
 
@@ -20,18 +20,18 @@ Review of the #24 change:
 - Tests: default-policy oversize scenario, write-path oversize, validation,
   compact/reopen and old snapshots, merge_stats, reopen with protection checked."
 python_version,3.10
-metrics.umpyre_stats.num_functions,7089
-metrics.umpyre_stats.num_classes,1683
-metrics.umpyre_stats.total_lines,264656
-metrics.umpyre_stats.empty_lines,34168
-metrics.umpyre_stats.comment_lines,14704
-metrics.umpyre_stats.docs_lines,38562
-metrics.umpyre_stats.function_lines,117403
-metrics.umpyre_stats.empty_lines_ratio,0.12910343993712592
-metrics.umpyre_stats.comment_lines_ratio,0.05555891421316728
-metrics.umpyre_stats.function_lines_ratio,0.4436060395381174
-metrics.umpyre_stats.mean_lines_per_function,16.561292142756383
-metrics.umpyre_stats.files_analyzed,587
+metrics.umpyre_stats.num_functions,7181
+metrics.umpyre_stats.num_classes,1695
+metrics.umpyre_stats.total_lines,266740
+metrics.umpyre_stats.empty_lines,34485
+metrics.umpyre_stats.comment_lines,14816
+metrics.umpyre_stats.docs_lines,38599
+metrics.umpyre_stats.function_lines,118918
+metrics.umpyre_stats.empty_lines_ratio,0.12928319712079178
+metrics.umpyre_stats.comment_lines_ratio,0.05554472520056984
+metrics.umpyre_stats.function_lines_ratio,0.4458198995276299
+metrics.umpyre_stats.mean_lines_per_function,16.560089124077425
+metrics.umpyre_stats.files_analyzed,597
 metrics.umpyre_stats.pypi_version,0.1.28
 metrics.workflow_status.last_run_status,success
 metrics.workflow_status.last_success_timestamp,2026-10-26T18:22:27Z
@@ -52,4 +52,4 @@ metrics.coverage.branch_coverage,0.0
 metrics.coverage.statements_covered,0
 metrics.coverage.statements_total,0
 metrics.coverage.error,No coverage file found
-collection_duration_seconds,2.642282247543335
+collection_duration_seconds,4.278942823410034
