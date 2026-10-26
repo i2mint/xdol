@@ -272,3 +272,8 @@ def test_track_access_on_non_sized_value():
 def test_track_access_clock_with_tracker_is_an_error():
     with pytest.raises(ValueError):
         track_access({}, tracker=AccessLog(), clock=Clock())
+
+
+def test_access_log_keeps_identity_semantics():
+    a, b = AccessLog(), AccessLog()
+    assert a != b and a == a and len({a, b}) == 2

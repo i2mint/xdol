@@ -247,7 +247,7 @@ def test_unsized_value_raises_before_any_write():
 
 def test_failed_hot_removal_keeps_record_in_cold():
     class Stuck(dict):
-        def pop(self, *args):
+        def __delitem__(self, k):
             raise OSError("busy")
 
     s, _ = make(None)
@@ -302,3 +302,25 @@ def test_local_paths_raises_when_not_materialised(tmp_path):
     s, _ = make(None, hot=Sink(str(root) + os.sep), cold={"a": b"x"})
     with pytest.raises(FileNotFoundError):
         local_paths(s)["a"]
+
+
+def test_policy_entries_do_not_leak_on_delete():
+    s, _ = make(None, cold={})
+    for i in range(20):
+        s[f"k{i}"] = b"x"
+        del s[f"k{i}"]
+    assert s.policy._entries == {}
+
+
+def test_release_does_not_read_the_hot_value(tmp_path):
+    class NoReadFiles(Files):
+        def __getitem__(self, k):
+            raise AssertionError("release must not read the value")
+
+    root = tmp_path / "hot"
+    root.mkdir()
+    hot = NoReadFiles(str(root) + os.sep, delete_func=permanent_delete)
+    s, _ = make(None, hot=hot, cold={})
+    s["a"] = b"x"
+    s._drop_hot("a")
+    assert list(hot) == []

@@ -45,7 +45,7 @@ class HotWriteError(TieringError):
     """
 
 
-def exceeds_watermark(
+def _exceeds_watermark(
     hot_bytes: int, budget_bytes: int | None, watermark: float
 ) -> bool:
     """Whether ``hot_bytes > watermark * budget_bytes``; never when unbounded."""
@@ -62,6 +62,9 @@ class PlacementPolicy(Protocol):
 
     def on_hot_access(self, key, stats: AccessStats, *, admitted: bool) -> None:
         """``key`` was accessed in hot; ``admitted``: it was not there before."""
+
+    def on_hot_drop(self, key) -> None:
+        """``key`` left hot (released, deleted or overwritten with no hot copy)."""
 
     def to_release(
         self,
@@ -125,6 +128,9 @@ class GdsfPolicy:
             f = stats.frequency
         self._set(key, f, stats.size)
 
+    def on_hot_drop(self, key) -> None:
+        self._entries.pop(key, None)
+
     def _h(self, key, stats: AccessStats) -> float:
         entry = self._entries.get(key)
         return entry[1] if entry else self._set(key, stats.frequency, stats.size)
@@ -140,7 +146,7 @@ class GdsfPolicy:
         budget_bytes: int,
         now: float,
     ) -> Iterator:
-        if not exceeds_watermark(hot_bytes, budget_bytes, self.high_watermark):
+        if not _exceeds_watermark(hot_bytes, budget_bytes, self.high_watermark):
             return
         for k in self._entries.keys() - hot_stats.keys():
             del self._entries[k]
@@ -157,7 +163,6 @@ class GdsfPolicy:
             # the last key actually released.
             yield k
             self._aging = max(self._aging, h)
-            self._entries.pop(k, None)
 
 
 @dataclass
@@ -219,7 +224,7 @@ class TieredStore(MutableMapping):
         self._policy = GdsfPolicy() if policy is None else policy
         self._tracker = default_access_log_for(hot) if tracker is None else tracker
         self._hot_sizes: dict = {}
-        self._hot_total = 0
+        self._hot_bytes = 0
         self._last_sweep: SweepReport | None = None
         for k in list(hot):
             st = self._tracker.stats(k)
@@ -233,15 +238,11 @@ class TieredStore(MutableMapping):
     budget_bytes = property(lambda self: self._budget)
 
     # -- private bookkeeping ------------------------------------------------
-    @property
-    def _hot_bytes(self) -> int:
-        return self._hot_total
-
     def _now(self) -> float:
         return self._tracker.clock()
 
     def _set_size(self, k, size: int) -> None:
-        self._hot_total += size - self._hot_sizes.get(k, 0)
+        self._hot_bytes += size - self._hot_sizes.get(k, 0)
         self._hot_sizes[k] = size
 
     def _put_hot(self, k, v, size: int) -> bool:
@@ -252,15 +253,19 @@ class TieredStore(MutableMapping):
         return admitted
 
     def _drop_hot(self, k) -> None:
-        self._hot.pop(k, None)
-        self._hot_total -= self._hot_sizes.pop(k, 0)
+        try:
+            del self._hot[k]  # not .pop: MutableMapping.pop reads the value first
+        except KeyError:
+            pass
+        self._hot_bytes -= self._hot_sizes.pop(k, 0)
+        self._policy.on_hot_drop(k)
 
     def _touched(self, k, *, admitted: bool) -> None:
         self._policy.on_hot_access(k, self._tracker.stats(k), admitted=admitted)
 
     def _check_release(self, *, exclude: Iterable = ()) -> None:
-        if self._budget and exceeds_watermark(
-            self._hot_total, self._budget, self._policy.high_watermark
+        if self._budget and _exceeds_watermark(
+            self._hot_bytes, self._budget, self._policy.high_watermark
         ):
             sweep(self, exclude=exclude)
 
@@ -365,7 +370,7 @@ def sweep(store: TieredStore, *, exclude: Iterable = ()) -> SweepReport:
             store._drop_hot(k)
             store._tracker.record(k, "release", 0)
             released.append(k)
-        if store._hot_bytes > target and exceeds_watermark(
+        if store._hot_bytes > target and _exceeds_watermark(
             before, budget, store._policy.high_watermark
         ):
             warnings.warn(

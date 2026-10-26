@@ -142,6 +142,10 @@ class AccessLog(Mapping):
     a warning is issued once and counting continues in memory. Not thread-safe.
     """
 
+    # a log is a resource, not a value: keep identity semantics (Mapping drops them)
+    __eq__ = object.__eq__
+    __hash__ = object.__hash__
+
     def __init__(
         self,
         path: str | os.PathLike | None = None,
