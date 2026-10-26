@@ -98,6 +98,30 @@ def _survives_json(key) -> bool:
     return type(back) is type(key) and back == key
 
 
+def _is_number(x) -> bool:
+    return isinstance(x, (int, float)) and not isinstance(x, bool)
+
+
+_FIELD_CHECKS = {  # AccessStats field -> type check (a foreign line must not poison replay)
+    "size": lambda x: isinstance(x, int) and not isinstance(x, bool),
+    "reads": lambda x: isinstance(x, int) and not isinstance(x, bool),
+    "writes": lambda x: isinstance(x, int) and not isinstance(x, bool),
+    "first_seen": _is_number,
+    "last_access": _is_number,
+    "last_read": _is_number,
+    "pinned": lambda x: isinstance(x, bool),
+}
+assert set(_FIELD_CHECKS) == _STATS_FIELDS
+
+
+def _stats_from_snapshot(data: dict) -> AccessStats:
+    """``AccessStats`` from a snapshot's dict; unknown fields dropped, bad types rejected."""
+    data = {k: v for k, v in data.items() if k in _STATS_FIELDS}
+    if not all(_FIELD_CHECKS[k](v) for k, v in data.items()):
+        raise TypeError("snapshot field with the wrong type")
+    return AccessStats(**data)
+
+
 def _apply(stats_by_key: dict, key, op, nbytes, ts) -> None:
     """Fold one event into ``stats_by_key`` (shared by live recording and replay).
 
@@ -161,23 +185,42 @@ class AccessLog(Mapping):
         self._fh = None
         self._warned_io = False
         self._warned_key = False
+        self._meta: dict[str, Any] = {}  # small JSON values (e.g. a policy's state)
+        self._meta_ts: dict[str, float] = {}
         if self.path is not None and os.path.exists(self.path):
             self._fold_file()
 
     # -- reading -----------------------------------------------------------
     def _fold_file(self) -> None:
+        """Replay the file. Recency is order-independent; so are delete/pin/unpin, which
+        are ordered by their timestamps (a write-ahead merge of several writers' lines)."""
+        state_ts: dict = {}  # key -> ts of the last applied delete/pin/unpin
+        deleted_at: dict = {}  # key -> ts of its delete: earlier reads/writes are void
         with open(self.path, "rb") as fh:
             for raw in fh:
                 try:
                     ev = json.loads(raw.decode("utf-8"))
                     key, op = ev["k"], ev["op"]
+                    ts, n = ev.get("ts") or 0.0, ev.get("n")
+                    if not _is_number(ts) or not (n is None or _is_number(n)):
+                        raise TypeError("timestamp or size of the wrong type")
                     if op == "snapshot":
-                        data = {
-                            k: v for k, v in ev["stats"].items() if k in _STATS_FIELDS
-                        }
-                        self._stats[key] = AccessStats(**data)
-                    else:
-                        _apply(self._stats, key, op, ev.get("n"), ev.get("ts") or 0.0)
+                        self._stats[key] = _stats_from_snapshot(ev["stats"])
+                    elif op == "meta":
+                        if ts >= self._meta_ts.get(key, 0.0):
+                            self._meta[key], self._meta_ts[key] = ev["value"], ts
+                    elif op in ("delete", "pin", "unpin"):
+                        if ts < state_ts.get(key, 0.0):
+                            continue  # superseded by a later-stamped line seen earlier
+                        state_ts[key] = ts
+                        st = self._stats.get(key)
+                        if op == "delete":
+                            deleted_at[key] = max(ts, deleted_at.get(key, 0.0))
+                            if st is not None and st.last_access > ts:
+                                continue  # a later access is already folded in: keep it
+                        _apply(self._stats, key, op, n, ts)
+                    elif ts > deleted_at.get(key, -1.0):
+                        _apply(self._stats, key, op, n, ts)
                 except (ValueError, KeyError, TypeError, AttributeError):
                     continue  # torn, undecodable or foreign line: skip, never fail
 
@@ -196,6 +239,10 @@ class AccessLog(Mapping):
     def stats(self, key) -> AccessStats | None:
         """Alias of ``self.get(key)``."""
         return self._stats.get(key)
+
+    def get_meta(self, name: str, default=None):
+        """A small JSON value stored with the log by :meth:`set_meta`."""
+        return self._meta.get(name, default)
 
     # -- writing -----------------------------------------------------------
     def _warn_once(self, flag: str, message: str) -> None:
@@ -233,6 +280,20 @@ class AccessLog(Mapping):
             "ts": ts,
             "tag": self.tag,
         }
+        self._append(event)
+
+    def set_meta(self, name: str, value) -> None:
+        """Store a small JSON value (last write wins by timestamp) alongside the stats.
+
+        Used for state that should survive a restart but belongs to no key, e.g. a
+        placement policy's aging clock. Like :meth:`record`, never raises on I/O errors.
+        """
+        ts = self.clock()
+        self._meta[name], self._meta_ts[name] = value, ts
+        if self.path is not None:
+            self._append({"k": name, "op": "meta", "value": value, "ts": ts})
+
+    def _append(self, event: dict) -> None:
         try:
             if self._fh is None:
                 self._fh = self._open_for_append()
@@ -254,16 +315,21 @@ class AccessLog(Mapping):
         if self.path is None:
             return
         self.close()
+        events = (
+            *(
+                {"k": key, "op": "snapshot", "stats": asdict(st)}
+                for key, st in self._stats.items()
+            ),
+            *(
+                {"k": name, "op": "meta", "value": v, "ts": self._meta_ts[name]}
+                for name, v in self._meta.items()
+            ),
+        )
         atomic_write(
             self.path,
             (
-                (
-                    json.dumps(
-                        {"k": key, "op": "snapshot", "stats": asdict(st)}, default=str
-                    )
-                    + "\n"
-                ).encode("utf-8")
-                for key, st in self._stats.items()
+                (json.dumps(event, default=str) + "\n").encode("utf-8")
+                for event in events
             ),
         )
 

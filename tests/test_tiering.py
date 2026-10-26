@@ -474,3 +474,42 @@ def test_gdsf_forgets_entries_of_keys_no_longer_hot():
     p.on_hot_access("gone", AccessStats(size=1), admitted=True)
     assert list(p.to_release({}, hot_bytes=100, budget_bytes=10, now=0)) == []
     assert "gone" not in p._entries
+
+
+def test_budget_zero_sweep_releases_everything_even_protected():
+    s, _ = make(0, cold={"a": b"xx", "b": b"yy"})  # default residency protects
+    prefetch(s, ["a", "b"])
+    pin(s, "a")
+    assert set(s.hot) == {"a", "b"}
+    report = sweep(s)
+    assert s.hot == {} and set(report.keys_released) == {"a", "b"}
+    assert set(s.cold) == {"a", "b"}
+
+
+def test_budget_zero_sweep_spares_excluded():
+    s, _ = make(0, cold={"a": b"xx", "b": b"yy"})
+    prefetch(s, ["a", "b"])
+    sweep(s, exclude=["a"])
+    assert set(s.hot) == {"a"}
+
+
+def test_gdsf_aging_survives_restart(tmp_path):
+    clock = Clock()
+    path = tmp_path / "log.jsonl"
+
+    def open_store():
+        return TieredStore(
+            {},
+            {},
+            budget_bytes=10,
+            policy=GdsfPolicy(min_residency_s=0, admit_after_reads=1),
+            tracker=AccessLog(path, clock=clock),
+        )
+
+    s = open_store()
+    s["a"] = b"x" * 6
+    s["b"] = b"y" * 6  # releases one key: aging rises
+    aging = s.policy._aging
+    assert aging > 0
+    s.tracker.close()
+    assert open_store().policy._aging == aging

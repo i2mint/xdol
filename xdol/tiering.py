@@ -31,7 +31,16 @@ from collections.abc import Callable, Iterable, Iterator, Mapping, MutableMappin
 from dataclasses import dataclass, field, replace
 from typing import Any, Protocol
 
-from xdol.access import AccessLog, AccessStats, default_access_log_for, value_size
+from xdol.access import (
+    AccessLog,
+    AccessStats,
+    _is_number,
+    default_access_log_for,
+    value_size,
+)
+
+
+_POLICY_META = "policy"  # tracker meta key holding the policy's state
 
 
 class TieringError(Exception):
@@ -75,6 +84,9 @@ class PlacementPolicy(Protocol):
         now: float,
     ) -> Iterable: ...
 
+    # Optional (looked up with getattr): ``get_state() -> dict`` and ``set_state(dict)``
+    # persist what the policy must remember across restarts, e.g. GDSF's aging.
+
 
 @dataclass(kw_only=True)
 class _ResidencyPolicy:
@@ -106,6 +118,13 @@ class _ResidencyPolicy:
 
     def is_protected(self, stats: AccessStats, *, now: float) -> bool:
         return stats.pinned or now - stats.last_access < self.min_residency_s
+
+    def get_state(self) -> dict:
+        """JSON-able state worth keeping across restarts (stored in the tracker)."""
+        return {}
+
+    def set_state(self, state: Mapping) -> None:
+        """Restore what :meth:`get_state` returned; ignore anything unusable."""
 
     def _release_order(
         self, candidates: list[tuple[Any, AccessStats]], *, now: float
@@ -191,6 +210,14 @@ class GdsfPolicy(_ResidencyPolicy):
     def _h(self, key, stats: AccessStats) -> float:
         entry = self._entries.get(key)
         return entry[1] if entry else self._set(key, stats.frequency, stats.size)
+
+    def get_state(self) -> dict:
+        return {"aging": self._aging}
+
+    def set_state(self, state: Mapping) -> None:
+        aging = state.get("aging")
+        if _is_number(aging):
+            self._aging = float(aging)
 
     def _forget_unknown(self, hot_keys) -> None:
         for k in self._entries.keys() - hot_keys:
@@ -281,6 +308,9 @@ class TieredStore(MutableMapping):
         self._budget = budget_bytes
         self._policy = GdsfPolicy() if policy is None else policy
         self._tracker = default_access_log_for(hot) if tracker is None else tracker
+        state = self._tracker.get_meta(_POLICY_META)
+        if isinstance(state, Mapping) and hasattr(self._policy, "set_state"):
+            self._policy.set_state(state)
         self._hot_sizes: dict = {}
         self._hot_bytes = 0
         self._last_sweep: SweepReport | None = None
@@ -402,16 +432,34 @@ class TieredStore(MutableMapping):
 # -- verbs ---------------------------------------------------------------------
 
 
+def _release(store: TieredStore, key, released: list) -> None:
+    store._drop_hot(key)
+    store._tracker.record(key, "release", 0)
+    released.append(key)
+
+
+def _save_policy_state(store: TieredStore) -> None:
+    get_state = getattr(store._policy, "get_state", None)
+    if get_state is not None and (state := get_state()) != store._tracker.get_meta(
+        _POLICY_META
+    ):
+        store._tracker.set_meta(_POLICY_META, state)
+
+
 def sweep(store: TieredStore, *, exclude: Iterable = ()) -> SweepReport:
     """Release hot copies, lowest priority first, down to the low watermark.
 
     Never touches ``cold``, nor the keys in ``exclude``. Warns if every remaining key
-    is protected.
+    is protected. With ``budget_bytes=0`` (no hot tier) every hot copy is released,
+    protected or not.
     """
     before = store._hot_bytes
     budget = store._budget
     released: list = []
-    if budget is not None:
+    if budget == 0:  # no hot tier: release everything, whatever the policy protects
+        for k in [k for k in store._hot_sizes if k not in set(exclude)]:
+            _release(store, k, released)
+    elif budget is not None:
         target = store._policy.low_watermark * budget
         exclude = set(exclude)
         hot_stats = {}
@@ -425,15 +473,14 @@ def sweep(store: TieredStore, *, exclude: Iterable = ()) -> SweepReport:
         for k in candidates:
             if store._hot_bytes <= target:
                 break
-            store._drop_hot(k)
-            store._tracker.record(k, "release", 0)
-            released.append(k)
+            _release(store, k, released)
         if store._hot_bytes > target and _exceeds_watermark(
             before, budget, store._policy.high_watermark
         ):
             warnings.warn(
                 "sweep could not reach the low watermark: remaining keys are protected."
             )
+        _save_policy_state(store)
     report = SweepReport(released, before, store._hot_bytes)
     store._last_sweep = report
     return report

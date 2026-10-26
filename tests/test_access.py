@@ -74,7 +74,10 @@ def test_contains_records_nothing():
 
 
 def test_merge_stats_across_tags():
-    l1, l2 = AccessLog(clock=Clock(100), tag="m1"), AccessLog(clock=Clock(200), tag="m2")
+    l1, l2 = (
+        AccessLog(clock=Clock(100), tag="m1"),
+        AccessLog(clock=Clock(200), tag="m2"),
+    )
     l1.record("a", "write", 1)
     l1.record("a", "read", 1)
     l2.record("a", "read", 9)
@@ -92,7 +95,11 @@ def test_track_access_over_dict_and_files(tmp_path):
     d = track_access({}, tracker=log)
     d["k"] = b"abc"
     assert d["k"] == b"abc" and d.store == {"k": b"abc"}
-    assert (log.stats("k").writes, log.stats("k").reads, log.stats("k").size) == (1, 1, 3)
+    assert (log.stats("k").writes, log.stats("k").reads, log.stats("k").size) == (
+        1,
+        1,
+        3,
+    )
     del d["k"]
     assert log.stats("k") is None
 
@@ -285,3 +292,53 @@ def test_compact_leaves_no_temp_file(tmp_path):
     log.compact()
     assert os.listdir(tmp_path) == ["log.jsonl"]
     assert json.loads((tmp_path / "log.jsonl").read_text().splitlines()[0])["k"] == "a"
+
+
+def _write_lines(path, *events):
+    path.write_text("".join(json.dumps(e) + "\n" for e in events))
+
+
+def test_replay_skips_lines_with_wrong_types(tmp_path):
+    p = tmp_path / "log.jsonl"
+    _write_lines(
+        p,
+        {"k": "a", "op": "read", "n": 5, "ts": 10.0},
+        {"k": "a", "op": "read", "n": "12", "ts": 11.0},
+        {"k": "a", "op": "read", "n": 5, "ts": "late"},
+        {"k": "b", "op": "snapshot", "stats": {"reads": "many"}},
+        {"k": "c", "op": "snapshot", "stats": {"pinned": 1}},
+    )
+    log = AccessLog(p)
+    assert log["a"].reads == 1 and log["a"].size == 5
+    assert "b" not in log and "c" not in log
+
+
+def test_replay_orders_delete_and_pin_by_timestamp(tmp_path):
+    p = tmp_path / "log.jsonl"
+    _write_lines(
+        p,
+        {"k": "a", "op": "write", "n": 1, "ts": 1.0},
+        {"k": "a", "op": "delete", "ts": 10.0},
+        {"k": "a", "op": "read", "n": 1, "ts": 5.0},  # older than the delete: void
+        {"k": "b", "op": "write", "n": 1, "ts": 1.0},
+        {"k": "b", "op": "read", "n": 1, "ts": 15.0},
+        {"k": "b", "op": "delete", "ts": 10.0},  # older than the read: keep b
+        {"k": "c", "op": "write", "n": 1, "ts": 1.0},
+        {"k": "c", "op": "unpin", "ts": 7.0},
+        {"k": "c", "op": "pin", "ts": 3.0},  # older than the unpin: ignored
+    )
+    log = AccessLog(p)
+    assert "a" not in log
+    assert "b" in log
+    assert not log["c"].pinned
+
+
+def test_meta_persists_and_survives_compact(tmp_path):
+    p = tmp_path / "log.jsonl"
+    log = AccessLog(p, clock=Clock())
+    log.set_meta("policy", {"aging": 2.5})
+    log.set_meta("policy", {"aging": 3.5})
+    assert AccessLog(p).get_meta("policy") == {"aging": 3.5}
+    log.compact()
+    assert AccessLog(p).get_meta("policy") == {"aging": 3.5}
+    assert AccessLog(p).get_meta("nope", 7) == 7
