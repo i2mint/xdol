@@ -43,12 +43,13 @@ from __future__ import annotations
 import json
 import os
 import platform
-import tempfile
 import time
 import warnings
 from collections.abc import Callable, Iterator, Mapping, MutableMapping
 from dataclasses import asdict, dataclass, fields, replace
 from typing import Any
+
+from xdol.util import atomic_write
 
 OPS = ("read", "write", "delete", "release", "pin", "unpin")
 _CREATING_OPS = ("read", "write", "pin")  # other ops on an unknown key are no-ops
@@ -253,18 +254,11 @@ class AccessLog(Mapping):
         if self.path is None:
             return
         self.close()
-        directory = os.path.dirname(os.path.abspath(self.path))
-        fd, tmp = tempfile.mkstemp(dir=directory, suffix=".tmp")
-        try:
-            with os.fdopen(fd, "w", encoding="utf-8") as fh:
-                for key, st in self._stats.items():
-                    line = {"k": key, "op": "snapshot", "stats": asdict(st)}
-                    fh.write(json.dumps(line, default=str) + "\n")
-            os.replace(tmp, self.path)
-        except BaseException:
-            if os.path.exists(tmp):
-                os.unlink(tmp)
-            raise
+        lines = (
+            json.dumps({"k": key, "op": "snapshot", "stats": asdict(st)}, default=str)
+            for key, st in self._stats.items()
+        )
+        atomic_write(self.path, "".join(line + "\n" for line in lines))
 
     def close(self) -> None:
         if self._fh is not None:

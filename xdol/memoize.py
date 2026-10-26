@@ -52,7 +52,6 @@ import functools
 import inspect
 import os
 import stat
-import uuid
 import warnings
 from collections.abc import Callable, Iterable, Iterator, MutableMapping
 from pathlib import Path
@@ -61,6 +60,7 @@ from typing import Any, Literal
 from dol import Files
 
 from xdol.keys import make_key_func, robust_key
+from xdol.util import atomic_write
 from xdol.x_codecs import CodecDecodeError, get_codec, paired_store, with_codec
 
 Mode = Literal["replay", "record", "refresh", "off"]
@@ -172,13 +172,7 @@ class AtomicFiles(Files):
     def __setitem__(self, key, value):
         path = Path(self._id_of_key(key))
         path.parent.mkdir(parents=True, exist_ok=True)
-        tmp = path.with_name(f"{path.name}.{uuid.uuid4().hex[:8]}{self._TMP_SUFFIX}")
-        try:
-            tmp.write_bytes(value)
-            os.replace(tmp, path)
-        except BaseException:
-            tmp.unlink(missing_ok=True)
-            raise
+        atomic_write(path, value, tmp_suffix=self._TMP_SUFFIX)
 
     def __iter__(self) -> Iterator[str]:
         return (k for k in super().__iter__() if not k.endswith(self._TMP_SUFFIX))

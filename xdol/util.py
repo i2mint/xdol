@@ -2,6 +2,7 @@
 
 import os
 import inspect
+import uuid
 
 
 # Pattern: meshed
@@ -41,6 +42,36 @@ def resolve_to_folder(obj, assert_output_is_existing_folder=True):
     if assert_output_is_existing_folder:
         assert os.path.isdir(obj), "obj should be a folder at this point"
     return obj
+
+
+def atomic_write(path, data: bytes | str, *, tmp_suffix: str = ".tmp") -> None:
+    """Write ``data`` to ``path`` so readers see the old content or the new, never a torn file.
+
+    The data goes to a uniquely named sibling of ``path`` (``<name>.<random><tmp_suffix>``),
+    which is then renamed into place with ``os.replace``; on any failure the sibling is
+    removed. ``str`` data is encoded as UTF-8. The parent directory must exist.
+
+    >>> import tempfile
+    >>> d = tempfile.mkdtemp()
+    >>> target = os.path.join(d, "f.txt")
+    >>> atomic_write(target, "hello")
+    >>> open(target).read(), os.listdir(d)
+    ('hello', ['f.txt'])
+    """
+    path = os.fspath(path)
+    if isinstance(data, str):
+        data = data.encode("utf-8")
+    tmp = f"{path}.{uuid.uuid4().hex[:8]}{tmp_suffix}"
+    try:
+        with open(tmp, "wb") as fh:
+            fh.write(data)
+        os.replace(tmp, path)
+    except BaseException:
+        try:
+            os.unlink(tmp)
+        except FileNotFoundError:
+            pass
+        raise
 
 
 # ------------------------------------------------------------------------------
