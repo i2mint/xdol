@@ -32,3 +32,11 @@ from xdol.access import (
     merge_stats,
     default_access_log_for,
 )
+from xdol.tiering import (
+    TieredStore,
+    GdsfPolicy,
+    PlacementPolicy,
+    SweepReport,
+    TieringError,
+    HotWriteError,
+)
