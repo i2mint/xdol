@@ -1,26 +1,26 @@
 metric,value
 schema_version,1.0
-timestamp,2026-10-26T06:38:17.290271Z
-commit_sha,401acdc63c8da9051ec53b5c970ee95a5de5b58d
-commit_message,Merge a8a30e0e2c1eb6c8d51a54f81db7fc2ffbaf7801 into 7da51bcf50f1238b520b1fb523d0beb3c483f505
+timestamp,2026-10-26T06:38:47.997263Z
+commit_sha,f39a70106f8de9398837d25ab4016fb2f3e37856
+commit_message,"Add backfill, reconcile, verify to xdol.updating (closes #15)"
 python_version,3.10
-metrics.umpyre_stats.num_functions,7090
-metrics.umpyre_stats.num_classes,1683
-metrics.umpyre_stats.total_lines,265112
-metrics.umpyre_stats.empty_lines,34236
-metrics.umpyre_stats.comment_lines,14724
-metrics.umpyre_stats.docs_lines,38285
-metrics.umpyre_stats.function_lines,117985
-metrics.umpyre_stats.empty_lines_ratio,0.12913787380427894
-metrics.umpyre_stats.comment_lines_ratio,0.0555387911524186
-metrics.umpyre_stats.function_lines_ratio,0.4450383234255711
-metrics.umpyre_stats.mean_lines_per_function,16.6410437235543
-metrics.umpyre_stats.files_analyzed,594
-metrics.umpyre_stats.pypi_version,0.1.19
+metrics.umpyre_stats.num_functions,6980
+metrics.umpyre_stats.num_classes,1669
+metrics.umpyre_stats.total_lines,262803
+metrics.umpyre_stats.empty_lines,33882
+metrics.umpyre_stats.comment_lines,14611
+metrics.umpyre_stats.docs_lines,38234
+metrics.umpyre_stats.function_lines,116334
+metrics.umpyre_stats.empty_lines_ratio,0.12892546888734147
+metrics.umpyre_stats.comment_lines_ratio,0.05559677781456072
+metrics.umpyre_stats.function_lines_ratio,0.4426661796098218
+metrics.umpyre_stats.mean_lines_per_function,16.66676217765043
+metrics.umpyre_stats.files_analyzed,583
+metrics.umpyre_stats.pypi_version,0.1.18
 metrics.workflow_status.last_run_status,success
-metrics.workflow_status.last_success_timestamp,2026-10-20T09:59:15Z
+metrics.workflow_status.last_success_timestamp,2026-10-26T06:38:24Z
 metrics.workflow_status.recent_failure_count,0
-metrics.workflow_status.run_url,https://github.com/i2mint/xdol/actions/runs/39404614576
+metrics.workflow_status.run_url,https://github.com/i2mint/xdol/actions/runs/40280898724
 metrics.workflow_status.total_runs_analyzed,10
 metrics.wily.cyclomatic_avg,0.0
 metrics.wily.maintainability_index,0.0
@@ -36,4 +36,4 @@ metrics.coverage.branch_coverage,0.0
 metrics.coverage.statements_covered,0
 metrics.coverage.statements_total,0
 metrics.coverage.error,No coverage file found
-collection_duration_seconds,3.874298095703125
+collection_duration_seconds,2.460792303085327
