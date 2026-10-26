@@ -1,23 +1,23 @@
 metric,value
 schema_version,1.0
-timestamp,2026-10-26T18:06:26.999343Z
+timestamp,2026-10-26T18:06:28.703071Z
 commit_sha,c53447f9fa389a0d6ef9fe8e21a211625a775edf
 commit_message,"access: buffered replay's last_ts floors at 0.0, as before (negative ts)
 
 Refs #32"
 python_version,3.10
-metrics.umpyre_stats.num_functions,7179
-metrics.umpyre_stats.num_classes,1695
-metrics.umpyre_stats.total_lines,266684
-metrics.umpyre_stats.empty_lines,34479
-metrics.umpyre_stats.comment_lines,14815
-metrics.umpyre_stats.docs_lines,38580
-metrics.umpyre_stats.function_lines,118873
-metrics.umpyre_stats.empty_lines_ratio,0.12928784628999115
-metrics.umpyre_stats.comment_lines_ratio,0.0555526390784599
-metrics.umpyre_stats.function_lines_ratio,0.44574477658952166
-metrics.umpyre_stats.mean_lines_per_function,16.558434322329017
-metrics.umpyre_stats.files_analyzed,597
+metrics.umpyre_stats.num_functions,7087
+metrics.umpyre_stats.num_classes,1683
+metrics.umpyre_stats.total_lines,264600
+metrics.umpyre_stats.empty_lines,34162
+metrics.umpyre_stats.comment_lines,14703
+metrics.umpyre_stats.docs_lines,38543
+metrics.umpyre_stats.function_lines,117358
+metrics.umpyre_stats.empty_lines_ratio,0.12910808767951626
+metrics.umpyre_stats.comment_lines_ratio,0.055566893424036284
+metrics.umpyre_stats.function_lines_ratio,0.44352985638699927
+metrics.umpyre_stats.mean_lines_per_function,16.559616198673627
+metrics.umpyre_stats.files_analyzed,587
 metrics.umpyre_stats.pypi_version,0.1.27
 metrics.workflow_status.last_run_status,success
 metrics.workflow_status.last_success_timestamp,2026-10-26T18:03:49Z
@@ -35,4 +35,4 @@ metrics.coverage.branch_coverage,0.0
 metrics.coverage.statements_covered,0
 metrics.coverage.statements_total,0
 metrics.coverage.error,No coverage file found
-collection_duration_seconds,2.8488211631774902
+collection_duration_seconds,3.3227381706237793
