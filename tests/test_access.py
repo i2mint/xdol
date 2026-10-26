@@ -444,6 +444,10 @@ def _random_log_lines(rng):
             }
             lines.append(json.dumps({"k": rng.choice("abc"), "op": "snapshot", "stats": stats}))
             continue
+        if r < 0.2:
+            stone = {"k": rng.choice("abc"), "op": "tombstone", "ts": rng.randint(0, 20)}
+            lines.append(json.dumps(stone))
+            continue
         ev = {
             "k": rng.choice("abc"),
             "op": rng.choice(["read", "write", "delete", "pin", "unpin", "release"]),
@@ -666,8 +670,9 @@ def test_merge_stats_honours_tombstones():
     assert merge_stats(before, after, deleter)["a"].reads == 2
 
 
-def _append_reads(path, n, key):
-    log = AccessLog(path, compact_above=7)
+def _append_reads(path, n, key, start):
+    start.wait(60)  # all processes append (and compact) at once
+    log = AccessLog(path, compact_above=1)  # compacts every other append
     for _ in range(n):
         log.record(key, "read", 1)
     log.close()
@@ -678,12 +683,145 @@ def test_concurrent_processes_with_compaction_lose_nothing(tmp_path):
 
     p = str(tmp_path / "log.jsonl")
     ctx = multiprocessing.get_context("spawn")
-    procs = [ctx.Process(target=_append_reads, args=(p, 60, key)) for key in "aab"]
+    start = ctx.Event()
+    procs = [
+        ctx.Process(target=_append_reads, args=(p, 300, key, start)) for key in "aab"
+    ]
     for proc in procs:
         proc.start()
+    start.set()
     for proc in procs:
-        proc.join(60)
+        proc.join(120)
         assert proc.exitcode == 0
+    log = AccessLog(p, compact_above=None)
+    assert (log["a"].reads, log["b"].reads) == (600, 300)
+    assert len(open(p).read().splitlines()) < 10  # compaction did run
+
+
+# -- tombstone lines, merge rule, fork, lock fallback ----------------------------
+
+
+def test_recreated_at_delete_stamp_survives_compaction(tmp_path):
+    p = tmp_path / "log.jsonl"
+    log = AccessLog(p, clock=lambda: 10.0)
+    log.record("k", "write", 3)
+    log.record("k", "delete")
+    log.record("k", "write", 5)  # same tick as the delete
+    log.compact()
+    again = AccessLog(p)
+    assert again["k"].writes == 1 and again["k"].size == 5
+    assert dict(again.tombstones) == {"k": 10.0}
+    assert "k" in merge_stats(again) and "k" in merge_stats(log)
+
+
+def test_pin_after_delete_survives_compaction(tmp_path):
+    p = tmp_path / "log.jsonl"
+    log = AccessLog(p, clock=Clock())
+    log.record("k", "write", 3)
+    log.record("k", "delete")
+    log.record("k", "pin")  # re-created by pin: last_access stays 0
+    log.compact()
+    again = AccessLog(p)
+    assert again["k"].pinned and "k" in again.tombstones
+
+
+def test_tombstones_are_not_events(tmp_path):
+    p = tmp_path / "log.jsonl"
+    log = AccessLog(p, clock=Clock(), compact_above=50)
+    for i in range(200):
+        log.record(f"tmp{i}", "write", 1)
+        log.record(f"tmp{i}", "delete")
+    log.close()
+    log.compact()
+    assert {e["op"] for e in _lines(p)} == {"tombstone"}
+    before = os.stat(p)
+    for _ in range(2):
+        again = AccessLog(p, compact_above=50)
+        again.close()
+    after = os.stat(p)
+    assert (after.st_ino, after.st_mtime_ns) == (before.st_ino, before.st_mtime_ns)
+    assert len(again) == 0 and len(again.tombstones) == 200
+
+
+def test_record_rejects_tombstone_op():
+    with pytest.raises(ValueError):
+        AccessLog().record("a", "tombstone")
+
+
+def test_tombstone_after_event_is_out_of_order():
+    lines = [
+        json.dumps({"k": "a", "op": "write", "n": 1, "ts": 1.0}).encode(),
+        json.dumps({"k": "a", "op": "tombstone", "ts": 5.0}).encode(),
+    ]
+    with pytest.raises(_OutOfOrder):
+        _fold_streaming(lines, {}, {})
+    stats, stones = {}, {}
+    _, nevents = _fold_buffered(lines, stats, stones)
+    assert nevents == 1 and stats["a"].writes == 1 and stones == {"a": 5.0}
+
+
+def test_merge_stats_own_tombstones_do_not_apply():
+    log = AccessLog(clock=Clock())
+    log.record("k", "write", 1)
+    log.record("k", "delete")
+    log.record("k", "pin")  # first_seen after the delete, last_access 0
+    assert merge_stats(log)["k"].pinned
+
+
+def test_merge_stats_other_logs_tombstones_apply():
+    a = AccessLog(clock=lambda: 10.0)
+    a.record("k", "delete")
+    older = {"k": AccessStats(reads=2, first_seen=1.0, last_access=5.0)}
+    newer = {"k": AccessStats(reads=3, first_seen=1.0, last_access=15.0)}
+    assert "k" not in merge_stats(a, older)
+    assert merge_stats(a, newer)["k"].reads == 3
+
+
+def test_access_log_is_a_context_manager(tmp_path):
+    with AccessLog(tmp_path / "log.jsonl") as log:
+        log.record("a", "read", 1)
+        assert log._appender._fh is not None or os.name == "nt"
+    assert log._appender._fh is None and log._appender._lock_fh is None
+
+
+@pytest.mark.skipif(not hasattr(os, "fork"), reason="needs os.fork")
+@pytest.mark.filterwarnings("ignore:This process .* is multi-threaded")
+def test_forked_children_appending_while_parent_compacts_lose_nothing(tmp_path):
+    p = str(tmp_path / "log.jsonl")
+    AccessLog(p).record("seed", "read", 1)
+    log = AccessLog(p, compact_above=None)  # its lock handle is inherited by the kids
+    kids = []
+    for _ in range(4):
+        pid = os.fork()
+        if pid == 0:  # pragma: no cover (child)
+            code = 1
+            try:
+                for _ in range(300):
+                    log.record("k", "read", 1)
+                code = 0
+            finally:
+                os._exit(code)
+        kids.append(pid)
+    for _ in range(100):
+        log.compact()
+    for pid in kids:
+        assert os.waitpid(pid, 0)[1] == 0
+    assert AccessLog(p, compact_above=None)["k"].reads == 1200
+
+
+@pytest.mark.skipif(
+    os.name == "nt" or os.geteuid() == 0, reason="POSIX permissions, not root"
+)
+def test_read_only_lock_file_still_locks(tmp_path):
+    import fcntl
+
+    p = tmp_path / "log.jsonl"
+    lock = tmp_path / "log.jsonl.lock"
+    lock.touch()
+    lock.chmod(0o444)
     log = AccessLog(p)
-    assert (log["a"].reads, log["b"].reads) == (120, 60)
-    assert len(open(p).read().splitlines()) < 180  # compaction did run
+    with log._appender.locked(), open(lock, "rb") as other:
+        with pytest.raises(BlockingIOError):
+            fcntl.flock(other.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+    log.record("a", "read", 1)
+    assert AccessLog(p)["a"].reads == 1
