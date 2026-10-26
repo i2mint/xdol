@@ -218,21 +218,11 @@ class SweepReport:
     bytes_after: int
 
 
-def _is_file_backed(store) -> bool:
-    try:
-        dol_path_of(store, "")
-    except TypeError:
-        return False
-    except KeyError:
-        pass
-    return True
-
-
 def _file_size(hot, key) -> int | None:
     """Size of ``key``'s file when ``hot`` is file-backed, without reading it."""
     try:
         return os.path.getsize(dol_path_of(hot, key))
-    except (OSError, TypeError, KeyError, AttributeError):
+    except (OSError, TypeError, KeyError):
         return None
 
 
@@ -519,14 +509,11 @@ def local_paths(
     """Read-only ``{key: real file path}``; materialises each key into ``hot``.
 
     ``path_of(key)`` gives the file path of ``key`` in ``hot``; the default is
-    :func:`dol.path_of` on the hot store, which follows wrapped layers (``TypeError`` if
-    ``hot`` is not file-backed). ``FileNotFoundError`` is raised if the file is not there after materialisation.
+    :func:`dol.path_of` on the hot store, which follows wrapped layers (``TypeError`` on access if ``hot`` is not
+    file-backed, before anything is fetched; ``KeyError`` for a key leaving its root).
+    ``FileNotFoundError`` is raised if the file is not there after materialisation.
     ``key in paths`` checks the store without fetching.
     """
     if path_of is None:
         path_of = partial(dol_path_of, store._hot)
-        if not _is_file_backed(store._hot):
-            raise TypeError(
-                "local_paths requires a file-backed hot store (or path_of=)"
-            )
     return _LocalPaths(store, path_of)

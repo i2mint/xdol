@@ -219,7 +219,7 @@ def test_atomic_files_hides_temp_and_cleans_up_on_failure(tmp_path):
     store = AtomicFiles(str(tmp_path))
     store["a"] = b"1"
     store["sub/b"] = b"2"
-    (tmp_path / ".c.123.tmp").write_bytes(b"stale")
+    (tmp_path / "c.123.xdol-tmp").write_bytes(b"stale")
     assert sorted(k.replace("\\", "/") for k in store) == ["a", "sub/b"]  # os.sep
     with pytest.raises(TypeError):
         store["d"] = 123  # not bytes
