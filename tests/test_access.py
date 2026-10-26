@@ -423,3 +423,44 @@ def test_record_survives_bad_sizes_and_backwards_clock():
     clock.t -= 50  # the clock steps back (NTP): events never go back in time
     log.record("a", "delete")
     assert "a" not in log
+
+
+def test_streaming_and_buffered_replay_agree(tmp_path):
+    ordered = [
+        {"k": "a", "op": "write", "n": 5, "ts": 1},
+        {"k": "a", "op": "read", "n": 5, "ts": 2},
+        {"k": "b", "op": "read", "n": 7, "ts": 3},
+    ]
+    p = tmp_path / "ordered.jsonl"
+    p.write_text("".join(json.dumps(e) + "\n" for e in ordered))
+    log = AccessLog(p)
+    assert not hasattr(log, "_buffered")
+    # the same events shuffled give the same stats (buffered path)
+    q = tmp_path / "shuffled.jsonl"
+    q.write_text("".join(json.dumps(e) + "\n" for e in reversed(ordered)))
+    assert dict(AccessLog(q)) == dict(log)
+
+
+def test_snapshot_after_events_still_applied_first(tmp_path):
+    p = tmp_path / "cat.jsonl"
+    lines = [
+        {"k": "a", "op": "read", "n": 1, "ts": 10},
+        {"k": "a", "op": "snapshot", "stats": {"reads": 4, "size": 1, "last_access": 5.0}},
+    ]
+    p.write_text("".join(json.dumps(e) + "\n" for e in lines))
+    assert AccessLog(p)["a"].reads == 5
+
+
+def test_compact_above_threshold(tmp_path):
+    p = tmp_path / "log.jsonl"
+    log = AccessLog(p, tag="t")
+    for _ in range(10):
+        log.record("a", "read", 3)
+    log.close()
+    assert len(p.read_text().splitlines()) == 10
+    reopened = AccessLog(p, compact_above=5)
+    assert len(p.read_text().splitlines()) == 1
+    assert reopened["a"].reads == 10
+    assert AccessLog(p)["a"].reads == 10
+    AccessLog(p, compact_above=5)  # below the threshold now: untouched
+    assert len(p.read_text().splitlines()) == 1

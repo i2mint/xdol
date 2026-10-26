@@ -145,6 +145,10 @@ def _parse_event(raw: bytes):
     return None
 
 
+class _OutOfOrder(Exception):
+    """The log is not in replay order: streaming replay gives up for the buffered one."""
+
+
 def _apply(stats_by_key: dict, key, op, nbytes, ts) -> None:
     """Fold one event into ``stats_by_key`` (shared by live recording and replay).
 
@@ -187,9 +191,14 @@ class AccessLog(Mapping):
     :param path: log file; ``None`` keeps everything in memory (tests).
     :param clock: callable returning unix seconds.
     :param tag: label stamped on each event; defaults to ``platform.node()``.
+    :param compact_above: when opening finds more than this many lines in the file,
+        :meth:`compact` it (``None``: never; the file then grows with every access).
+        Same caveat as :meth:`compact`: only for a log with a single writer.
 
     Opening replays the file in timestamp order (see the module docstring), so the
-    stats equal what recording those events live would give. A tracker never raises
+    stats equal what recording those events live would give. Replay streams in constant
+    memory when the file is already in that order (the normal case for one writer) and
+    buffers it only when timestamps go back. A tracker never raises
     into a store's read path: if the file cannot be written,
     a warning is issued once and counting continues in memory. Not thread-safe.
     """
@@ -204,6 +213,7 @@ class AccessLog(Mapping):
         *,
         clock: Callable[[], float] = time.time,
         tag: str | None = None,
+        compact_above: int | None = None,
     ):
         self.path = None if path is None else os.fspath(path)
         self.clock = clock
@@ -214,27 +224,65 @@ class AccessLog(Mapping):
         self._warned_key = False
         self._last_ts = 0.0  # the clock may step back: events never go back in time
         if self.path is not None and os.path.exists(self.path):
-            self._fold_file()
+            nlines = self._fold_file()
+            if compact_above is not None and nlines > compact_above:
+                self.compact()
 
     # -- reading -----------------------------------------------------------
-    def _fold_file(self) -> None:
-        """Replay the file: parse, sort, fold (see the module docstring for the rule)."""
-        events, last_ts = [], 0.0
+    def _fold_file(self) -> int:
+        """Replay the file (see the module docstring for the rule); return its line count.
+
+        Streams: events are folded as they are read, in constant memory, as long as the
+        file is already in replay order (timestamps never go back, snapshots first).
+        The first line that breaks that order switches to the buffered path, which
+        parses everything, applies snapshots first and folds the rest sorted.
+        """
+        try:
+            return self._fold_streaming()
+        except _OutOfOrder:
+            self._stats.clear()
+            return self._fold_buffered()
+
+    def _fold_streaming(self) -> int:
+        last_ts, seen_event, nlines = 0.0, False, 0
         with open(self.path, "rb") as fh:
-            for seq, raw in enumerate(fh):
+            for nlines, raw in enumerate(fh, 1):
                 if (ev := _parse_event(raw)) is None:
                     continue  # torn, undecodable or foreign line: skip, never fail
+                key, op, n, ts, stats = ev
+                if op == "snapshot":
+                    if seen_event:  # a baseline must be applied before any event
+                        raise _OutOfOrder
+                    self._stats[key] = stats
+                    continue
+                if ts is None:
+                    ts = last_ts  # unstamped: ordered after every line before it
+                elif ts < last_ts:
+                    raise _OutOfOrder
+                last_ts, seen_event = ts, True
+                _apply(self._stats, key, op, n, ts)
+        self._last_ts = last_ts
+        return nlines
+
+    def _fold_buffered(self) -> int:
+        events, last_ts, nlines = [], 0.0, 0
+        with open(self.path, "rb") as fh:
+            for seq, raw in enumerate(fh):
+                nlines = seq + 1
+                if (ev := _parse_event(raw)) is None:
+                    continue
                 key, op, n, ts, stats = ev
                 if op == "snapshot":  # the compacted baseline: applied first
                     self._stats[key] = stats
                     continue
                 if ts is None:
-                    ts = last_ts  # unstamped: ordered after every line before it
+                    ts = last_ts
                 last_ts = max(last_ts, ts)
                 events.append((ts, seq, key, op, n))
         for ts, _, key, op, n in sorted(events, key=lambda e: e[:2]):
             _apply(self._stats, key, op, n, ts)
         self._last_ts = last_ts
+        return nlines
 
     def __getitem__(self, key) -> AccessStats:
         return self._stats[key]
