@@ -1,26 +1,26 @@
 metric,value
 schema_version,1.0
-timestamp,2026-10-26T14:55:42.342079Z
-commit_sha,8a90af29dc5a78fce1b78eff9d7829381d2813d0
-commit_message,util: shared atomic_write used by memoize and access (closes #26)
+timestamp,2026-10-26T14:59:52.811411Z
+commit_sha,714b2a7c5acb1c5205f344d87c4415141fe216b5
+commit_message,"atomic_write: stream chunks, exclusive create, bytes only; tests (review of #26)"
 python_version,3.10
-metrics.umpyre_stats.num_functions,7059
-metrics.umpyre_stats.num_classes,1680
-metrics.umpyre_stats.total_lines,264107
-metrics.umpyre_stats.empty_lines,34077
-metrics.umpyre_stats.comment_lines,14700
-metrics.umpyre_stats.docs_lines,38383
-metrics.umpyre_stats.function_lines,116998
-metrics.umpyre_stats.empty_lines_ratio,0.1290272503189995
-metrics.umpyre_stats.comment_lines_ratio,0.055659259315353246
-metrics.umpyre_stats.function_lines_ratio,0.4429946953318163
-metrics.umpyre_stats.mean_lines_per_function,16.57430230910894
-metrics.umpyre_stats.files_analyzed,586
+metrics.umpyre_stats.num_functions,7151
+metrics.umpyre_stats.num_classes,1692
+metrics.umpyre_stats.total_lines,266206
+metrics.umpyre_stats.empty_lines,34394
+metrics.umpyre_stats.comment_lines,14812
+metrics.umpyre_stats.docs_lines,38425
+metrics.umpyre_stats.function_lines,118527
+metrics.umpyre_stats.empty_lines_ratio,0.12920069419922917
+metrics.umpyre_stats.comment_lines_ratio,0.05564112003486022
+metrics.umpyre_stats.function_lines_ratio,0.4452454114482769
+metrics.umpyre_stats.mean_lines_per_function,16.574884631520067
+metrics.umpyre_stats.files_analyzed,596
 metrics.umpyre_stats.pypi_version,0.1.23
 metrics.workflow_status.last_run_status,success
-metrics.workflow_status.last_success_timestamp,2026-10-26T14:01:42Z
+metrics.workflow_status.last_success_timestamp,2026-10-26T14:55:49Z
 metrics.workflow_status.recent_failure_count,0
-metrics.workflow_status.run_url,https://github.com/i2mint/xdol/actions/runs/40335696073
+metrics.workflow_status.run_url,https://github.com/i2mint/xdol/actions/runs/40344079811
 metrics.workflow_status.total_runs_analyzed,10
 metrics.wily.cyclomatic_avg,0.0
 metrics.wily.maintainability_index,0.0
@@ -36,4 +36,4 @@ metrics.coverage.branch_coverage,0.0
 metrics.coverage.statements_covered,0
 metrics.coverage.statements_total,0
 metrics.coverage.error,No coverage file found
-collection_duration_seconds,4.0659499168396
+collection_duration_seconds,3.981466054916382
