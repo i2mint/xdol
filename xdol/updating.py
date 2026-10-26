@@ -1,17 +1,18 @@
-"""
+"""Controlled updates of one mapping from another, with customizable policies.
 
-mapping using customizable policies to determine which items to update. It offers
-a fine-grained approach to dictionary updates beyond the standard dict.update()
-method.
+``update_with_policy`` decides, key by key, whether to copy a source item into a
+target mapping. It goes beyond ``dict.update()`` with:
 
-Key Features:
-- Multiple built-in update policies (always update, update if different, prefer target, prefer source)
-- Support for custom update decision functions
-- Lazy value retrieval for performance optimization
-- Detailed statistics about update operations
-- Specialized update strategies (content hash comparison, timestamp-based updates)
-- File system-specific convenience functions
+- built-in policies (always update, update if different, prefer target, prefer source)
+- custom decision functions and custom "key info" extractors (compare sizes,
+  hashes or timestamps instead of reading values)
+- statistics about what was examined, updated, added, unchanged or deleted
+- specialized entry points (content-hash comparison, timestamps, local files)
 
+A last section names the operations on a master / copy pair (companions of
+``xdol.tiering``): ``backfill`` (push to master what only the copy has),
+``reconcile`` (update the copy from master) and ``verify`` (compare without
+writing).
 
 Custom update logic with a hash function:
 
@@ -28,12 +29,6 @@ Using convenience methods:
 {'examined': 2, 'updated': 0, 'added': 0, 'unchanged': 2, 'deleted': 0}
 >>> target
 {'a': 'hello!', 'b': 'world', 'c': 'python'}
-
-Functions for controlled mapping updates with customizable policies.
-
-This module provides flexible functions to update a target mapping from a source
-mapping using customizable policies to determine which items to update.
-
 """
 
 from typing import (
@@ -44,7 +39,6 @@ from typing import (
     TypeVar,
     Tuple,
     Set,
-    Protocol,
 )
 from collections.abc import (
     Mapping,
@@ -55,7 +49,6 @@ from collections.abc import (
     Iterator,
 )
 import os
-from collections.abc import Iterable
 from enum import Enum, auto
 from functools import partial
 from typing_extensions import Protocol
@@ -722,6 +715,15 @@ def _as_update_stats(stats: dict[str, int]) -> UpdateStats:
     return UpdateStats(**stats)
 
 
+def _present(key: K) -> bool:
+    """Presence-only key info: never reads a value.
+
+    ``update_with_policy`` only asks for the info of keys a mapping contains, so a
+    constant non-``None`` answer means "present" (even when the value is ``None``).
+    """
+    return True
+
+
 def backfill(
     copy: Mapping[K, V],
     master: MutableMapping[K, V],
@@ -730,6 +732,9 @@ def backfill(
 ) -> UpdateStats:
     """Push to ``master`` the items that only ``copy`` has. Never overwrites.
 
+    Decisions use key presence only: the one value read is ``copy[k]`` for each key
+    actually pushed, so nothing is ever downloaded from a cold (e.g. S3) master.
+
     >>> master, copy = {'a': 1}, {'a': 9, 'b': 2}
     >>> backfill(copy, master).added
     1
@@ -737,7 +742,14 @@ def backfill(
     {'a': 1, 'b': 2}
     """
     return _as_update_stats(
-        update_missing_only(master, copy, keys_to_consider=keys_to_consider)
+        update_with_policy(
+            master,
+            copy,
+            policy=DefaultPolicy.PREFER_TARGET,
+            target_key_info=_present,
+            source_key_info=_present,
+            keys_to_consider=keys_to_consider,
+        )
     )
 
 
@@ -779,14 +791,36 @@ class VerifyReport:
         return not (self.only_in_copy or self.only_in_master or self.mismatched)
 
 
-def content_hash_key_info(store: Mapping, key: K) -> str:
-    """Default ``key_info`` for :func:`verify`: sha256 of the value's content."""
+_STR_HASH_TAG = b"str:"
+_BYTES_HASH_TAG = b"bytes:"
+_STR_HASH_ENCODING = "utf-8"
+_STR_HASH_ERRORS = "surrogatepass"  # lone surrogates must hash, not raise
+
+
+def content_hash_key_info(store: Mapping, key: K) -> Any:
+    """Default ``key_info`` for :func:`verify`.
+
+    Text and bytes-like values give a sha256 of their content, tagged by kind so
+    that ``'a'`` and ``b'a'`` differ. Any other value is returned as is, so
+    :func:`verify` compares it with ``==`` (``1 == 1.0``, dict order ignored).
+
+    >>> h = lambda v: content_hash_key_info({'k': v}, 'k')
+    >>> h(b'a') == h(bytearray(b'a')), h(b'a') == h('a')
+    (True, False)
+    >>> h({'x': 1})
+    {'x': 1}
+    """
     value = store[key]
     if isinstance(value, str):
-        value = value.encode()
-    elif not isinstance(value, (bytes, bytearray, memoryview)):
-        value = repr(value).encode()
-    return hashlib.sha256(value).hexdigest()
+        tag = _STR_HASH_TAG
+        value = value.encode(_STR_HASH_ENCODING, errors=_STR_HASH_ERRORS)
+    elif isinstance(value, (bytes, bytearray, memoryview)):
+        tag = _BYTES_HASH_TAG
+    else:
+        return value
+    hasher = hashlib.sha256(tag)
+    hasher.update(value)
+    return hasher.hexdigest()
 
 
 def verify(

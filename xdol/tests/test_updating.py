@@ -601,16 +601,56 @@ def test_backfill_never_overwrites():
     stats = backfill(copy, master)
     assert master == {"a": 1, "b": 2} and stats.added == 1 and stats.updated == 0
 
+    # A None value in master is still a value: it must not be overwritten
+    master, copy = {"a": None}, {"a": 1}
+    stats = backfill(copy, master)
+    assert master == {"a": None} and stats.updated == 0 and stats.added == 0
+
+
+class _ReadCounter(dict):
+    """A dict that counts value reads, through both ``[]`` and ``.get``."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.reads = []
+
+    def __getitem__(self, k):
+        self.reads.append(k)
+        return super().__getitem__(k)
+
+    def get(self, k, default=None):
+        self.reads.append(k)
+        return super().get(k, default)
+
+
+def test_backfill_reads_only_the_values_it_pushes():
+    from xdol.updating import backfill
+
+    master = _ReadCounter(a=1, shared=2)
+    copy = _ReadCounter(shared=20, b=3, c=4)
+    stats = backfill(copy, master)
+    assert master.reads == []
+    assert sorted(copy.reads) == ["b", "c"]  # each pushed value read once
+    assert dict(master) == {"a": 1, "shared": 2, "b": 3, "c": 4}
+    assert (stats.added, stats.updated, stats.unchanged) == (2, 0, 1)
+
 
 def test_reconcile_prefers_master_and_honours_policy():
     from xdol.updating import reconcile, DefaultPolicy
 
     master, copy = {"a": 1, "b": 2}, {"a": 9}
-    reconcile(master, copy)
+    stats = reconcile(master, copy)
     assert copy == {"a": 1, "b": 2}
+    assert (stats.examined, stats.updated, stats.added, stats.unchanged) == (
+        2,
+        1,
+        1,
+        0,
+    )
     master, copy = {"a": 1, "b": 2}, {"a": 9}
-    reconcile(master, copy, policy=DefaultPolicy.PREFER_TARGET)
+    stats = reconcile(master, copy, policy=DefaultPolicy.PREFER_TARGET)
     assert copy == {"a": 9, "b": 2}
+    assert (stats.updated, stats.added, stats.unchanged) == (0, 1, 1)
 
 
 def test_verify_reports_three_sets_and_writes_nothing():
@@ -631,6 +671,37 @@ def test_verify_key_info_does_not_read_values():
         def __getitem__(self, k):
             raise AssertionError("value read")
 
-    c, m = NoRead(a=1, b=2), NoRead(a=1, b=2)
+        def get(self, k, default=None):
+            raise AssertionError("value read")
+
+    # Values differ but key_info matches: ok, so the values were not compared
+    c, m = NoRead(a=1, b=2), NoRead(a=10, b=20)
     sizes = {"a": 1, "b": 2}
     assert verify(c, m, key_info=lambda s, k: sizes[k]).ok
+
+    # Values match but key_info differs: mismatch, so key_info is what decides
+    c, m = NoRead(a=1, b=2), NoRead(a=1, b=2)
+    etags = {id(c): {"a": "x", "b": "y"}, id(m): {"a": "x", "b": "z"}}
+    r = verify(c, m, key_info=lambda s, k: etags[id(s)][k])
+    assert r.mismatched == ["b"] and not r.only_in_copy and not r.only_in_master
+
+
+def test_content_hash_key_info_default():
+    from xdol.updating import content_hash_key_info, verify
+
+    def h(v):
+        return content_hash_key_info({"k": v}, "k")
+
+    # bytes-like values are hashed by content
+    assert h(b"abc") == h(bytearray(b"abc")) == h(memoryview(b"abc"))
+    assert h(b"abc") != h(b"abd")
+    assert isinstance(h(b"abc"), str)
+    # str and bytes with the same content do not collide
+    assert h("a") != h(b"a")
+    assert h("a") == h("a")
+    # lone surrogates hash instead of raising
+    assert h("\ud800") != h("\ud801")
+    # anything else is compared with ==
+    assert verify({"k": {"x": 1, "y": 2}}, {"k": {"y": 2, "x": 1}}).ok
+    assert verify({"k": 1}, {"k": 1.0}).ok
+    assert verify({"k": [1, 2]}, {"k": [1, 3]}).mismatched == ["k"]

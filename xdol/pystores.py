@@ -139,9 +139,9 @@ class SetupCfgReader(FileBytesReader, KvReader):
     ...
     ...     reader = SetupCfgReader(tmpdir)
     ...     assert len(reader) == 1
-    ...     assert 'proj1/setup.cfg' in reader
-    ...     assert 'requests' in reader['proj1/setup.cfg']
-    True
+    ...     key = os.path.join('proj1', 'setup.cfg')  # os-specific separator
+    ...     assert key in reader
+    ...     assert 'requests' in reader[key]
     """
 
     def __init__(self, src, *, max_levels=None):
@@ -207,9 +207,9 @@ class PyprojectReader(FileBytesReader, KvReader):
     ...
     ...     reader = PyprojectReader(tmpdir)
     ...     assert len(reader) == 1
-    ...     assert 'proj1/pyproject.toml' in reader
-    ...     assert 'requests' in reader['proj1/pyproject.toml']
-    True
+    ...     key = os.path.join('proj1', 'pyproject.toml')  # os-specific separator
+    ...     assert key in reader
+    ...     assert 'requests' in reader[key]
     """
 
     def __init__(self, src, *, max_levels=None):
