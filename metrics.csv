@@ -1,8 +1,8 @@
 metric,value
 schema_version,1.0
-timestamp,2026-10-26T20:15:59.999212Z
-commit_sha,4b6b0bf970ce204a6a34135cfb5993ebcd208670
-commit_message,"access: tombstones wipe older late events, unstamped events follow the baseline, compaction only under a held lock, tracker never raises on compaction (re-review of #23)"
+timestamp,2026-10-26T20:16:07.811948Z
+commit_sha,218c38458a179805b303d3b758f9506dddf5a1c0
+commit_message,Merge 4b6b0bf970ce204a6a34135cfb5993ebcd208670 into 9b6b1fba8d6b2d7eb7c0303cb2f3e740cb410a20
 python_version,3.10
 metrics.umpyre_stats.num_functions,7110
 metrics.umpyre_stats.num_classes,1684
@@ -33,4 +33,4 @@ metrics.coverage.branch_coverage,0.0
 metrics.coverage.statements_covered,0
 metrics.coverage.statements_total,0
 metrics.coverage.error,No coverage file found
-collection_duration_seconds,3.535639762878418
+collection_duration_seconds,3.472367286682129
