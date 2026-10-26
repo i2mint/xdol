@@ -178,7 +178,10 @@ class TieredStore(MutableMapping):
         self._hot_sizes.pop(k, None)
 
     def _check_release(self) -> None:
-        if self._budget and self._hot_bytes > self._policy.high_watermark * self._budget:
+        if (
+            self._budget
+            and self._hot_bytes > self._policy.high_watermark * self._budget
+        ):
             sweep(self)
 
     # -- MutableMapping -----------------------------------------------------
