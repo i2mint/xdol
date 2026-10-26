@@ -8,6 +8,7 @@
 - [xdol](index.html.md): Extended Data Object Layers - dol-based tools
 - [API reference](api.html.md): | &#96;xdol&#96;   | Extended tools for dol (Data Object Layers)   |
 - [xdol](_autosummary/xdol.html.md): Extended tools for dol (Data Object Layers)
+- [xdol.access](_autosummary/xdol.access.html.md): Persisted, mergeable per-key access statistics for any store.
 - [xdol.keys](_autosummary/xdol.keys.html.md): Robust, stable cache keys: turn a call’s inputs into a short, filesystem-safe string.
 - [xdol.memoize](_autosummary/xdol.memoize.html.md): Persistent memoization with record/replay modes, for costly calls.
 - [xdol.paths](_autosummary/xdol.paths.html.md): Tools for manipulating paths.
@@ -16,7 +17,7 @@
 - [xdol.updating](_autosummary/xdol.updating.html.md): mapping using customizable policies to determine which items to update. It offers
 - [xdol.util](_autosummary/xdol.util.html.md): Utility functions for xdol.
 - [xdol.x_codecs](_autosummary/xdol.x_codecs.html.md): Extra codecs: object &lt;-&gt; bytes pairs, and stores that apply them.
-- [About this build](about-this-build.html.md): This documentation was built on &#42;&#42;2026-10-20 09:58 UTC&#42;&#42; from commit &lt;a href="https://github.com/i2m...
+- [About this build](about-this-build.html.md): This documentation was built on &#42;&#42;2026-10-26 06:41 UTC&#42;&#42; from commit &lt;a href="https://github.com/i2m...
 
 ## Optional
 

@@ -1,0 +1,21 @@
+xdol.access
+===========
+
+.. automodule:: xdol.access
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      default_access_log_for
+      merge_stats
+      track_access
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      AccessLog
+      AccessStats
+   

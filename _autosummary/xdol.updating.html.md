@@ -40,29 +40,34 @@ mapping using customizable policies to determine which items to update.
 
 ### Functions
 
-| [`add_as_attribute_of`](#xdol.updating.add_as_attribute_of)(obj[, name])                | Decorator to add the function as an attribute of the object.                           |
-|--------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------|
-| [`local_file_timestamp`](#xdol.updating.local_file_timestamp)(store, key)                | Get the modified timestamp of a file in a local file store.                            |
-| [`print_all_but_skips`](#xdol.updating.print_all_but_skips)(key, decision, \*[, ...])   | Print all decisions except SKIP.                                                       |
-| [`union_iter`](#xdol.updating.union_iter)(\*iterables)                         | Generator yielding unique hashable items from an iterable of iterables.                |
-| [`update_all`](#xdol.updating.update_all)(target, source, \*[, ...])           | Update target with all source values, equivalent to dict.update().                     |
-| [`update_by_content_hash`](#xdol.updating.update_by_content_hash)(target, source, \*, ...) | Update target with source values only if their hash differs.                           |
-| [`update_files_by_timestamp`](#xdol.updating.update_files_by_timestamp)(target, source, \*)   | Update a target file store with files from a source store based on modification times. |
-| [`update_if_different`](#xdol.updating.update_if_different)(target, source, \*[, ...])  | Update target with source values only if they differ.                                  |
-| [`update_missing_only`](#xdol.updating.update_missing_only)(target, source, \*[, ...])  | Update target with source values only for keys not in target.                          |
-| [`update_newer`](#xdol.updating.update_newer)(target, source, \*, ...[, ...])    | Update target with source values only if source has a newer timestamp.                 |
-| [`update_with_policy`](#xdol.updating.update_with_policy)(target, source, \*[, ...])   | Update a target mapping with values from a source mapping using a customizable policy. |
+| [`add_as_attribute_of`](#xdol.updating.add_as_attribute_of)(obj[, name])                | Decorator to add the function as an attribute of the object.                                                     |
+|--------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------|
+| [`backfill`](#xdol.updating.backfill)(copy, master, \*[, keys_to_consider])  | Push to `master` the items that only `copy` has.                                                                 |
+| [`content_hash_key_info`](#xdol.updating.content_hash_key_info)(store, key)               | Default `key_info` for [`verify()`](#xdol.updating.verify): sha256 of the value's content. |
+| [`local_file_timestamp`](#xdol.updating.local_file_timestamp)(store, key)                | Get the modified timestamp of a file in a local file store.                                                      |
+| [`print_all_but_skips`](#xdol.updating.print_all_but_skips)(key, decision, \*[, ...])   | Print all decisions except SKIP.                                                                                 |
+| [`reconcile`](#xdol.updating.reconcile)(master, copy, \*[, policy, ...])      | Update `copy` from `master`: master wins unless `policy` forbids.                                                |
+| [`union_iter`](#xdol.updating.union_iter)(\*iterables)                         | Generator yielding unique hashable items from an iterable of iterables.                                          |
+| [`update_all`](#xdol.updating.update_all)(target, source, \*[, ...])           | Update target with all source values, equivalent to dict.update().                                               |
+| [`update_by_content_hash`](#xdol.updating.update_by_content_hash)(target, source, \*, ...) | Update target with source values only if their hash differs.                                                     |
+| [`update_files_by_timestamp`](#xdol.updating.update_files_by_timestamp)(target, source, \*)   | Update a target file store with files from a source store based on modification times.                           |
+| [`update_if_different`](#xdol.updating.update_if_different)(target, source, \*[, ...])  | Update target with source values only if they differ.                                                            |
+| [`update_missing_only`](#xdol.updating.update_missing_only)(target, source, \*[, ...])  | Update target with source values only for keys not in target.                                                    |
+| [`update_newer`](#xdol.updating.update_newer)(target, source, \*, ...[, ...])    | Update target with source values only if source has a newer timestamp.                                           |
+| [`update_with_policy`](#xdol.updating.update_with_policy)(target, source, \*[, ...])   | Update a target mapping with values from a source mapping using a customizable policy.                           |
+| [`verify`](#xdol.updating.verify)(copy, master, \*[, keys, key_info])      | Compare `copy` with `master` without writing anything.                                                           |
 
 ### Classes
 
-| [`DefaultPolicy`](#xdol.updating.DefaultPolicy)(\*values)                         | Standard policies for updating mappings.                                |
-|--------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------|
-| [`KeyDecision`](#xdol.updating.KeyDecision)(\*values)                           | Decisions for individual keys during update.                            |
-| [`KeyInfoExtractor`](#xdol.updating.KeyInfoExtractor)(\*args, \*\*kwargs)            | Protocol for functions that extract comparison information from values. |
-| [`NotRetrieved`](#xdol.updating.NotRetrieved)()                                  | Sentinel object indicating a value that hasn't been retrieved yet.      |
-| [`StringEnum`](#xdol.updating.StringEnum)(new_class_name, /, names, \*[, ...]) | Enum where members are also (and must be) strings.                      |
-| [`UpdateDecider`](#xdol.updating.UpdateDecider)(\*args, \*\*kwargs)               | Protocol for functions that decide whether to update a key.             |
-| [`UpdateStats`](#xdol.updating.UpdateStats)([examined, updated, added, ...])    | Statistics for an update operation.                                     |
+| [`DefaultPolicy`](#xdol.updating.DefaultPolicy)(\*values)                           | Standard policies for updating mappings.                                                                          |
+|----------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------|
+| [`KeyDecision`](#xdol.updating.KeyDecision)(\*values)                             | Decisions for individual keys during update.                                                                      |
+| [`KeyInfoExtractor`](#xdol.updating.KeyInfoExtractor)(\*args, \*\*kwargs)              | Protocol for functions that extract comparison information from values.                                           |
+| [`NotRetrieved`](#xdol.updating.NotRetrieved)()                                    | Sentinel object indicating a value that hasn't been retrieved yet.                                                |
+| [`StringEnum`](#xdol.updating.StringEnum)(new_class_name, /, names, \*[, ...])   | Enum where members are also (and must be) strings.                                                                |
+| [`UpdateDecider`](#xdol.updating.UpdateDecider)(\*args, \*\*kwargs)                 | Protocol for functions that decide whether to update a key.                                                       |
+| [`UpdateStats`](#xdol.updating.UpdateStats)([examined, updated, added, ...])      | Statistics for an update operation.                                                                               |
+| [`VerifyReport`](#xdol.updating.VerifyReport)([only_in_copy, only_in_master, ...]) | Result of [`verify()`](#xdol.updating.verify): the keys where `copy` and `master` disagree. |
 
 ### *class* xdol.updating.DefaultPolicy(\*values)
 
@@ -113,6 +118,12 @@ Convert stats to a dictionary.
 * **Return type:**
   [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`int`](https://docs.python.org/3/builtins/functions.html#int)]
 
+### *class* xdol.updating.VerifyReport(only_in_copy=list(), only_in_master=list(), mismatched=list())
+
+Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
+
+Result of [`verify()`](#xdol.updating.verify): the keys where `copy` and `master` disagree.
+
 ### xdol.updating.add_as_attribute_of(obj, name=None)
 
 Decorator to add the function as an attribute of the object.
@@ -137,6 +148,28 @@ Decorator to add the function as an attribute of the object.
 'qux'
 ```
 
+### xdol.updating.backfill(copy, master, \*, keys_to_consider=<function \_just_source_keys>)
+
+Push to `master` the items that only `copy` has. Never overwrites.
+
+```pycon
+>>> master, copy = {'a': 1}, {'a': 9, 'b': 2}
+>>> backfill(copy, master).added
+1
+>>> master
+{'a': 1, 'b': 2}
+```
+
+* **Return type:**
+  [`UpdateStats`](#xdol.updating.UpdateStats)
+
+### xdol.updating.content_hash_key_info(store, key)
+
+Default `key_info` for [`verify()`](#xdol.updating.verify): sha256 of the value’s content.
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
+
 ### xdol.updating.local_file_timestamp(store, key)
 
 Get the modified timestamp of a file in a local file store.
@@ -155,6 +188,21 @@ the full path before getting the timestamp.
 ### xdol.updating.print_all_but_skips(key, decision, \*, print_func=<built-in function print>)
 
 Print all decisions except SKIP.
+
+### xdol.updating.reconcile(master, copy, \*, policy=DefaultPolicy.PREFER_SOURCE, keys_to_consider=<function \_just_source_keys>)
+
+Update `copy` from `master`: master wins unless `policy` forbids.
+
+```pycon
+>>> master, copy = {'a': 1, 'b': 2}, {'a': 9}
+>>> reconcile(master, copy).updated
+1
+>>> copy
+{'a': 1, 'b': 2}
+```
+
+* **Return type:**
+  [`UpdateStats`](#xdol.updating.UpdateStats)
 
 ### xdol.updating.union_iter(\*iterables)
 
@@ -319,4 +367,21 @@ Update a target mapping with values from a source mapping using a customizable p
 {'examined': 2, 'updated': 0, 'added': 1, 'unchanged': 1, 'deleted': 0}
 >>> target
 {'a': 1, 'b': 2, 'c': 30}
+```
+
+### xdol.updating.verify(copy, master, \*, keys=None, key_info=<function content_hash_key_info>)
+
+Compare `copy` with `master` without writing anything.
+
+* **Parameters:**
+  * **keys** ([`Iterable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterable)[`K`] | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – restrict the comparison to these keys (default: all keys of both).
+  * **key_info** ([`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[[`Mapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping), `K`], [`Any`](https://docs.python.org/3/library/typing.html#typing.Any)]) – `key_info(store, key)` returns what to compare; pass a cheaper
+    one (size, ETag) to avoid reading values.
+* **Return type:**
+  [`VerifyReport`](#xdol.updating.VerifyReport)
+
+```pycon
+>>> r = verify({'a': 1, 'b': 2, 'c': 3}, {'a': 1, 'b': 20, 'd': 4})
+>>> r.only_in_copy, r.only_in_master, r.mismatched
+(['c'], ['d'], ['b'])
 ```

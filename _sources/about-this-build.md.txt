@@ -5,17 +5,19 @@ orphan: true
 
 # About this build
 
-This documentation was built on **2026-10-20 09:58 UTC** from commit <a href="https://github.com/i2mint/xdol/commit/0ea22c013cff485da310441e7ce1b1a4aa7dcf12"><code>0ea22c0</code></a> on branch <code>master</code>, for **xdol 0.1.18** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-10-26 06:41 UTC** from commit <a href="https://github.com/i2mint/xdol/commit/695371b81cddf1627905c46fd979872ea2c9e1bd"><code>695371b</code></a> on branch <code>master</code>, for **xdol 0.1.19** (from <code>pyproject.toml</code>).
 
-:::{note}
-Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
+:::{warning}
+The documentation and the package may be misaligned:
+
+- The documented version (0.1.19) is behind the latest release on PyPI (0.1.20): `pip install xdol` gives newer code than these docs describe.
 :::
 
 ## Source
 
 | | |
 |---|---|
-| Commit | <a href="https://github.com/i2mint/xdol/commit/0ea22c013cff485da310441e7ce1b1a4aa7dcf12"><code>0ea22c013cff485da310441e7ce1b1a4aa7dcf12</code></a> |
+| Commit | <a href="https://github.com/i2mint/xdol/commit/695371b81cddf1627905c46fd979872ea2c9e1bd"><code>695371b81cddf1627905c46fd979872ea2c9e1bd</code></a> |
 | Branch | <code>master</code> |
 | Tags at this commit | none |
 | Working tree | clean |
@@ -26,15 +28,15 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 | | |
 |---|---|
 | Repository | <code>i2mint/xdol</code> |
-| Run | <a href="https://github.com/i2mint/xdol/actions/runs/39404408561">39404408561</a> |
+| Run | <a href="https://github.com/i2mint/xdol/actions/runs/40281114850">40281114850</a> |
 | Ref | <code>refs/heads/master</code> |
-| Event commit | <code>0ea22c013cff485da310441e7ce1b1a4aa7dcf12</code> (in the history of the built commit) |
+| Event commit | <code>71786f7db0f3ce9d0a541f7e7ca907d88d51c5ee</code> (in the history of the built commit) |
 
 ## Tools
 
 | | |
 |---|---|
-| epythet | 0.2.18 |
+| epythet | 0.2.22 |
 | Sphinx | 9.1.1 |
 | docutils | 0.22.4 |
 | Python | 3.12.15 |
@@ -53,14 +55,14 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/xdol/0.1.18/">0.1.18</a>, the same as the documented version.
+Latest release: <a href="https://pypi.org/project/xdol/0.1.20/">0.1.20</a>, newer than the documented version (0.1.19).
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/i2mint/xdol && cd xdol
-git checkout 0ea22c013cff485da310441e7ce1b1a4aa7dcf12
-pip install "epythet==0.2.18"
+git checkout 695371b81cddf1627905c46fd979872ea2c9e1bd
+pip install "epythet==0.2.22"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```
 

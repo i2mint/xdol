@@ -9,8 +9,11 @@ xdol.updating
    .. autosummary::
    
       add_as_attribute_of
+      backfill
+      content_hash_key_info
       local_file_timestamp
       print_all_but_skips
+      reconcile
       union_iter
       update_all
       update_by_content_hash
@@ -19,6 +22,7 @@ xdol.updating
       update_missing_only
       update_newer
       update_with_policy
+      verify
    
    .. rubric:: Classes
 
@@ -31,4 +35,5 @@ xdol.updating
       StringEnum
       UpdateDecider
       UpdateStats
+      VerifyReport
    

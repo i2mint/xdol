@@ -1,4 +1,4 @@
-> built 2026-10-20 09:58 UTC from 0ea22c0 (master) · xdol 0.1.18. Details: build_info.json
+> built 2026-10-26 06:41 UTC from 695371b (master) · xdol 0.1.19. Details: build_info.json
 
 # index.html.md
 
@@ -32,6 +32,115 @@ Stable keys (`xdol.keys`), text / JSON / binary / paired `.json`+`.bin` codecs, 
 <p class="epythet-aggregates">This documentation as a single file: <a href="xdol.md">xdol.md</a> (Markdown, for agents).</p>
 
 
+# _autosummary/xdol.access.html.md
+
+# xdol.access
+
+Persisted, mergeable per-key access statistics for any store.
+
+An [`AccessLog`](_autosummary/xdol.access.html.md#xdol.access.AccessLog) is an append-only JSONL file of access events, folded into an
+in-memory `{key: AccessStats}` on open. [`track_access()`](_autosummary/xdol.access.html.md#xdol.access.track_access) wraps any
+`MutableMapping` so reads, writes and deletes are recorded. The log is the
+`tracker` of `xdol.tiering.TieredStore`.
+
+Filesystem atime cannot do this job (under `relatime` it is never a count, and any
+backup pass resets it), hence an explicit log.
+
+Event schema, one JSON object per line (plain string keys, so a filesystem tracer that
+only knows paths can append to the same file):
+
+```default
+{"k": key, "op": "read"|"write"|"delete"|"release"|"pin"|"unpin",
+ "n": bytes, "from": "hot"|"cold"|null, "ts": unix_seconds, "tag": str|null}
+```
+
+A compacted file holds `{"k": key, "op": "snapshot", "stats": {...}}` lines, folded as
+initial state.
+
+```pycon
+>>> log = AccessLog()
+>>> store = track_access({'a': b'xyz'}, tracker=log)
+>>> store['a']
+b'xyz'
+>>> log.stats('a').reads
+1
+>>> 'a' in store  # membership is never recorded
+True
+>>> log.stats('a').frequency
+1
+```
+
+### Functions
+
+| [`default_access_log_for`](_autosummary/xdol.access.html.md#xdol.access.default_access_log_for)(store, \*\*kwargs)      | An [`AccessLog`](_autosummary/xdol.access.html.md#xdol.access.AccessLog) beside `store`'s `rootdir` (never inside it).   |
+|-------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------|
+| [`merge_stats`](_autosummary/xdol.access.html.md#xdol.access.merge_stats)(\*logs)                            | Merge several logs (or `{key: AccessStats}` mappings) into one dict.                                          |
+| [`track_access`](_autosummary/xdol.access.html.md#xdol.access.track_access)(store, \*[, tracker, clock, tag]) | Wrap `store` so reads, writes and deletes are recorded in `tracker`.                                          |
+
+### Classes
+
+| [`AccessLog`](_autosummary/xdol.access.html.md#xdol.access.AccessLog)([path, clock, tag])           | Append-only JSONL access log with an in-memory aggregate.   |
+|------------------------------------------------------------------------------------------|-------------------------------------------------------------|
+| [`AccessStats`](_autosummary/xdol.access.html.md#xdol.access.AccessStats)([size, reads, writes, ...]) | Access statistics of one key.                               |
+
+### *class* xdol.access.AccessLog(path=None, \*, clock=<built-in function time>, tag=None)
+
+Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
+
+Append-only JSONL access log with an in-memory aggregate.
+
+* **Parameters:**
+  * **path** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`PathLike`](https://docs.python.org/3/library/os.html#os.PathLike) | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – log file; `None` keeps everything in memory (tests).
+  * **clock** ([`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[], [`float`](https://docs.python.org/3/builtins/functions.html#float)]) – callable returning unix seconds.
+  * **tag** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – label stamped on each event; defaults to `platform.node()`.
+
+A tracker never raises into a store’s read path: if the file cannot be written,
+a warning is issued once and counting continues in memory.
+
+#### compact()
+
+Rewrite the file as one snapshot line per key, atomically.
+
+* **Return type:**
+  [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
+### *class* xdol.access.AccessStats(size=0, reads=0, writes=0, first_seen=0.0, last_access=0.0, last_read=0.0, pinned=False)
+
+Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
+
+Access statistics of one key.
+
+### xdol.access.default_access_log_for(store, \*\*kwargs)
+
+An [`AccessLog`](_autosummary/xdol.access.html.md#xdol.access.AccessLog) beside `store`’s `rootdir` (never inside it).
+
+Without a `rootdir`, an in-memory log, with a warning.
+
+* **Return type:**
+  [`AccessLog`](_autosummary/xdol.access.html.md#xdol.access.AccessLog)
+
+### xdol.access.merge_stats(\*logs)
+
+Merge several logs (or `{key: AccessStats}` mappings) into one dict.
+
+Sums reads/writes, takes the latest `size`, min `first_seen`, max
+`last_access`/`last_read`, OR of `pinned`.
+
+* **Return type:**
+  [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)
+
+### xdol.access.track_access(store, \*, tracker=None, clock=<built-in function time>, tag=None)
+
+Wrap `store` so reads, writes and deletes are recorded in `tracker`.
+
+`__contains__`, `__iter__` and `__len__` are never recorded. Without a
+`tracker`, [`default_access_log_for()`](_autosummary/xdol.access.html.md#xdol.access.default_access_log_for) picks one. The wrapped store is
+available as `.store` and the log as `.tracker`.
+
+* **Return type:**
+  [`MutableMapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping)
+
+
 # _autosummary/xdol.html.md
 
 # xdol
@@ -40,15 +149,16 @@ Extended tools for dol (Data Object Layers)
 
 ### Modules
 
-| [`keys`](_autosummary/xdol.keys.html.md#module-xdol.keys)         | Robust, stable cache keys: turn a call's inputs into a short, filesystem-safe string.   |
-|--------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------|
-| [`memoize`](_autosummary/xdol.memoize.html.md#module-xdol.memoize)   | Persistent memoization with record/replay modes, for costly calls.                      |
-| [`paths`](_autosummary/xdol.paths.html.md#module-xdol.paths)       | Tools for manipulating paths.                                                           |
-| [`pystores`](_autosummary/xdol.pystores.html.md#module-xdol.pystores) | Stores for python objects                                                               |
-| [`registry`](_autosummary/xdol.registry.html.md#module-xdol.registry) | A typed dict-backed plugin registry.                                                    |
-| [`updating`](_autosummary/xdol.updating.html.md#module-xdol.updating) | mapping using customizable policies to determine which items to update.                 |
-| [`util`](_autosummary/xdol.util.html.md#module-xdol.util)         | Utility functions for xdol.                                                             |
-| [`x_codecs`](_autosummary/xdol.x_codecs.html.md#module-xdol.x_codecs) | Extra codecs: object <-> bytes pairs, and stores that apply them.                       |
+| [`access`](_autosummary/xdol.access.html.md#module-xdol.access)     | Persisted, mergeable per-key access statistics for any store.                         |
+|--------------------------------------------------------------------------------|---------------------------------------------------------------------------------------|
+| [`keys`](_autosummary/xdol.keys.html.md#module-xdol.keys)         | Robust, stable cache keys: turn a call's inputs into a short, filesystem-safe string. |
+| [`memoize`](_autosummary/xdol.memoize.html.md#module-xdol.memoize)   | Persistent memoization with record/replay modes, for costly calls.                    |
+| [`paths`](_autosummary/xdol.paths.html.md#module-xdol.paths)       | Tools for manipulating paths.                                                         |
+| [`pystores`](_autosummary/xdol.pystores.html.md#module-xdol.pystores) | Stores for python objects                                                             |
+| [`registry`](_autosummary/xdol.registry.html.md#module-xdol.registry) | A typed dict-backed plugin registry.                                                  |
+| [`updating`](_autosummary/xdol.updating.html.md#module-xdol.updating) | mapping using customizable policies to determine which items to update.               |
+| [`util`](_autosummary/xdol.util.html.md#module-xdol.util)         | Utility functions for xdol.                                                           |
+| [`x_codecs`](_autosummary/xdol.x_codecs.html.md#module-xdol.x_codecs) | Extra codecs: object <-> bytes pairs, and stores that apply them.                     |
 
 
 # _autosummary/xdol.keys.html.md
@@ -1075,29 +1185,34 @@ mapping using customizable policies to determine which items to update.
 
 ### Functions
 
-| [`add_as_attribute_of`](_autosummary/xdol.updating.html.md#xdol.updating.add_as_attribute_of)(obj[, name])                | Decorator to add the function as an attribute of the object.                           |
-|--------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------|
-| [`local_file_timestamp`](_autosummary/xdol.updating.html.md#xdol.updating.local_file_timestamp)(store, key)                | Get the modified timestamp of a file in a local file store.                            |
-| [`print_all_but_skips`](_autosummary/xdol.updating.html.md#xdol.updating.print_all_but_skips)(key, decision, \*[, ...])   | Print all decisions except SKIP.                                                       |
-| [`union_iter`](_autosummary/xdol.updating.html.md#xdol.updating.union_iter)(\*iterables)                         | Generator yielding unique hashable items from an iterable of iterables.                |
-| [`update_all`](_autosummary/xdol.updating.html.md#xdol.updating.update_all)(target, source, \*[, ...])           | Update target with all source values, equivalent to dict.update().                     |
-| [`update_by_content_hash`](_autosummary/xdol.updating.html.md#xdol.updating.update_by_content_hash)(target, source, \*, ...) | Update target with source values only if their hash differs.                           |
-| [`update_files_by_timestamp`](_autosummary/xdol.updating.html.md#xdol.updating.update_files_by_timestamp)(target, source, \*)   | Update a target file store with files from a source store based on modification times. |
-| [`update_if_different`](_autosummary/xdol.updating.html.md#xdol.updating.update_if_different)(target, source, \*[, ...])  | Update target with source values only if they differ.                                  |
-| [`update_missing_only`](_autosummary/xdol.updating.html.md#xdol.updating.update_missing_only)(target, source, \*[, ...])  | Update target with source values only for keys not in target.                          |
-| [`update_newer`](_autosummary/xdol.updating.html.md#xdol.updating.update_newer)(target, source, \*, ...[, ...])    | Update target with source values only if source has a newer timestamp.                 |
-| [`update_with_policy`](_autosummary/xdol.updating.html.md#xdol.updating.update_with_policy)(target, source, \*[, ...])   | Update a target mapping with values from a source mapping using a customizable policy. |
+| [`add_as_attribute_of`](_autosummary/xdol.updating.html.md#xdol.updating.add_as_attribute_of)(obj[, name])                | Decorator to add the function as an attribute of the object.                                                     |
+|--------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------|
+| [`backfill`](_autosummary/xdol.updating.html.md#xdol.updating.backfill)(copy, master, \*[, keys_to_consider])  | Push to `master` the items that only `copy` has.                                                                 |
+| [`content_hash_key_info`](_autosummary/xdol.updating.html.md#xdol.updating.content_hash_key_info)(store, key)               | Default `key_info` for [`verify()`](_autosummary/xdol.updating.html.md#xdol.updating.verify): sha256 of the value's content. |
+| [`local_file_timestamp`](_autosummary/xdol.updating.html.md#xdol.updating.local_file_timestamp)(store, key)                | Get the modified timestamp of a file in a local file store.                                                      |
+| [`print_all_but_skips`](_autosummary/xdol.updating.html.md#xdol.updating.print_all_but_skips)(key, decision, \*[, ...])   | Print all decisions except SKIP.                                                                                 |
+| [`reconcile`](_autosummary/xdol.updating.html.md#xdol.updating.reconcile)(master, copy, \*[, policy, ...])      | Update `copy` from `master`: master wins unless `policy` forbids.                                                |
+| [`union_iter`](_autosummary/xdol.updating.html.md#xdol.updating.union_iter)(\*iterables)                         | Generator yielding unique hashable items from an iterable of iterables.                                          |
+| [`update_all`](_autosummary/xdol.updating.html.md#xdol.updating.update_all)(target, source, \*[, ...])           | Update target with all source values, equivalent to dict.update().                                               |
+| [`update_by_content_hash`](_autosummary/xdol.updating.html.md#xdol.updating.update_by_content_hash)(target, source, \*, ...) | Update target with source values only if their hash differs.                                                     |
+| [`update_files_by_timestamp`](_autosummary/xdol.updating.html.md#xdol.updating.update_files_by_timestamp)(target, source, \*)   | Update a target file store with files from a source store based on modification times.                           |
+| [`update_if_different`](_autosummary/xdol.updating.html.md#xdol.updating.update_if_different)(target, source, \*[, ...])  | Update target with source values only if they differ.                                                            |
+| [`update_missing_only`](_autosummary/xdol.updating.html.md#xdol.updating.update_missing_only)(target, source, \*[, ...])  | Update target with source values only for keys not in target.                                                    |
+| [`update_newer`](_autosummary/xdol.updating.html.md#xdol.updating.update_newer)(target, source, \*, ...[, ...])    | Update target with source values only if source has a newer timestamp.                                           |
+| [`update_with_policy`](_autosummary/xdol.updating.html.md#xdol.updating.update_with_policy)(target, source, \*[, ...])   | Update a target mapping with values from a source mapping using a customizable policy.                           |
+| [`verify`](_autosummary/xdol.updating.html.md#xdol.updating.verify)(copy, master, \*[, keys, key_info])      | Compare `copy` with `master` without writing anything.                                                           |
 
 ### Classes
 
-| [`DefaultPolicy`](_autosummary/xdol.updating.html.md#xdol.updating.DefaultPolicy)(\*values)                         | Standard policies for updating mappings.                                |
-|--------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------|
-| [`KeyDecision`](_autosummary/xdol.updating.html.md#xdol.updating.KeyDecision)(\*values)                           | Decisions for individual keys during update.                            |
-| [`KeyInfoExtractor`](_autosummary/xdol.updating.html.md#xdol.updating.KeyInfoExtractor)(\*args, \*\*kwargs)            | Protocol for functions that extract comparison information from values. |
-| [`NotRetrieved`](_autosummary/xdol.updating.html.md#xdol.updating.NotRetrieved)()                                  | Sentinel object indicating a value that hasn't been retrieved yet.      |
-| [`StringEnum`](_autosummary/xdol.updating.html.md#xdol.updating.StringEnum)(new_class_name, /, names, \*[, ...]) | Enum where members are also (and must be) strings.                      |
-| [`UpdateDecider`](_autosummary/xdol.updating.html.md#xdol.updating.UpdateDecider)(\*args, \*\*kwargs)               | Protocol for functions that decide whether to update a key.             |
-| [`UpdateStats`](_autosummary/xdol.updating.html.md#xdol.updating.UpdateStats)([examined, updated, added, ...])    | Statistics for an update operation.                                     |
+| [`DefaultPolicy`](_autosummary/xdol.updating.html.md#xdol.updating.DefaultPolicy)(\*values)                           | Standard policies for updating mappings.                                                                          |
+|----------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------|
+| [`KeyDecision`](_autosummary/xdol.updating.html.md#xdol.updating.KeyDecision)(\*values)                             | Decisions for individual keys during update.                                                                      |
+| [`KeyInfoExtractor`](_autosummary/xdol.updating.html.md#xdol.updating.KeyInfoExtractor)(\*args, \*\*kwargs)              | Protocol for functions that extract comparison information from values.                                           |
+| [`NotRetrieved`](_autosummary/xdol.updating.html.md#xdol.updating.NotRetrieved)()                                    | Sentinel object indicating a value that hasn't been retrieved yet.                                                |
+| [`StringEnum`](_autosummary/xdol.updating.html.md#xdol.updating.StringEnum)(new_class_name, /, names, \*[, ...])   | Enum where members are also (and must be) strings.                                                                |
+| [`UpdateDecider`](_autosummary/xdol.updating.html.md#xdol.updating.UpdateDecider)(\*args, \*\*kwargs)                 | Protocol for functions that decide whether to update a key.                                                       |
+| [`UpdateStats`](_autosummary/xdol.updating.html.md#xdol.updating.UpdateStats)([examined, updated, added, ...])      | Statistics for an update operation.                                                                               |
+| [`VerifyReport`](_autosummary/xdol.updating.html.md#xdol.updating.VerifyReport)([only_in_copy, only_in_master, ...]) | Result of [`verify()`](_autosummary/xdol.updating.html.md#xdol.updating.verify): the keys where `copy` and `master` disagree. |
 
 ### *class* xdol.updating.DefaultPolicy(\*values)
 
@@ -1148,6 +1263,12 @@ Convert stats to a dictionary.
 * **Return type:**
   [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`int`](https://docs.python.org/3/builtins/functions.html#int)]
 
+### *class* xdol.updating.VerifyReport(only_in_copy=list(), only_in_master=list(), mismatched=list())
+
+Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
+
+Result of [`verify()`](_autosummary/xdol.updating.html.md#xdol.updating.verify): the keys where `copy` and `master` disagree.
+
 ### xdol.updating.add_as_attribute_of(obj, name=None)
 
 Decorator to add the function as an attribute of the object.
@@ -1172,6 +1293,28 @@ Decorator to add the function as an attribute of the object.
 'qux'
 ```
 
+### xdol.updating.backfill(copy, master, \*, keys_to_consider=<function \_just_source_keys>)
+
+Push to `master` the items that only `copy` has. Never overwrites.
+
+```pycon
+>>> master, copy = {'a': 1}, {'a': 9, 'b': 2}
+>>> backfill(copy, master).added
+1
+>>> master
+{'a': 1, 'b': 2}
+```
+
+* **Return type:**
+  [`UpdateStats`](_autosummary/xdol.updating.html.md#xdol.updating.UpdateStats)
+
+### xdol.updating.content_hash_key_info(store, key)
+
+Default `key_info` for [`verify()`](_autosummary/xdol.updating.html.md#xdol.updating.verify): sha256 of the value’s content.
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
+
 ### xdol.updating.local_file_timestamp(store, key)
 
 Get the modified timestamp of a file in a local file store.
@@ -1190,6 +1333,21 @@ the full path before getting the timestamp.
 ### xdol.updating.print_all_but_skips(key, decision, \*, print_func=<built-in function print>)
 
 Print all decisions except SKIP.
+
+### xdol.updating.reconcile(master, copy, \*, policy=DefaultPolicy.PREFER_SOURCE, keys_to_consider=<function \_just_source_keys>)
+
+Update `copy` from `master`: master wins unless `policy` forbids.
+
+```pycon
+>>> master, copy = {'a': 1, 'b': 2}, {'a': 9}
+>>> reconcile(master, copy).updated
+1
+>>> copy
+{'a': 1, 'b': 2}
+```
+
+* **Return type:**
+  [`UpdateStats`](_autosummary/xdol.updating.html.md#xdol.updating.UpdateStats)
 
 ### xdol.updating.union_iter(\*iterables)
 
@@ -1354,6 +1512,23 @@ Update a target mapping with values from a source mapping using a customizable p
 {'examined': 2, 'updated': 0, 'added': 1, 'unchanged': 1, 'deleted': 0}
 >>> target
 {'a': 1, 'b': 2, 'c': 30}
+```
+
+### xdol.updating.verify(copy, master, \*, keys=None, key_info=<function content_hash_key_info>)
+
+Compare `copy` with `master` without writing anything.
+
+* **Parameters:**
+  * **keys** ([`Iterable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterable)[`K`] | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – restrict the comparison to these keys (default: all keys of both).
+  * **key_info** ([`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[[`Mapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping), `K`], [`Any`](https://docs.python.org/3/library/typing.html#typing.Any)]) – `key_info(store, key)` returns what to compare; pass a cheaper
+    one (size, ETag) to avoid reading values.
+* **Return type:**
+  [`VerifyReport`](_autosummary/xdol.updating.html.md#xdol.updating.VerifyReport)
+
+```pycon
+>>> r = verify({'a': 1, 'b': 2, 'c': 3}, {'a': 1, 'b': 20, 'd': 4})
+>>> r.only_in_copy, r.only_in_master, r.mismatched
+(['c'], ['d'], ['b'])
 ```
 
 
@@ -1581,16 +1756,18 @@ A value that fails to decode raises [`CodecDecodeError`](_autosummary/xdol.x_cod
 
 # About this build
 
-This documentation was built on **2026-10-20 09:58 UTC** from commit <a href="https://github.com/i2mint/xdol/commit/0ea22c013cff485da310441e7ce1b1a4aa7dcf12"><code>0ea22c0</code></a> on branch <code>master</code>, for **xdol 0.1.18** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-10-26 06:41 UTC** from commit <a href="https://github.com/i2mint/xdol/commit/695371b81cddf1627905c46fd979872ea2c9e1bd"><code>695371b</code></a> on branch <code>master</code>, for **xdol 0.1.19** (from <code>pyproject.toml</code>).
 
-#### NOTE
-Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
+#### WARNING
+The documentation and the package may be misaligned:
+
+- The documented version (0.1.19) is behind the latest release on PyPI (0.1.20): `pip install xdol` gives newer code than these docs describe.
 
 ## Source
 
 |                     |                                                                                                                                                    |
 |---------------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/i2mint/xdol/commit/0ea22c013cff485da310441e7ce1b1a4aa7dcf12"><code>0ea22c013cff485da310441e7ce1b1a4aa7dcf12</code></a> |
+| Commit              | <a href="https://github.com/i2mint/xdol/commit/695371b81cddf1627905c46fd979872ea2c9e1bd"><code>695371b81cddf1627905c46fd979872ea2c9e1bd</code></a> |
 | Branch              | <code>master</code>                                                                                                                                |
 | Tags at this commit | none                                                                                                                                               |
 | Working tree        | clean                                                                                                                                              |
@@ -1601,15 +1778,15 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>i2mint/xdol</code>                                                                   |
-| Run          | <a href="https://github.com/i2mint/xdol/actions/runs/39404408561">39404408561</a>          |
+| Run          | <a href="https://github.com/i2mint/xdol/actions/runs/40281114850">40281114850</a>          |
 | Ref          | <code>refs/heads/master</code>                                                             |
-| Event commit | <code>0ea22c013cff485da310441e7ce1b1a4aa7dcf12</code> (in the history of the built commit) |
+| Event commit | <code>71786f7db0f3ce9d0a541f7e7ca907d88d51c5ee</code> (in the history of the built commit) |
 
 ## Tools
 
 |          |         |
 |----------|---------|
-| epythet  | 0.2.18  |
+| epythet  | 0.2.22  |
 | Sphinx   | 9.1.1   |
 | docutils | 0.22.4  |
 | Python   | 3.12.15 |
@@ -1628,14 +1805,14 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/xdol/0.1.18/">0.1.18</a>, the same as the documented version.
+Latest release: <a href="https://pypi.org/project/xdol/0.1.20/">0.1.20</a>, newer than the documented version (0.1.19).
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/i2mint/xdol && cd xdol
-git checkout 0ea22c013cff485da310441e7ce1b1a4aa7dcf12
-pip install "epythet==0.2.18"
+git checkout 695371b81cddf1627905c46fd979872ea2c9e1bd
+pip install "epythet==0.2.22"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```
 
