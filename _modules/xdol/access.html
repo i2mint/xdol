@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../_static/documentation_options.js?v=904119ea"></script>
+    <script src="../../_static/documentation_options.js?v=73657eb8"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -411,7 +411,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.29" />
+  <meta name="docsearch:version" content="0.1.30" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -710,7 +710,7 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">backup pass resets it), hence an explicit log.</span>
 
 <span class="sd">Event schema, one JSON object per line (plain string keys, so a filesystem tracer that</span>
-<span class="sd">only knows paths can append to the same file)::</span>
+<span class="sd">only knows paths can append to the same file, under the lock protocol below)::</span>
 
 <span class="sd">    {"k": key, "op": "read"|"write"|"delete"|"admit"|"release"|"pin"|"unpin",</span>
 <span class="sd">     "n": bytes, "from": "hot"|"cold"|null, "ts": unix_seconds, "tag": str|null}</span>
@@ -728,8 +728,24 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">round trip (a tuple, a ``Path``...) is counted in memory but lost or changed on reopen,</span>
 <span class="sd">and recording one warns once.</span>
 
-<span class="sd">A compacted file holds ``{"k": key, "op": "snapshot", "stats": {...}}`` lines, folded as</span>
-<span class="sd">initial state (the baseline the events after it build on).</span>
+<span class="sd">A compacted file holds ``{"k": key, "op": "snapshot", "stats": {...}}`` lines, then one</span>
+<span class="sd">``{"k": key, "op": "tombstone", "ts": t}`` line per key ever deleted (its latest</span>
+<span class="sd">delete, see :attr:`AccessLog.tombstones`). Both are the baseline, folded before any</span>
+<span class="sd">event and not counted as events; a tombstone only records the delete (it never removes</span>
+<span class="sd">the key: the snapshot is already post-delete). Older readers skip tombstone lines.</span>
+
+<span class="sd">Compaction runs by default once the file holds more than ``DFLT_COMPACT_ABOVE`` events</span>
+<span class="sd">(earlier versions never compacted on their own): it folds away the per-event history</span>
+<span class="sd">(``tag``, ``from``, each timestamp). Pass ``compact_above=None`` to keep the raw log.</span>
+
+<span class="sd">Several processes may share one file. Every append, every replay and every compaction</span>
+<span class="sd">holds an exclusive advisory lock (``flock``; ``msvcrt.locking`` on Windows) on a sidecar</span>
+<span class="sd">``&lt;path&gt;.lock`` file, and an appender checks, under that lock, that its handle is still</span>
+<span class="sd">on the file at ``path`` (reopening it if not), so compaction (which re-folds the file</span>
+<span class="sd">from disk, then replaces it) never drops another writer's events. An external appender</span>
+<span class="sd">(e.g. a filesystem tracer that only knows paths) must do the same: take an exclusive</span>
+<span class="sd">``flock`` on ``&lt;path&gt;.lock`` around each append, opening ``path`` afresh each time; or</span>
+<span class="sd">else every log of that file must set ``compact_above=None``.</span>
 
 <span class="sd">&gt;&gt;&gt; log = AccessLog()</span>
 <span class="sd">&gt;&gt;&gt; store = track_access({'a': b'xyz'}, tracker=log)</span>
@@ -745,6 +761,7 @@ window.runMermaid = runMermaid;</script>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
+<span class="kn">import</span><span class="w"> </span><span class="nn">errno</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">math</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
@@ -752,13 +769,54 @@ window.runMermaid = runMermaid;</script>
 <span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Iterator</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">MutableMapping</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">contextlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">contextmanager</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">asdict</span><span class="p">,</span> <span class="n">dataclass</span><span class="p">,</span> <span class="n">replace</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">types</span><span class="w"> </span><span class="kn">import</span> <span class="n">MappingProxyType</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">get_type_hints</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">dol</span><span class="w"> </span><span class="kn">import</span> <span class="n">atomic_write</span>
 
 <span class="n">OPS</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"read"</span><span class="p">,</span> <span class="s2">"write"</span><span class="p">,</span> <span class="s2">"delete"</span><span class="p">,</span> <span class="s2">"admit"</span><span class="p">,</span> <span class="s2">"release"</span><span class="p">,</span> <span class="s2">"pin"</span><span class="p">,</span> <span class="s2">"unpin"</span><span class="p">)</span>
 <span class="n">_CREATING_OPS</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"read"</span><span class="p">,</span> <span class="s2">"write"</span><span class="p">,</span> <span class="s2">"pin"</span><span class="p">)</span>  <span class="c1"># other ops on an unknown key are no-ops</span>
+<span class="n">_BASELINE_OPS</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"snapshot"</span><span class="p">,</span> <span class="s2">"tombstone"</span><span class="p">)</span>  <span class="c1"># a compacted file's lines, not events</span>
+<span class="n">DFLT_COMPACT_ABOVE</span> <span class="o">=</span> <span class="mi">100_000</span>  <span class="c1"># events (~10 MB): replaying that many takes well under 1s</span>
+
+<span class="n">_LOCK_UNSUPPORTED</span> <span class="o">=</span> <span class="p">{</span>  <span class="c1"># e.g. Lustre without its flock option, some FUSE/SMB mounts</span>
+    <span class="nb">getattr</span><span class="p">(</span><span class="n">errno</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"ENOLCK"</span><span class="p">,</span> <span class="s2">"ENOTSUP"</span><span class="p">,</span> <span class="s2">"EOPNOTSUPP"</span><span class="p">,</span> <span class="s2">"ENOSYS"</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">errno</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+<span class="p">}</span>
+
+<span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="s2">"nt"</span><span class="p">:</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">msvcrt</span>
+
+    <span class="n">_LOCK_RETRY_INTERVAL</span> <span class="o">=</span> <span class="mf">0.001</span>  <span class="c1"># seconds between attempts on a contended lock</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_lock</span><span class="p">(</span><span class="n">fh</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="c1"># not LK_LOCK: it sleeps 1s per retry and gives up after ~10s. No timeout:</span>
+        <span class="c1"># Windows releases a dead process's locks.</span>
+        <span class="n">fh</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">msvcrt</span><span class="o">.</span><span class="n">locking</span><span class="p">(</span><span class="n">fh</span><span class="o">.</span><span class="n">fileno</span><span class="p">(),</span> <span class="n">msvcrt</span><span class="o">.</span><span class="n">LK_NBLCK</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+                <span class="k">return</span>
+            <span class="k">except</span> <span class="ne">OSError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">e</span><span class="o">.</span><span class="n">errno</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="n">errno</span><span class="o">.</span><span class="n">EACCES</span><span class="p">,</span> <span class="n">errno</span><span class="o">.</span><span class="n">EDEADLOCK</span><span class="p">):</span>
+                    <span class="k">raise</span>
+            <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="n">_LOCK_RETRY_INTERVAL</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_unlock</span><span class="p">(</span><span class="n">fh</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">fh</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">msvcrt</span><span class="o">.</span><span class="n">locking</span><span class="p">(</span><span class="n">fh</span><span class="o">.</span><span class="n">fileno</span><span class="p">(),</span> <span class="n">msvcrt</span><span class="o">.</span><span class="n">LK_UNLCK</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+<span class="k">else</span><span class="p">:</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">fcntl</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_lock</span><span class="p">(</span><span class="n">fh</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>  <span class="c1"># flock: two descriptors exclude each other, even in-process</span>
+        <span class="n">fcntl</span><span class="o">.</span><span class="n">flock</span><span class="p">(</span><span class="n">fh</span><span class="o">.</span><span class="n">fileno</span><span class="p">(),</span> <span class="n">fcntl</span><span class="o">.</span><span class="n">LOCK_EX</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_unlock</span><span class="p">(</span><span class="n">fh</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">fcntl</span><span class="o">.</span><span class="n">flock</span><span class="p">(</span><span class="n">fh</span><span class="o">.</span><span class="n">fileno</span><span class="p">(),</span> <span class="n">fcntl</span><span class="o">.</span><span class="n">LOCK_UN</span><span class="p">)</span>
 
 
 <div class="viewcode-block" id="AccessStats">
@@ -796,6 +854,11 @@ window.runMermaid = runMermaid;</script>
 <span class="k">def</span><span class="w"> </span><span class="nf">_min_nonzero</span><span class="p">(</span><span class="n">a</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">b</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""The smaller of two timestamps, ``0.0`` meaning unknown."""</span>
     <span class="k">return</span> <span class="nb">min</span><span class="p">((</span><span class="n">t</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span> <span class="k">if</span> <span class="n">t</span><span class="p">),</span> <span class="n">default</span><span class="o">=</span><span class="mf">0.0</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_last_event</span><span class="p">(</span><span class="n">st</span><span class="p">:</span> <span class="n">AccessStats</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""The latest timestamp ``st`` holds (a key created by ``pin`` has only ``first_seen``)."""</span>
+    <span class="k">return</span> <span class="nb">max</span><span class="p">(</span><span class="n">st</span><span class="o">.</span><span class="n">first_seen</span><span class="p">,</span> <span class="n">st</span><span class="o">.</span><span class="n">last_access</span><span class="p">,</span> <span class="n">st</span><span class="o">.</span><span class="n">admitted_at</span><span class="p">)</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_survives_json</span><span class="p">(</span><span class="n">key</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
@@ -838,8 +901,9 @@ window.runMermaid = runMermaid;</script>
 <span class="w">    </span><span class="sd">"""``(key, op, n, ts, stats)`` from one log line, or ``None`` to skip the line.</span>
 
 <span class="sd">    ``k`` and ``op`` are required and ``k`` must be hashable; ``ts`` (absent: ``None``)</span>
-<span class="sd">    and ``n`` must be finite real numbers when present; ``stats`` is set only for a</span>
-<span class="sd">    ``snapshot`` line. Torn, undecodable and foreign lines all give ``None``.</span>
+<span class="sd">    and ``n`` must be finite real numbers when present (a ``tombstone`` needs ``ts``);</span>
+<span class="sd">    ``stats`` is set only for a ``snapshot`` line. Torn, undecodable and foreign lines</span>
+<span class="sd">    all give ``None``.</span>
 <span class="sd">    """</span>
     <span class="k">try</span><span class="p">:</span>
         <span class="n">ev</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">raw</span><span class="p">)</span>
@@ -848,9 +912,12 @@ window.runMermaid = runMermaid;</script>
         <span class="k">if</span> <span class="n">op</span> <span class="o">==</span> <span class="s2">"snapshot"</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">key</span><span class="p">,</span> <span class="n">op</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">_stats_from_snapshot</span><span class="p">(</span><span class="n">ev</span><span class="p">[</span><span class="s2">"stats"</span><span class="p">])</span>
         <span class="n">ts</span><span class="p">,</span> <span class="n">n</span> <span class="o">=</span> <span class="n">ev</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"ts"</span><span class="p">),</span> <span class="n">ev</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"n"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">op</span> <span class="o">==</span> <span class="s2">"tombstone"</span> <span class="ow">and</span> <span class="n">_is_finite</span><span class="p">(</span><span class="n">ts</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">key</span><span class="p">,</span> <span class="n">op</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">ts</span><span class="p">,</span> <span class="kc">None</span>
         <span class="k">if</span> <span class="n">op</span> <span class="ow">in</span> <span class="n">OPS</span> <span class="ow">and</span> <span class="nb">all</span><span class="p">(</span><span class="n">x</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">_is_finite</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="p">(</span><span class="n">ts</span><span class="p">,</span> <span class="n">n</span><span class="p">)):</span>
             <span class="k">return</span> <span class="n">key</span><span class="p">,</span> <span class="n">op</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">ts</span><span class="p">,</span> <span class="kc">None</span>
-    <span class="k">except</span> <span class="p">(</span><span class="ne">ValueError</span><span class="p">,</span> <span class="ne">KeyError</span><span class="p">,</span> <span class="ne">TypeError</span><span class="p">,</span> <span class="ne">AttributeError</span><span class="p">,</span> <span class="ne">OverflowError</span><span class="p">):</span>
+    <span class="k">except</span> <span class="p">(</span><span class="ne">ValueError</span><span class="p">,</span> <span class="ne">KeyError</span><span class="p">,</span> <span class="ne">TypeError</span><span class="p">,</span> <span class="ne">AttributeError</span><span class="p">,</span> <span class="ne">OverflowError</span><span class="p">,</span>
+            <span class="ne">RecursionError</span><span class="p">):</span>  <span class="c1"># e.g. a foreign line of 200k nested brackets</span>
         <span class="k">pass</span>
     <span class="k">return</span> <span class="kc">None</span>
 
@@ -864,77 +931,231 @@ window.runMermaid = runMermaid;</script>
 
 <span class="sd">    Torn, undecodable and foreign lines are skipped. ``ts`` is ``None`` for a snapshot</span>
 <span class="sd">    line; an event without ``ts`` takes the running max of the timestamps before it</span>
-<span class="sd">    (``0.0`` at the top), so it is ordered right after the lines before it.</span>
+<span class="sd">    (baseline lines included, ``0.0`` at the top), so it is ordered right after the</span>
+<span class="sd">    lines before it.</span>
 <span class="sd">    """</span>
     <span class="n">running</span> <span class="o">=</span> <span class="mf">0.0</span>
     <span class="k">for</span> <span class="n">seq</span><span class="p">,</span> <span class="n">raw</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">lines</span><span class="p">):</span>
         <span class="k">if</span> <span class="p">(</span><span class="n">ev</span> <span class="o">:=</span> <span class="n">_parse_event</span><span class="p">(</span><span class="n">raw</span><span class="p">))</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">continue</span>
         <span class="n">key</span><span class="p">,</span> <span class="n">op</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">ts</span><span class="p">,</span> <span class="n">stats</span> <span class="o">=</span> <span class="n">ev</span>
-        <span class="k">if</span> <span class="n">op</span> <span class="o">!=</span> <span class="s2">"snapshot"</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">op</span> <span class="o">==</span> <span class="s2">"snapshot"</span><span class="p">:</span>
+            <span class="n">running</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">running</span><span class="p">,</span> <span class="n">_last_event</span><span class="p">(</span><span class="n">stats</span><span class="p">))</span>
+        <span class="k">elif</span> <span class="n">op</span> <span class="o">==</span> <span class="s2">"tombstone"</span><span class="p">:</span>
+            <span class="n">running</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">running</span><span class="p">,</span> <span class="n">ts</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
             <span class="n">ts</span> <span class="o">=</span> <span class="n">running</span> <span class="k">if</span> <span class="n">ts</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">ts</span>
             <span class="n">running</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">running</span><span class="p">,</span> <span class="n">ts</span><span class="p">)</span>
         <span class="k">yield</span> <span class="n">seq</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">op</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">ts</span><span class="p">,</span> <span class="n">stats</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">_fold_streaming</span><span class="p">(</span><span class="n">lines</span><span class="p">,</span> <span class="n">stats_by_key</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_apply_baseline</span><span class="p">(</span><span class="n">stats_by_key</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">tombstones</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">op</span><span class="p">,</span> <span class="n">ts</span><span class="p">,</span> <span class="n">stats</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Fold a compacted file's line: a snapshot sets the key's stats, a tombstone only</span>
+<span class="sd">    raises its tombstone (the snapshot, or its absence, is already post-delete)."""</span>
+    <span class="k">if</span> <span class="n">op</span> <span class="o">==</span> <span class="s2">"snapshot"</span><span class="p">:</span>
+        <span class="n">stats_by_key</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">stats</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">tombstones</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">ts</span><span class="p">,</span> <span class="n">tombstones</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">ts</span><span class="p">))</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_fold_streaming</span><span class="p">(</span><span class="n">lines</span><span class="p">,</span> <span class="n">stats_by_key</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">tombstones</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">"""Fold ``lines`` already in replay order into ``stats_by_key``, in constant memory.</span>
 
 <span class="sd">    Returns ``(last_ts, number_of_events)``. Raises :class:`_OutOfOrder` (leaving</span>
-<span class="sd">    ``stats_by_key`` partly folded) at a snapshot after an event or a timestamp going</span>
-<span class="sd">    back.</span>
+<span class="sd">    ``stats_by_key`` partly folded) at a snapshot or tombstone after an event or a</span>
+<span class="sd">    timestamp going back.</span>
 <span class="sd">    """</span>
     <span class="n">last_ts</span><span class="p">,</span> <span class="n">nevents</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mi">0</span>
     <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">op</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">ts</span><span class="p">,</span> <span class="n">stats</span> <span class="ow">in</span> <span class="n">_replay_lines</span><span class="p">(</span><span class="n">lines</span><span class="p">):</span>
-        <span class="k">if</span> <span class="n">op</span> <span class="o">==</span> <span class="s2">"snapshot"</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">op</span> <span class="ow">in</span> <span class="n">_BASELINE_OPS</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">nevents</span><span class="p">:</span>  <span class="c1"># a baseline must be applied before any event</span>
                 <span class="k">raise</span> <span class="n">_OutOfOrder</span>
-            <span class="n">stats_by_key</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">stats</span>
+            <span class="n">_apply_baseline</span><span class="p">(</span><span class="n">stats_by_key</span><span class="p">,</span> <span class="n">tombstones</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">op</span><span class="p">,</span> <span class="n">ts</span><span class="p">,</span> <span class="n">stats</span><span class="p">)</span>
             <span class="k">continue</span>
         <span class="k">if</span> <span class="n">ts</span> <span class="o">&lt;</span> <span class="n">last_ts</span><span class="p">:</span>
             <span class="k">raise</span> <span class="n">_OutOfOrder</span>
         <span class="n">last_ts</span><span class="p">,</span> <span class="n">nevents</span> <span class="o">=</span> <span class="n">ts</span><span class="p">,</span> <span class="n">nevents</span> <span class="o">+</span> <span class="mi">1</span>
-        <span class="n">_apply</span><span class="p">(</span><span class="n">stats_by_key</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">op</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">ts</span><span class="p">)</span>
+        <span class="n">_apply</span><span class="p">(</span><span class="n">stats_by_key</span><span class="p">,</span> <span class="n">tombstones</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">op</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">ts</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">last_ts</span><span class="p">,</span> <span class="n">nevents</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">_fold_buffered</span><span class="p">(</span><span class="n">lines</span><span class="p">,</span> <span class="n">stats_by_key</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
-<span class="w">    </span><span class="sd">"""Fold ``lines`` in any order: snapshots first, then events by ``(ts, line)``.</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_fold_buffered</span><span class="p">(</span><span class="n">lines</span><span class="p">,</span> <span class="n">stats_by_key</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">tombstones</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""Fold ``lines`` in any order: snapshots and tombstones first, then events by</span>
+<span class="sd">    ``(ts, line)``.</span>
 
 <span class="sd">    Returns ``(last_ts, number_of_events)``.</span>
 <span class="sd">    """</span>
     <span class="n">events</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="k">for</span> <span class="n">seq</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">op</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">ts</span><span class="p">,</span> <span class="n">stats</span> <span class="ow">in</span> <span class="n">_replay_lines</span><span class="p">(</span><span class="n">lines</span><span class="p">):</span>
-        <span class="k">if</span> <span class="n">op</span> <span class="o">==</span> <span class="s2">"snapshot"</span><span class="p">:</span>  <span class="c1"># the compacted baseline: applied first</span>
-            <span class="n">stats_by_key</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">stats</span>
+        <span class="k">if</span> <span class="n">op</span> <span class="ow">in</span> <span class="n">_BASELINE_OPS</span><span class="p">:</span>  <span class="c1"># the compacted baseline: applied first</span>
+            <span class="n">_apply_baseline</span><span class="p">(</span><span class="n">stats_by_key</span><span class="p">,</span> <span class="n">tombstones</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">op</span><span class="p">,</span> <span class="n">ts</span><span class="p">,</span> <span class="n">stats</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">events</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">ts</span><span class="p">,</span> <span class="n">seq</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">op</span><span class="p">,</span> <span class="n">n</span><span class="p">))</span>
     <span class="n">events</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">e</span><span class="p">:</span> <span class="n">e</span><span class="p">[:</span><span class="mi">2</span><span class="p">])</span>
     <span class="k">for</span> <span class="n">ts</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">op</span><span class="p">,</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">events</span><span class="p">:</span>
-        <span class="n">_apply</span><span class="p">(</span><span class="n">stats_by_key</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">op</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">ts</span><span class="p">)</span>
+        <span class="n">_apply</span><span class="p">(</span><span class="n">stats_by_key</span><span class="p">,</span> <span class="n">tombstones</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">op</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">ts</span><span class="p">)</span>
     <span class="c1"># the running max starts at 0.0, as in streaming (and live recording)</span>
     <span class="k">return</span> <span class="nb">max</span><span class="p">([</span><span class="mf">0.0</span><span class="p">,</span> <span class="o">*</span><span class="p">(</span><span class="n">e</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">events</span><span class="p">)]),</span> <span class="nb">len</span><span class="p">(</span><span class="n">events</span><span class="p">)</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">_apply</span><span class="p">(</span><span class="n">stats_by_key</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">op</span><span class="p">,</span> <span class="n">nbytes</span><span class="p">,</span> <span class="n">ts</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_fold_path</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">dict</span><span class="p">,</span> <span class="nb">dict</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""``(stats_by_key, tombstones, last_ts, number_of_events)`` replayed from ``path``.</span>
+
+<span class="sd">    Streams (constant memory) while the file is already in replay order; the first</span>
+<span class="sd">    line breaking that order restarts with the buffered fold, which sorts. A missing</span>
+<span class="sd">    file is an empty log.</span>
+<span class="sd">    """</span>
+    <span class="n">stats_by_key</span><span class="p">,</span> <span class="n">tombstones</span> <span class="o">=</span> <span class="p">{},</span> <span class="p">{}</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s2">"rb"</span><span class="p">)</span> <span class="k">as</span> <span class="n">fh</span><span class="p">:</span>
+            <span class="n">last_ts</span><span class="p">,</span> <span class="n">nevents</span> <span class="o">=</span> <span class="n">_fold_streaming</span><span class="p">(</span><span class="n">fh</span><span class="p">,</span> <span class="n">stats_by_key</span><span class="p">,</span> <span class="n">tombstones</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">FileNotFoundError</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">stats_by_key</span><span class="p">,</span> <span class="n">tombstones</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mi">0</span>
+    <span class="k">except</span> <span class="n">_OutOfOrder</span><span class="p">:</span>
+        <span class="n">stats_by_key</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+        <span class="n">tombstones</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s2">"rb"</span><span class="p">)</span> <span class="k">as</span> <span class="n">fh</span><span class="p">:</span>
+            <span class="n">last_ts</span><span class="p">,</span> <span class="n">nevents</span> <span class="o">=</span> <span class="n">_fold_buffered</span><span class="p">(</span><span class="n">fh</span><span class="p">,</span> <span class="n">stats_by_key</span><span class="p">,</span> <span class="n">tombstones</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">stats_by_key</span><span class="p">,</span> <span class="n">tombstones</span><span class="p">,</span> <span class="n">last_ts</span><span class="p">,</span> <span class="n">nevents</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_compacted_lines</span><span class="p">(</span><span class="n">stats_by_key</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">tombstones</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="nb">bytes</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""The lines of a compacted file: snapshots, then tombstones in timestamp order."""</span>
+    <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">st</span> <span class="ow">in</span> <span class="n">stats_by_key</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="k">yield</span> <span class="n">_jsonl</span><span class="p">({</span><span class="s2">"k"</span><span class="p">:</span> <span class="n">key</span><span class="p">,</span> <span class="s2">"op"</span><span class="p">:</span> <span class="s2">"snapshot"</span><span class="p">,</span> <span class="s2">"stats"</span><span class="p">:</span> <span class="n">asdict</span><span class="p">(</span><span class="n">st</span><span class="p">)})</span>
+    <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">ts</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">tombstones</span><span class="o">.</span><span class="n">items</span><span class="p">(),</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">kv</span><span class="p">:</span> <span class="n">kv</span><span class="p">[</span><span class="mi">1</span><span class="p">]):</span>
+        <span class="k">yield</span> <span class="n">_jsonl</span><span class="p">({</span><span class="s2">"k"</span><span class="p">:</span> <span class="n">key</span><span class="p">,</span> <span class="s2">"op"</span><span class="p">:</span> <span class="s2">"tombstone"</span><span class="p">,</span> <span class="s2">"ts"</span><span class="p">:</span> <span class="n">ts</span><span class="p">})</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_jsonl</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bytes</span><span class="p">:</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="nb">str</span><span class="p">)</span> <span class="o">+</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="p">)</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s2">"utf-8"</span><span class="p">)</span>
+
+
+<span class="c1"># POSIX: an appender keeps its handle, and reopens it when compaction replaced the file.</span>
+<span class="c1"># Windows cannot replace a file another handle holds open: there, open per append.</span>
+<span class="n">_KEEP_APPEND_HANDLE</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">name</span> <span class="o">!=</span> <span class="s2">"nt"</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_open_for_append</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+    <span class="n">fh</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s2">"a+b"</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">fh</span><span class="o">.</span><span class="n">tell</span><span class="p">():</span>  <span class="c1"># a torn last line (crash mid-write) must not eat our event</span>
+        <span class="n">fh</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">SEEK_END</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">fh</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">!=</span> <span class="sa">b</span><span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="p">:</span>
+            <span class="n">fh</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">b</span><span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="p">)</span>  <span class="c1"># append mode: lands at the end whatever the position</span>
+    <span class="k">return</span> <span class="n">fh</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_open_lock_file</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""``path`` opened for locking, read-only if it cannot be written (``flock`` and</span>
+<span class="sd">    ``msvcrt.locking`` work on either); ``None`` if it cannot be opened at all."""</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s2">"a+b"</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">PermissionError</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s2">"rb"</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">OSError</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+    <span class="k">except</span> <span class="ne">OSError</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">None</span>
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">_LockedAppender</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Appends lines to ``path`` under an exclusive lock on ``&lt;path&gt;.lock``, following</span>
+<span class="sd">    the file when compaction (under the same lock) replaces it."""</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">path</span> <span class="o">=</span> <span class="n">path</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_fh</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_lock_fh</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_pid</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># the process the handles belong to</span>
+
+    <span class="nd">@contextmanager</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">locked</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Hold the exclusive lock on ``&lt;path&gt;.lock``; yields whether it is held.</span>
+
+<span class="sd">        Not held (the body still runs) when the lock file cannot be opened, e.g. in a</span>
+<span class="sd">        read-only folder, or the filesystem does not support locking."""</span>
+        <span class="c1"># handles inherited over a fork share the parent's lock: reopen our own</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pid</span> <span class="o">!=</span> <span class="n">os</span><span class="o">.</span><span class="n">getpid</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_pid</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getpid</span><span class="p">()</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lock_fh</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_lock_fh</span> <span class="o">=</span> <span class="n">_open_lock_file</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span> <span class="o">+</span> <span class="s2">".lock"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lock_fh</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">yield</span> <span class="kc">False</span>
+            <span class="k">return</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">_lock</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_lock_fh</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">OSError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">e</span><span class="o">.</span><span class="n">errno</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">_LOCK_UNSUPPORTED</span><span class="p">:</span>
+                <span class="k">raise</span>
+            <span class="k">yield</span> <span class="kc">False</span>
+            <span class="k">return</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">yield</span> <span class="kc">True</span>
+        <span class="k">finally</span><span class="p">:</span>
+            <span class="n">_unlock</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_lock_fh</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">append</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">line</span><span class="p">:</span> <span class="nb">bytes</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Append ``line`` under the lock, to the file now at ``path``."""</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">locked</span><span class="p">():</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fh</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_on_path</span><span class="p">():</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_close_fh</span><span class="p">()</span>  <span class="c1"># compaction replaced the file</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fh</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_fh</span> <span class="o">=</span> <span class="n">_open_for_append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">)</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_fh</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_fh</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+            <span class="k">finally</span><span class="p">:</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">_KEEP_APPEND_HANDLE</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_close_fh</span><span class="p">()</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_is_on_path</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">st</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">stat</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">FileNotFoundError</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="n">fst</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">fstat</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_fh</span><span class="o">.</span><span class="n">fileno</span><span class="p">())</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">st</span><span class="o">.</span><span class="n">st_ino</span><span class="p">,</span> <span class="n">st</span><span class="o">.</span><span class="n">st_dev</span><span class="p">)</span> <span class="o">==</span> <span class="p">(</span><span class="n">fst</span><span class="o">.</span><span class="n">st_ino</span><span class="p">,</span> <span class="n">fst</span><span class="o">.</span><span class="n">st_dev</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_close_fh</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fh</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_fh</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_fh</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">close</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Close the files (the appender stays usable: it reopens them when needed)."""</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_close_fh</span><span class="p">()</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lock_fh</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_lock_fh</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_lock_fh</span> <span class="o">=</span> <span class="kc">None</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_apply</span><span class="p">(</span><span class="n">stats_by_key</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">tombstones</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">op</span><span class="p">,</span> <span class="n">nbytes</span><span class="p">,</span> <span class="n">ts</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Fold one event into ``stats_by_key`` (shared by live recording and replay).</span>
 
 <span class="sd">    ``nbytes=None`` leaves the size alone. Recency is a max, ``first_seen`` a min and</span>
 <span class="sd">    the size comes from the latest read or write; ``delete`` drops the entry (pin</span>
-<span class="sd">    included), so a later read or write recreates it unpinned, unless the key was</span>
-<span class="sd">    accessed after the delete's timestamp (then the delete is stale and ignored; live</span>
-<span class="sd">    recording never meets this: the log starts its clock after every snapshot stamp). Replay sorts events by</span>
-<span class="sd">    timestamp before folding them, so it gives what live recording gave.</span>
+<span class="sd">    included), so a later read or write recreates it unpinned, unless the key has an</span>
+<span class="sd">    event after the delete's timestamp (then the delete is stale and ignored; live</span>
+<span class="sd">    recording never meets this: the log starts its clock after every snapshot stamp).</span>
+<span class="sd">    Replay sorts events by timestamp before folding them, so it gives what live</span>
+<span class="sd">    recording gave. Every ``delete``, stale or not, raises the key's tombstone</span>
+<span class="sd">    (``tombstones[key]``, the latest delete's timestamp), which :func:`merge_stats`</span>
+<span class="sd">    honours.</span>
 <span class="sd">    """</span>
     <span class="k">if</span> <span class="n">op</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">OPS</span><span class="p">:</span>
         <span class="k">return</span>
     <span class="n">st</span> <span class="o">=</span> <span class="n">stats_by_key</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">op</span> <span class="o">==</span> <span class="s2">"delete"</span><span class="p">:</span>
-        <span class="c1"># a delete older than the key's last access (e.g. an old log line replayed over</span>
+        <span class="n">tombstones</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">ts</span><span class="p">,</span> <span class="n">tombstones</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">ts</span><span class="p">))</span>
+        <span class="c1"># a delete older than the key's last event (e.g. an old log line replayed over</span>
         <span class="c1"># a snapshot) was followed by a re-creation: it must not wipe the key</span>
-        <span class="k">if</span> <span class="n">st</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">ts</span> <span class="o">&gt;=</span> <span class="n">st</span><span class="o">.</span><span class="n">last_access</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">st</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">ts</span> <span class="o">&gt;=</span> <span class="n">_last_event</span><span class="p">(</span><span class="n">st</span><span class="p">):</span>  <span class="c1"># same stamp: the delete wins</span>
             <span class="n">stats_by_key</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
         <span class="k">return</span>
+    <span class="k">if</span> <span class="n">ts</span> <span class="o">&lt;</span> <span class="n">tombstones</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">ts</span><span class="p">):</span>  <span class="c1"># a later delete wiped it (from a compacted</span>
+        <span class="k">return</span>  <span class="c1"># file: that delete is a tombstone, the key's snapshot is post-delete)</span>
     <span class="k">if</span> <span class="n">st</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">op</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">_CREATING_OPS</span><span class="p">:</span>
             <span class="k">return</span>
@@ -968,17 +1189,22 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">    :param path: log file; ``None`` keeps everything in memory (tests).</span>
 <span class="sd">    :param clock: callable returning unix seconds.</span>
 <span class="sd">    :param tag: label stamped on each event; defaults to ``platform.node()``.</span>
-<span class="sd">    :param compact_above: when opening finds more than this many events (lines other</span>
-<span class="sd">        than snapshots) in the file, :meth:`compact` it (``None``: never; the file then grows with every access).</span>
-<span class="sd">        Same caveat as :meth:`compact`: only for a log with a single writer.</span>
+<span class="sd">    :param compact_above: once the file holds more than this many events (lines other</span>
+<span class="sd">        than snapshots), :meth:`compact` it: checked on open and as this log records</span>
+<span class="sd">        (counting its own appends since then). ``None``: never; the file then grows with</span>
+<span class="sd">        every access.</span>
 
 <span class="sd">    Opening replays the file in timestamp order (see the module docstring), so the</span>
 <span class="sd">    stats equal what recording those events live would give. Replay streams in constant</span>
 <span class="sd">    memory when the file is already in that order (the normal case for one writer) and</span>
 <span class="sd">    buffers it only when timestamps go back: a log several writers append to is out of</span>
-<span class="sd">    order, so opening it still costs memory proportional to its length. A tracker never raises</span>
-<span class="sd">    into a store's read path: if the file cannot be written,</span>
-<span class="sd">    a warning is issued once and counting continues in memory. Not thread-safe.</span>
+<span class="sd">    order, so opening it still costs memory proportional to its length (compaction</span>
+<span class="sd">    bounds that). Other writers' events are seen on reopen, not live.</span>
+
+<span class="sd">    A tracker never raises into a store's read path: if the file cannot be written,</span>
+<span class="sd">    a warning is issued once and counting continues in memory. Safe across processes,</span>
+<span class="sd">    forked ones included (see the module docstring); not thread-safe. A context</span>
+<span class="sd">    manager: leaving it closes the log's files.</span>
 <span class="sd">    """</span>
 
     <span class="c1"># a log is a resource, not a value: keep identity semantics (Mapping drops them)</span>
@@ -991,13 +1217,8 @@ window.runMermaid = runMermaid;</script>
         <span class="o">*</span><span class="p">,</span>
         <span class="n">clock</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[],</span> <span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">,</span>
         <span class="n">tag</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">compact_above</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">compact_above</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">DFLT_COMPACT_ABOVE</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">path</span> <span class="o">=</span> <span class="kc">None</span> <span class="k">if</span> <span class="n">path</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">os</span><span class="o">.</span><span class="n">fspath</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">clock</span> <span class="o">=</span> <span class="n">clock</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">tag</span> <span class="o">=</span> <span class="n">platform</span><span class="o">.</span><span class="n">node</span><span class="p">()</span> <span class="k">if</span> <span class="n">tag</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">tag</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_stats</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">AccessStats</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_fh</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="k">if</span> <span class="n">compact_above</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="p">(</span>
             <span class="nb">isinstance</span><span class="p">(</span><span class="n">compact_above</span><span class="p">,</span> <span class="nb">bool</span><span class="p">)</span>
             <span class="ow">or</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">compact_above</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span>
@@ -1006,42 +1227,31 @@ window.runMermaid = runMermaid;</script>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
                 <span class="sa">f</span><span class="s2">"compact_above must be None or a non-negative int, not </span><span class="si">{</span><span class="n">compact_above</span><span class="si">!r}</span><span class="s2">"</span>
             <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">path</span> <span class="o">=</span> <span class="kc">None</span> <span class="k">if</span> <span class="n">path</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">os</span><span class="o">.</span><span class="n">fspath</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">clock</span> <span class="o">=</span> <span class="n">clock</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tag</span> <span class="o">=</span> <span class="n">platform</span><span class="o">.</span><span class="n">node</span><span class="p">()</span> <span class="k">if</span> <span class="n">tag</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">tag</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">compact_above</span> <span class="o">=</span> <span class="n">compact_above</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_stats</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">AccessStats</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_tombstones</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_appender</span> <span class="o">=</span> <span class="kc">None</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">path</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">_LockedAppender</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_warned_io</span> <span class="o">=</span> <span class="kc">False</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_warned_key</span> <span class="o">=</span> <span class="kc">False</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_warned_compact</span> <span class="o">=</span> <span class="kc">False</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_last_ts</span> <span class="o">=</span> <span class="mf">0.0</span>  <span class="c1"># the clock may step back: events never go back in time</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_nevents</span> <span class="o">=</span> <span class="mi">0</span>  <span class="c1"># events in the file, as far as this log knows</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">path</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">):</span>
-            <span class="n">nevents</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fold_file</span><span class="p">()</span>
-            <span class="k">if</span> <span class="n">compact_above</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">nevents</span> <span class="o">&gt;</span> <span class="n">compact_above</span><span class="p">:</span>
-                <span class="k">try</span><span class="p">:</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">compact</span><span class="p">()</span>
-                <span class="k">except</span> <span class="ne">OSError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>  <span class="c1"># a constructor never raises over compaction</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">_warn_once</span><span class="p">(</span>
-                        <span class="s2">"_warned_compact"</span><span class="p">,</span>
-                        <span class="sa">f</span><span class="s2">"AccessLog could not compact </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="si">!r}</span><span class="s2"> (</span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">); left as is."</span><span class="p">,</span>
-                    <span class="p">)</span>
+            <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_appender</span><span class="o">.</span><span class="n">locked</span><span class="p">():</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_stats</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tombstones</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_last_ts</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_nevents</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="n">_fold_path</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">)</span>
+                <span class="p">)</span>
+            <span class="c1"># live events must not be stamped before what the baseline already recorded</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_last_ts</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span>
+                <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_last_ts</span><span class="p">,</span> <span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">_tombstones</span><span class="o">.</span><span class="n">values</span><span class="p">()]</span>
+                <span class="o">+</span> <span class="p">[</span><span class="n">_last_event</span><span class="p">(</span><span class="n">st</span><span class="p">)</span> <span class="k">for</span> <span class="n">st</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_stats</span><span class="o">.</span><span class="n">values</span><span class="p">()]</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_maybe_compact</span><span class="p">()</span>
 
     <span class="c1"># -- reading -----------------------------------------------------------</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">_fold_file</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">"""Replay the file (see the module docstring); return its number of events.</span>
-
-<span class="sd">        Streams (constant memory) while the file is already in replay order; the first</span>
-<span class="sd">        line breaking that order restarts with the buffered fold, which sorts.</span>
-<span class="sd">        """</span>
-        <span class="k">try</span><span class="p">:</span>
-            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">,</span> <span class="s2">"rb"</span><span class="p">)</span> <span class="k">as</span> <span class="n">fh</span><span class="p">:</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">_last_ts</span><span class="p">,</span> <span class="n">nevents</span> <span class="o">=</span> <span class="n">_fold_streaming</span><span class="p">(</span><span class="n">fh</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_stats</span><span class="p">)</span>
-        <span class="k">except</span> <span class="n">_OutOfOrder</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_stats</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
-            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">,</span> <span class="s2">"rb"</span><span class="p">)</span> <span class="k">as</span> <span class="n">fh</span><span class="p">:</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">_last_ts</span><span class="p">,</span> <span class="n">nevents</span> <span class="o">=</span> <span class="n">_fold_buffered</span><span class="p">(</span><span class="n">fh</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_stats</span><span class="p">)</span>
-        <span class="c1"># live events must not be stamped before what a snapshot already recorded</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_last_ts</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span>
-            <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_last_ts</span><span class="p">]</span>
-            <span class="o">+</span> <span class="p">[</span><span class="nb">max</span><span class="p">(</span><span class="n">st</span><span class="o">.</span><span class="n">last_access</span><span class="p">,</span> <span class="n">st</span><span class="o">.</span><span class="n">admitted_at</span><span class="p">)</span> <span class="k">for</span> <span class="n">st</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_stats</span><span class="o">.</span><span class="n">values</span><span class="p">()]</span>
-        <span class="p">)</span>
-        <span class="k">return</span> <span class="n">nevents</span>
-
     <span class="k">def</span><span class="w"> </span><span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AccessStats</span><span class="p">:</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_stats</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
 
@@ -1061,27 +1271,26 @@ window.runMermaid = runMermaid;</script>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_stats</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">)</span></div>
 
 
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">tombstones</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Mapping</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Read-only ``{key: timestamp of its latest delete}``, for :func:`merge_stats`.</span>
+
+<span class="sd">        Kept (and compacted) for every key ever deleted, re-created or not.</span>
+<span class="sd">        """</span>
+        <span class="k">return</span> <span class="n">MappingProxyType</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_tombstones</span><span class="p">)</span>
+
     <span class="c1"># -- writing -----------------------------------------------------------</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">_warn_once</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">flag</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">message</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">flag</span><span class="p">):</span>
             <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">flag</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
             <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">_open_for_append</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="n">fh</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">,</span> <span class="s2">"ab"</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">fh</span><span class="o">.</span><span class="n">tell</span><span class="p">():</span>  <span class="c1"># a torn last line (crash mid-write) must not eat our event</span>
-            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">,</span> <span class="s2">"rb"</span><span class="p">)</span> <span class="k">as</span> <span class="n">r</span><span class="p">:</span>
-                <span class="n">r</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">SEEK_END</span><span class="p">)</span>
-                <span class="k">if</span> <span class="n">r</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">!=</span> <span class="sa">b</span><span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="p">:</span>
-                    <span class="n">fh</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">b</span><span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">fh</span>
-
     <span class="k">def</span><span class="w"> </span><span class="nf">record</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">op</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">nbytes</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">served_from</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">op</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">OPS</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Unknown op </span><span class="si">{</span><span class="n">op</span><span class="si">!r}</span><span class="s2">; expected one of </span><span class="si">{</span><span class="n">OPS</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
         <span class="n">ts</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_last_ts</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">clock</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_last_ts</span><span class="p">)</span>
         <span class="n">nbytes</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">nbytes</span><span class="p">)</span> <span class="k">if</span> <span class="n">_is_finite</span><span class="p">(</span><span class="n">nbytes</span><span class="p">)</span> <span class="k">else</span> <span class="mi">0</span>  <span class="c1"># a tracker never raises</span>
-        <span class="n">_apply</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_stats</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">op</span><span class="p">,</span> <span class="n">nbytes</span><span class="p">,</span> <span class="n">ts</span><span class="p">)</span>
+        <span class="n">_apply</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_stats</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tombstones</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">op</span><span class="p">,</span> <span class="n">nbytes</span><span class="p">,</span> <span class="n">ts</span><span class="p">)</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">path</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">return</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">_survives_json</span><span class="p">(</span><span class="n">key</span><span class="p">):</span>
@@ -1099,46 +1308,64 @@ window.runMermaid = runMermaid;</script>
             <span class="s2">"tag"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">tag</span><span class="p">,</span>
         <span class="p">}</span>
         <span class="k">try</span><span class="p">:</span>
-            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fh</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">_fh</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_open_for_append</span><span class="p">()</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_fh</span><span class="o">.</span><span class="n">write</span><span class="p">((</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">event</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="nb">str</span><span class="p">)</span> <span class="o">+</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="p">)</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s2">"utf-8"</span><span class="p">))</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_fh</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_appender</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_jsonl</span><span class="p">(</span><span class="n">event</span><span class="p">))</span>
         <span class="k">except</span> <span class="ne">OSError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_warn_once</span><span class="p">(</span>
                 <span class="s2">"_warned_io"</span><span class="p">,</span>
                 <span class="sa">f</span><span class="s2">"AccessLog cannot write to </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="si">!r}</span><span class="s2"> (</span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">); "</span>
                 <span class="s2">"counting in memory only."</span><span class="p">,</span>
             <span class="p">)</span>
+            <span class="k">return</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_nevents</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_maybe_compact</span><span class="p">()</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_maybe_compact</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">""":meth:`compact` past ``compact_above`` events; a failure only warns."""</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">compact_above</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">_nevents</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">compact_above</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">compact</span><span class="p">()</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>  <span class="c1"># recording (or opening) never raises over compaction</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_warn_once</span><span class="p">(</span>
+                <span class="s2">"_warned_compact"</span><span class="p">,</span>
+                <span class="sa">f</span><span class="s2">"AccessLog could not compact </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="si">!r}</span><span class="s2"> (</span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">); left as is."</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_nevents</span> <span class="o">=</span> <span class="mi">0</span>  <span class="c1"># retry only after as many events again</span>
 
 <div class="viewcode-block" id="AccessLog.compact">
 <a class="viewcode-back" href="../../_autosummary/xdol.access.html#xdol.access.AccessLog.compact">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">compact</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">"""Rewrite the file as one snapshot line per key, atomically.</span>
+<span class="w">        </span><span class="sd">"""Rewrite the file as its folded state: snapshot lines, then tombstone lines.</span>
 
-<span class="sd">        Safe only when no other writer has the file open: another process appending</span>
-<span class="sd">        to it keeps writing to the replaced file, and those events are lost.</span>
+<span class="sd">        Under the lock, so it re-folds the file from disk (keeping every writer's</span>
+<span class="sd">        events, not only this log's) and replaces it atomically; writers holding the</span>
+<span class="sd">        old file reopen the new one at their next append. This log's in-memory view</span>
+<span class="sd">        is left as it was.</span>
 <span class="sd">        """</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">path</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">return</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
-        <span class="n">atomic_write</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">,</span>
-            <span class="p">(</span>
-                <span class="p">(</span>
-                    <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span>
-                        <span class="p">{</span><span class="s2">"k"</span><span class="p">:</span> <span class="n">key</span><span class="p">,</span> <span class="s2">"op"</span><span class="p">:</span> <span class="s2">"snapshot"</span><span class="p">,</span> <span class="s2">"stats"</span><span class="p">:</span> <span class="n">asdict</span><span class="p">(</span><span class="n">st</span><span class="p">)},</span> <span class="n">default</span><span class="o">=</span><span class="nb">str</span>
-                    <span class="p">)</span>
-                    <span class="o">+</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">"</span>
-                <span class="p">)</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s2">"utf-8"</span><span class="p">)</span>
-                <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">st</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_stats</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
-            <span class="p">),</span>
-        <span class="p">)</span></div>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_appender</span><span class="o">.</span><span class="n">locked</span><span class="p">()</span> <span class="k">as</span> <span class="n">held</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">held</span><span class="p">:</span>  <span class="c1"># unlocked, another writer's events could be lost</span>
+                <span class="k">raise</span> <span class="ne">OSError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"cannot lock </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="si">}</span><span class="s2">.lock: not compacting"</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">):</span>
+                <span class="n">stats_by_key</span><span class="p">,</span> <span class="n">tombstones</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">_fold_path</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">)</span>
+                <span class="n">atomic_write</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">,</span> <span class="n">_compacted_lines</span><span class="p">(</span><span class="n">stats_by_key</span><span class="p">,</span> <span class="n">tombstones</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_nevents</span> <span class="o">=</span> <span class="mi">0</span></div>
 
 
+<div class="viewcode-block" id="AccessLog.close">
+<a class="viewcode-back" href="../../_autosummary/xdol.access.html#xdol.access.AccessLog.close">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">close</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fh</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_fh</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_fh</span> <span class="o">=</span> <span class="kc">None</span></div>
+<span class="w">        </span><span class="sd">"""Close the log's files (it stays usable: it reopens them when needed)."""</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_appender</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_appender</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__enter__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AccessLog</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__exit__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">exc</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
 
 
 
@@ -1151,10 +1378,30 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">    latest ``last_access`` (the one that saw the key's current state), min</span>
 <span class="sd">    ``first_seen`` (ignoring unknown zeros), max ``last_access``/``last_read``, OR of</span>
 <span class="sd">    ``pinned``.</span>
+
+<span class="sd">    Deletes are honoured by timestamp: a log's stats of a key whose latest event</span>
+<span class="sd">    (``first_seen``, ``last_access`` or ``admitted_at``) is not after the latest delete</span>
+<span class="sd">    of that key in the *other* logs (their ``tombstones``, when they have them) are left</span>
+<span class="sd">    out, as replaying all the logs as one would drop them. A log's own tombstones never</span>
+<span class="sd">    apply to its own stats, which are post-delete already. Stats that span a delete and</span>
+<span class="sd">    a later re-creation count whole.</span>
+
+<span class="sd">    &gt;&gt;&gt; old = {'a': AccessStats(reads=3, last_access=5.0)}</span>
+<span class="sd">    &gt;&gt;&gt; log = AccessLog(clock=lambda: 10.0)</span>
+<span class="sd">    &gt;&gt;&gt; log.record('a', 'delete')</span>
+<span class="sd">    &gt;&gt;&gt; 'a' in merge_stats(old, log)</span>
+<span class="sd">    False</span>
 <span class="sd">    """</span>
+    <span class="n">stones</span> <span class="o">=</span> <span class="p">[</span><span class="nb">getattr</span><span class="p">(</span><span class="n">log</span><span class="p">,</span> <span class="s2">"tombstones"</span><span class="p">,</span> <span class="p">{})</span> <span class="k">for</span> <span class="n">log</span> <span class="ow">in</span> <span class="n">logs</span><span class="p">]</span>
     <span class="n">out</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">AccessStats</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
-    <span class="k">for</span> <span class="n">log</span> <span class="ow">in</span> <span class="n">logs</span><span class="p">:</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">log</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">logs</span><span class="p">):</span>
         <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">st</span> <span class="ow">in</span> <span class="n">log</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">deleted</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span>
+                <span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">stones</span><span class="p">)</span> <span class="k">if</span> <span class="n">j</span> <span class="o">!=</span> <span class="n">i</span> <span class="ow">and</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">t</span><span class="p">),</span>
+                <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="n">deleted</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">_last_event</span><span class="p">(</span><span class="n">st</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">deleted</span><span class="p">:</span>
+                <span class="k">continue</span>
             <span class="n">cur</span> <span class="o">=</span> <span class="n">out</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">cur</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="n">out</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">st</span>

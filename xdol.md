@@ -1,4 +1,4 @@
-> built 2026-10-26 19:05 UTC from 722dc80 (master) · xdol 0.1.29. Details: build_info.json
+> built 2026-10-26 20:18 UTC from 54a87e1 (master) · xdol 0.1.30. Details: build_info.json
 
 # index.html.md
 
@@ -48,7 +48,7 @@ Filesystem atime cannot do this job (under `relatime` it is never a count, and a
 backup pass resets it), hence an explicit log.
 
 Event schema, one JSON object per line (plain string keys, so a filesystem tracer that
-only knows paths can append to the same file):
+only knows paths can append to the same file, under the lock protocol below):
 
 ```default
 {"k": key, "op": "read"|"write"|"delete"|"admit"|"release"|"pin"|"unpin",
@@ -68,8 +68,24 @@ Keys must be JSON scalars, in practice `str`: a key that does not survive a JSON
 round trip (a tuple, a `Path`…) is counted in memory but lost or changed on reopen,
 and recording one warns once.
 
-A compacted file holds `{"k": key, "op": "snapshot", "stats": {...}}` lines, folded as
-initial state (the baseline the events after it build on).
+A compacted file holds `{"k": key, "op": "snapshot", "stats": {...}}` lines, then one
+`{"k": key, "op": "tombstone", "ts": t}` line per key ever deleted (its latest
+delete, see [`AccessLog.tombstones`](_autosummary/xdol.access.html.md#xdol.access.AccessLog.tombstones)). Both are the baseline, folded before any
+event and not counted as events; a tombstone only records the delete (it never removes
+the key: the snapshot is already post-delete). Older readers skip tombstone lines.
+
+Compaction runs by default once the file holds more than `DFLT_COMPACT_ABOVE` events
+(earlier versions never compacted on their own): it folds away the per-event history
+(`tag`, `from`, each timestamp). Pass `compact_above=None` to keep the raw log.
+
+Several processes may share one file. Every append, every replay and every compaction
+holds an exclusive advisory lock (`flock`; `msvcrt.locking` on Windows) on a sidecar
+`<path>.lock` file, and an appender checks, under that lock, that its handle is still
+on the file at `path` (reopening it if not), so compaction (which re-folds the file
+from disk, then replaces it) never drops another writer’s events. An external appender
+(e.g. a filesystem tracer that only knows paths) must do the same: take an exclusive
+`flock` on `<path>.lock` around each append, opening `path` afresh each time; or
+else every log of that file must set `compact_above=None`.
 
 ```pycon
 >>> log = AccessLog()
@@ -98,7 +114,7 @@ True
 |-------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------|
 | [`AccessStats`](_autosummary/xdol.access.html.md#xdol.access.AccessStats)([size, reads, writes, ...])        | Access statistics of one key (immutable: update with `dataclasses.replace`).   |
 
-### *class* xdol.access.AccessLog(path=None, \*, clock=<built-in function time>, tag=None, compact_above=None)
+### *class* xdol.access.AccessLog(path=None, \*, clock=<built-in function time>, tag=None, compact_above=100000)
 
 Bases: [`Mapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping)
 
@@ -108,24 +124,38 @@ Append-only JSONL access log, readable as a `Mapping` of key -> AccessStats.
   * **path** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`PathLike`](https://docs.python.org/3/library/os.html#os.PathLike) | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – log file; `None` keeps everything in memory (tests).
   * **clock** ([`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[], [`float`](https://docs.python.org/3/builtins/functions.html#float)]) – callable returning unix seconds.
   * **tag** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – label stamped on each event; defaults to `platform.node()`.
-  * **compact_above** ([`int`](https://docs.python.org/3/builtins/functions.html#int) | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – when opening finds more than this many events (lines other
-    than snapshots) in the file, [`compact()`](_autosummary/xdol.access.html.md#xdol.access.AccessLog.compact) it (`None`: never; the file then grows with every access).
-    Same caveat as [`compact()`](_autosummary/xdol.access.html.md#xdol.access.AccessLog.compact): only for a log with a single writer.
+  * **compact_above** ([`int`](https://docs.python.org/3/builtins/functions.html#int) | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – once the file holds more than this many events (lines other
+    than snapshots), [`compact()`](_autosummary/xdol.access.html.md#xdol.access.AccessLog.compact) it: checked on open and as this log records
+    (counting its own appends since then). `None`: never; the file then grows with
+    every access.
 
 Opening replays the file in timestamp order (see the module docstring), so the
 stats equal what recording those events live would give. Replay streams in constant
 memory when the file is already in that order (the normal case for one writer) and
 buffers it only when timestamps go back: a log several writers append to is out of
-order, so opening it still costs memory proportional to its length. A tracker never raises
-into a store’s read path: if the file cannot be written,
-a warning is issued once and counting continues in memory. Not thread-safe.
+order, so opening it still costs memory proportional to its length (compaction
+bounds that). Other writers’ events are seen on reopen, not live.
+
+A tracker never raises into a store’s read path: if the file cannot be written,
+a warning is issued once and counting continues in memory. Safe across processes,
+forked ones included (see the module docstring); not thread-safe. A context
+manager: leaving it closes the log’s files.
+
+#### close()
+
+Close the log’s files (it stays usable: it reopens them when needed).
+
+* **Return type:**
+  [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
 #### compact()
 
-Rewrite the file as one snapshot line per key, atomically.
+Rewrite the file as its folded state: snapshot lines, then tombstone lines.
 
-Safe only when no other writer has the file open: another process appending
-to it keeps writing to the replaced file, and those events are lost.
+Under the lock, so it re-folds the file from disk (keeping every writer’s
+events, not only this log’s) and replaces it atomically; writers holding the
+old file reopen the new one at their next append. This log’s in-memory view
+is left as it was.
 
 * **Return type:**
   [`None`](https://docs.python.org/3/builtins/constants.html#None)
@@ -136,6 +166,12 @@ Alias of `self.get(key)`.
 
 * **Return type:**
   [`AccessStats`](_autosummary/xdol.access.html.md#xdol.access.AccessStats) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
+#### *property* tombstones *: [Mapping](https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping)*
+
+Read-only `{key: timestamp of its latest delete}`, for [`merge_stats()`](_autosummary/xdol.access.html.md#xdol.access.merge_stats).
+
+Kept (and compacted) for every key ever deleted, re-created or not.
 
 ### *class* xdol.access.AccessStats(size=0, reads=0, writes=0, first_seen=0.0, last_access=0.0, last_read=0.0, pinned=False, admitted_at=0.0)
 
@@ -160,6 +196,21 @@ Sums reads/writes, takes the `size` and `admitted_at` of the log with the
 latest `last_access` (the one that saw the key’s current state), min
 `first_seen` (ignoring unknown zeros), max `last_access`/`last_read`, OR of
 `pinned`.
+
+Deletes are honoured by timestamp: a log’s stats of a key whose latest event
+(`first_seen`, `last_access` or `admitted_at`) is not after the latest delete
+of that key in the *other* logs (their `tombstones`, when they have them) are left
+out, as replaying all the logs as one would drop them. A log’s own tombstones never
+apply to its own stats, which are post-delete already. Stats that span a delete and
+a later re-creation count whole.
+
+```pycon
+>>> old = {'a': AccessStats(reads=3, last_access=5.0)}
+>>> log = AccessLog(clock=lambda: 10.0)
+>>> log.record('a', 'delete')
+>>> 'a' in merge_stats(old, log)
+False
+```
 
 * **Return type:**
   [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)
@@ -2017,16 +2068,18 @@ A value that fails to decode raises [`CodecDecodeError`](_autosummary/xdol.x_cod
 
 # About this build
 
-This documentation was built on **2026-10-26 19:05 UTC** from commit <a href="https://github.com/i2mint/xdol/commit/722dc80d2c4b33dbd8364cfaaa66b33d63475800"><code>722dc80</code></a> on branch <code>master</code>, for **xdol 0.1.29** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-10-26 20:18 UTC** from commit <a href="https://github.com/i2mint/xdol/commit/54a87e1aa6052c4231820e3d4e6cbd7282dc1cd8"><code>54a87e1</code></a> on branch <code>master</code>, for **xdol 0.1.30** (from <code>pyproject.toml</code>).
 
-#### NOTE
-Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
+#### WARNING
+The documentation and the package may be misaligned:
+
+- The documented version (0.1.30) is behind the latest release on PyPI (0.1.31): `pip install xdol` gives newer code than these docs describe.
 
 ## Source
 
 |                     |                                                                                                                                                    |
 |---------------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/i2mint/xdol/commit/722dc80d2c4b33dbd8364cfaaa66b33d63475800"><code>722dc80d2c4b33dbd8364cfaaa66b33d63475800</code></a> |
+| Commit              | <a href="https://github.com/i2mint/xdol/commit/54a87e1aa6052c4231820e3d4e6cbd7282dc1cd8"><code>54a87e1aa6052c4231820e3d4e6cbd7282dc1cd8</code></a> |
 | Branch              | <code>master</code>                                                                                                                                |
 | Tags at this commit | none                                                                                                                                               |
 | Working tree        | clean                                                                                                                                              |
@@ -2037,9 +2090,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>i2mint/xdol</code>                                                                   |
-| Run          | <a href="https://github.com/i2mint/xdol/actions/runs/40383311244">40383311244</a>          |
+| Run          | <a href="https://github.com/i2mint/xdol/actions/runs/40394192928">40394192928</a>          |
 | Ref          | <code>refs/heads/master</code>                                                             |
-| Event commit | <code>722dc80d2c4b33dbd8364cfaaa66b33d63475800</code> (in the history of the built commit) |
+| Event commit | <code>54a87e1aa6052c4231820e3d4e6cbd7282dc1cd8</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -2064,13 +2117,13 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/xdol/0.1.29/">0.1.29</a>, the same as the documented version.
+Latest release: <a href="https://pypi.org/project/xdol/0.1.31/">0.1.31</a>, newer than the documented version (0.1.30).
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/i2mint/xdol && cd xdol
-git checkout 722dc80d2c4b33dbd8364cfaaa66b33d63475800
+git checkout 54a87e1aa6052c4231820e3d4e6cbd7282dc1cd8
 pip install "epythet==0.2.22"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```

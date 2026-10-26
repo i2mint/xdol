@@ -44,7 +44,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../_static/documentation_options.js?v=904119ea"></script>
+    <script src="../_static/documentation_options.js?v=73657eb8"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -58,7 +58,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.29" />
+  <meta name="docsearch:version" content="0.1.30" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -392,7 +392,7 @@ key to (immutable) <a class="reference internal" href="#xdol.access.AccessStats"
 <p>Filesystem atime cannot do this job (under <code class="docutils literal notranslate"><span class="pre">relatime</span></code> it is never a count, and any
 backup pass resets it), hence an explicit log.</p>
 <p>Event schema, one JSON object per line (plain string keys, so a filesystem tracer that
-only knows paths can append to the same file):</p>
+only knows paths can append to the same file, under the lock protocol below):</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">{</span><span class="s2">"k"</span><span class="p">:</span> <span class="n">key</span><span class="p">,</span> <span class="s2">"op"</span><span class="p">:</span> <span class="s2">"read"</span><span class="o">|</span><span class="s2">"write"</span><span class="o">|</span><span class="s2">"delete"</span><span class="o">|</span><span class="s2">"admit"</span><span class="o">|</span><span class="s2">"release"</span><span class="o">|</span><span class="s2">"pin"</span><span class="o">|</span><span class="s2">"unpin"</span><span class="p">,</span>
  <span class="s2">"n"</span><span class="p">:</span> <span class="nb">bytes</span><span class="p">,</span> <span class="s2">"from"</span><span class="p">:</span> <span class="s2">"hot"</span><span class="o">|</span><span class="s2">"cold"</span><span class="o">|</span><span class="n">null</span><span class="p">,</span> <span class="s2">"ts"</span><span class="p">:</span> <span class="n">unix_seconds</span><span class="p">,</span> <span class="s2">"tag"</span><span class="p">:</span> <span class="nb">str</span><span class="o">|</span><span class="n">null</span><span class="p">}</span>
 </pre></div>
@@ -408,8 +408,22 @@ ordered right after the line before it in the file (it takes that line’s times
 <p>Keys must be JSON scalars, in practice <code class="docutils literal notranslate"><span class="pre">str</span></code>: a key that does not survive a JSON
 round trip (a tuple, a <code class="docutils literal notranslate"><span class="pre">Path</span></code>…) is counted in memory but lost or changed on reopen,
 and recording one warns once.</p>
-<p>A compacted file holds <code class="docutils literal notranslate"><span class="pre">{&quot;k&quot;:</span> <span class="pre">key,</span> <span class="pre">&quot;op&quot;:</span> <span class="pre">&quot;snapshot&quot;,</span> <span class="pre">&quot;stats&quot;:</span> <span class="pre">{...}}</span></code> lines, folded as
-initial state (the baseline the events after it build on).</p>
+<p>A compacted file holds <code class="docutils literal notranslate"><span class="pre">{&quot;k&quot;:</span> <span class="pre">key,</span> <span class="pre">&quot;op&quot;:</span> <span class="pre">&quot;snapshot&quot;,</span> <span class="pre">&quot;stats&quot;:</span> <span class="pre">{...}}</span></code> lines, then one
+<code class="docutils literal notranslate"><span class="pre">{&quot;k&quot;:</span> <span class="pre">key,</span> <span class="pre">&quot;op&quot;:</span> <span class="pre">&quot;tombstone&quot;,</span> <span class="pre">&quot;ts&quot;:</span> <span class="pre">t}</span></code> line per key ever deleted (its latest
+delete, see <a class="reference internal" href="#xdol.access.AccessLog.tombstones" title="xdol.access.AccessLog.tombstones"><code class="xref py py-attr docutils literal notranslate"><span class="pre">AccessLog.tombstones</span></code></a>). Both are the baseline, folded before any
+event and not counted as events; a tombstone only records the delete (it never removes
+the key: the snapshot is already post-delete). Older readers skip tombstone lines.</p>
+<p>Compaction runs by default once the file holds more than <code class="docutils literal notranslate"><span class="pre">DFLT_COMPACT_ABOVE</span></code> events
+(earlier versions never compacted on their own): it folds away the per-event history
+(<code class="docutils literal notranslate"><span class="pre">tag</span></code>, <code class="docutils literal notranslate"><span class="pre">from</span></code>, each timestamp). Pass <code class="docutils literal notranslate"><span class="pre">compact_above=None</span></code> to keep the raw log.</p>
+<p>Several processes may share one file. Every append, every replay and every compaction
+holds an exclusive advisory lock (<code class="docutils literal notranslate"><span class="pre">flock</span></code>; <code class="docutils literal notranslate"><span class="pre">msvcrt.locking</span></code> on Windows) on a sidecar
+<code class="docutils literal notranslate"><span class="pre">&lt;path&gt;.lock</span></code> file, and an appender checks, under that lock, that its handle is still
+on the file at <code class="docutils literal notranslate"><span class="pre">path</span></code> (reopening it if not), so compaction (which re-folds the file
+from disk, then replaces it) never drops another writer’s events. An external appender
+(e.g. a filesystem tracer that only knows paths) must do the same: take an exclusive
+<code class="docutils literal notranslate"><span class="pre">flock</span></code> on <code class="docutils literal notranslate"><span class="pre">&lt;path&gt;.lock</span></code> around each append, opening <code class="docutils literal notranslate"><span class="pre">path</span></code> afresh each time; or
+else every log of that file must set <code class="docutils literal notranslate"><span class="pre">compact_above=None</span></code>.</p>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">log</span> <span class="o">=</span> <span class="n">AccessLog</span><span class="p">()</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">store</span> <span class="o">=</span> <span class="n">track_access</span><span class="p">({</span><span class="s1">'a'</span><span class="p">:</span> <span class="sa">b</span><span class="s1">'xyz'</span><span class="p">},</span> <span class="n">tracker</span><span class="o">=</span><span class="n">log</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">store</span><span class="p">[</span><span class="s1">'a'</span><span class="p">]</span>
@@ -454,7 +468,7 @@ initial state (the baseline the events after it build on).</p>
 </div>
 <dl class="py class">
 <dt class="sig sig-object py" id="xdol.access.AccessLog">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">xdol.access.</span></span><span class="sig-name descname"><span class="pre">AccessLog</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">clock</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;built-in</span> <span class="pre">function</span> <span class="pre">time&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tag</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">compact_above</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xdol/access.html#AccessLog"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xdol.access.AccessLog" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">xdol.access.</span></span><span class="sig-name descname"><span class="pre">AccessLog</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">clock</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;built-in</span> <span class="pre">function</span> <span class="pre">time&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tag</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">compact_above</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100000</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xdol/access.html#AccessLog"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xdol.access.AccessLog" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Mapping</span></code></a></p>
 <p>Append-only JSONL access log, readable as a <code class="docutils literal notranslate"><span class="pre">Mapping</span></code> of key -&gt; AccessStats.</p>
 <dl class="field-list simple">
@@ -463,9 +477,10 @@ initial state (the baseline the events after it build on).</p>
 <li><p><strong>path</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a> | <a class="reference external" href="https://docs.python.org/3/library/os.html#os.PathLike" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">PathLike</span></code></a> | <span class="highlight sphinx_autodoc_typehints-value"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></a></span></span>) – log file; <code class="docutils literal notranslate"><span class="pre">None</span></code> keeps everything in memory (tests).</p></li>
 <li><p><strong>clock</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Callable</span></code></a>[[], <a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></a>]</span>) – callable returning unix seconds.</p></li>
 <li><p><strong>tag</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a> | <span class="highlight sphinx_autodoc_typehints-value"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></a></span></span>) – label stamped on each event; defaults to <code class="docutils literal notranslate"><span class="pre">platform.node()</span></code>.</p></li>
-<li><p><strong>compact_above</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a> | <span class="highlight sphinx_autodoc_typehints-value"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></a></span></span>) – when opening finds more than this many events (lines other
-than snapshots) in the file, <a class="reference internal" href="#xdol.access.AccessLog.compact" title="xdol.access.AccessLog.compact"><code class="xref py py-meth docutils literal notranslate"><span class="pre">compact()</span></code></a> it (<code class="docutils literal notranslate"><span class="pre">None</span></code>: never; the file then grows with every access).
-Same caveat as <a class="reference internal" href="#xdol.access.AccessLog.compact" title="xdol.access.AccessLog.compact"><code class="xref py py-meth docutils literal notranslate"><span class="pre">compact()</span></code></a>: only for a log with a single writer.</p></li>
+<li><p><strong>compact_above</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a> | <span class="highlight sphinx_autodoc_typehints-value"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></a></span></span>) – once the file holds more than this many events (lines other
+than snapshots), <a class="reference internal" href="#xdol.access.AccessLog.compact" title="xdol.access.AccessLog.compact"><code class="xref py py-meth docutils literal notranslate"><span class="pre">compact()</span></code></a> it: checked on open and as this log records
+(counting its own appends since then). <code class="docutils literal notranslate"><span class="pre">None</span></code>: never; the file then grows with
+every access.</p></li>
 </ul>
 </dd>
 </dl>
@@ -473,15 +488,31 @@ Same caveat as <a class="reference internal" href="#xdol.access.AccessLog.compac
 stats equal what recording those events live would give. Replay streams in constant
 memory when the file is already in that order (the normal case for one writer) and
 buffers it only when timestamps go back: a log several writers append to is out of
-order, so opening it still costs memory proportional to its length. A tracker never raises
-into a store’s read path: if the file cannot be written,
-a warning is issued once and counting continues in memory. Not thread-safe.</p>
+order, so opening it still costs memory proportional to its length (compaction
+bounds that). Other writers’ events are seen on reopen, not live.</p>
+<p>A tracker never raises into a store’s read path: if the file cannot be written,
+a warning is issued once and counting continues in memory. Safe across processes,
+forked ones included (see the module docstring); not thread-safe. A context
+manager: leaving it closes the log’s files.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="xdol.access.AccessLog.close">
+<span class="sig-name descname"><span class="pre">close</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xdol/access.html#AccessLog.close"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xdol.access.AccessLog.close" title="Link to this definition">#</a></dt>
+<dd><p>Close the log’s files (it stays usable: it reopens them when needed).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><span class="highlight sphinx_autodoc_typehints-value"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></a></span></span></p>
+</dd>
+</dl>
+</dd></dl>
+
 <dl class="py method">
 <dt class="sig sig-object py" id="xdol.access.AccessLog.compact">
 <span class="sig-name descname"><span class="pre">compact</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xdol/access.html#AccessLog.compact"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xdol.access.AccessLog.compact" title="Link to this definition">#</a></dt>
-<dd><p>Rewrite the file as one snapshot line per key, atomically.</p>
-<p>Safe only when no other writer has the file open: another process appending
-to it keeps writing to the replaced file, and those events are lost.</p>
+<dd><p>Rewrite the file as its folded state: snapshot lines, then tombstone lines.</p>
+<p>Under the lock, so it re-folds the file from disk (keeping every writer’s
+events, not only this log’s) and replaces it atomically; writers holding the
+old file reopen the new one at their next append. This log’s in-memory view
+is left as it was.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><span class="highlight sphinx_autodoc_typehints-value"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></a></span></span></p>
@@ -498,6 +529,13 @@ to it keeps writing to the replaced file, and those events are lost.</p>
 <dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#xdol.access.AccessStats" title="xdol.access.AccessStats"><code class="xref py py-class docutils literal notranslate"><span class="pre">AccessStats</span></code></a> | <span class="highlight sphinx_autodoc_typehints-value"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></a></span></span></p>
 </dd>
 </dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="xdol.access.AccessLog.tombstones">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">tombstones</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping" title="(in Python v3.15)"><span class="pre">Mapping</span></a></span><a class="headerlink" href="#xdol.access.AccessLog.tombstones" title="Link to this definition">#</a></dt>
+<dd><p>Read-only <code class="docutils literal notranslate"><span class="pre">{key:</span> <span class="pre">timestamp</span> <span class="pre">of</span> <span class="pre">its</span> <span class="pre">latest</span> <span class="pre">delete}</span></code>, for <a class="reference internal" href="#xdol.access.merge_stats" title="xdol.access.merge_stats"><code class="xref py py-func docutils literal notranslate"><span class="pre">merge_stats()</span></code></a>.</p>
+<p>Kept (and compacted) for every key ever deleted, re-created or not.</p>
 </dd></dl>
 
 </dd></dl>
@@ -531,6 +569,19 @@ to it keeps writing to the replaced file, and those events are lost.</p>
 latest <code class="docutils literal notranslate"><span class="pre">last_access</span></code> (the one that saw the key’s current state), min
 <code class="docutils literal notranslate"><span class="pre">first_seen</span></code> (ignoring unknown zeros), max <code class="docutils literal notranslate"><span class="pre">last_access</span></code>/<code class="docutils literal notranslate"><span class="pre">last_read</span></code>, OR of
 <code class="docutils literal notranslate"><span class="pre">pinned</span></code>.</p>
+<p>Deletes are honoured by timestamp: a log’s stats of a key whose latest event
+(<code class="docutils literal notranslate"><span class="pre">first_seen</span></code>, <code class="docutils literal notranslate"><span class="pre">last_access</span></code> or <code class="docutils literal notranslate"><span class="pre">admitted_at</span></code>) is not after the latest delete
+of that key in the <em>other</em> logs (their <code class="docutils literal notranslate"><span class="pre">tombstones</span></code>, when they have them) are left
+out, as replaying all the logs as one would drop them. A log’s own tombstones never
+apply to its own stats, which are post-delete already. Stats that span a delete and
+a later re-creation count whole.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">old</span> <span class="o">=</span> <span class="p">{</span><span class="s1">'a'</span><span class="p">:</span> <span class="n">AccessStats</span><span class="p">(</span><span class="n">reads</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">last_access</span><span class="o">=</span><span class="mf">5.0</span><span class="p">)}</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">log</span> <span class="o">=</span> <span class="n">AccessLog</span><span class="p">(</span><span class="n">clock</span><span class="o">=</span><span class="k">lambda</span><span class="p">:</span> <span class="mf">10.0</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">log</span><span class="o">.</span><span class="n">record</span><span class="p">(</span><span class="s1">'a'</span><span class="p">,</span> <span class="s1">'delete'</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="s1">'a'</span> <span class="ow">in</span> <span class="n">merge_stats</span><span class="p">(</span><span class="n">old</span><span class="p">,</span> <span class="n">log</span><span class="p">)</span>
+<span class="go">False</span>
+</pre></div>
+</div>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a></span></p>
@@ -615,8 +666,10 @@ available as <code class="docutils literal notranslate"><span class="pre">.store
   <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
     <ul class="pst-show_toc_level nav section-nav flex-column">
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#xdol.access.AccessLog"><code class="docutils literal notranslate"><span class="pre">AccessLog</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xdol.access.AccessLog.close"><code class="docutils literal notranslate"><span class="pre">AccessLog.close()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xdol.access.AccessLog.compact"><code class="docutils literal notranslate"><span class="pre">AccessLog.compact()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xdol.access.AccessLog.stats"><code class="docutils literal notranslate"><span class="pre">AccessLog.stats()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xdol.access.AccessLog.tombstones"><code class="docutils literal notranslate"><span class="pre">AccessLog.tombstones</span></code></a></li>
 </ul>
 </li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#xdol.access.AccessStats"><code class="docutils literal notranslate"><span class="pre">AccessStats</span></code></a></li>
