@@ -44,7 +44,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../_static/documentation_options.js?v=4fa33042"></script>
+    <script src="../_static/documentation_options.js?v=785bba28"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -58,7 +58,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.25" />
+  <meta name="docsearch:version" content="0.1.26" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -490,7 +490,8 @@ supports coroutine functions. Exceptions raised by the function are never cached
 <p>Plain file writes can leave a truncated cassette if the process dies mid-write, which
 then fails to decode (or worse, decodes). Here each value is written to a temporary
 sibling and renamed into place (<code class="docutils literal notranslate"><span class="pre">os.replace</span></code>), and temporary files are invisible to
-iteration. Missing sub-directories of a key (<code class="docutils literal notranslate"><span class="pre">&quot;a/b&quot;</span></code>) are created.</p>
+iteration (dol’s hidden <code class="docutils literal notranslate"><span class="pre">.name.&lt;random&gt;.tmp</span></code> siblings; leftovers of the older
+<code class="docutils literal notranslate"><span class="pre">*.xdol-tmp</span></code> scheme are skipped too). Missing sub-directories of a key (<code class="docutils literal notranslate"><span class="pre">&quot;a/b&quot;</span></code>) are created.</p>
 </dd></dl>
 
 <dl class="py exception">

@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../_static/documentation_options.js?v=4fa33042"></script>
+    <script src="../../_static/documentation_options.js?v=785bba28"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -411,7 +411,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.25" />
+  <meta name="docsearch:version" content="0.1.26" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -729,8 +729,10 @@ window.runMermaid = runMermaid;</script>
 <span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">Iterator</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">MutableMapping</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="n">replace</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">functools</span><span class="w"> </span><span class="kn">import</span> <span class="n">partial</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Protocol</span>
 
+<span class="kn">from</span><span class="w"> </span><span class="nn">dol</span><span class="w"> </span><span class="kn">import</span> <span class="n">path_of</span> <span class="k">as</span> <span class="n">dol_path_of</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">xdol.access</span><span class="w"> </span><span class="kn">import</span> <span class="n">AccessLog</span><span class="p">,</span> <span class="n">AccessStats</span><span class="p">,</span> <span class="n">default_access_log_for</span><span class="p">,</span> <span class="n">value_size</span>
 
 
@@ -943,33 +945,11 @@ window.runMermaid = runMermaid;</script>
 
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">_hot_path</span><span class="p">(</span><span class="n">hot</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">hot</span><span class="p">,</span> <span class="s2">"_id_of_key"</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">hot</span><span class="o">.</span><span class="n">_id_of_key</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">hot</span><span class="o">.</span><span class="n">rootdir</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span>
-
-
-<span class="k">def</span><span class="w"> </span><span class="nf">_checked_hot_path</span><span class="p">(</span><span class="n">hot</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""``_hot_path`` as an absolute path, but only when it lies under ``hot.rootdir``."""</span>
-    <span class="n">path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">_hot_path</span><span class="p">(</span><span class="n">hot</span><span class="p">,</span> <span class="n">key</span><span class="p">))</span>
-    <span class="n">root</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">hot</span><span class="o">.</span><span class="n">rootdir</span><span class="p">)</span>
-    <span class="k">try</span><span class="p">:</span>
-        <span class="n">under_root</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">commonpath</span><span class="p">([</span><span class="n">root</span><span class="p">,</span> <span class="n">path</span><span class="p">])</span> <span class="o">==</span> <span class="n">root</span>
-    <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>  <span class="c1"># e.g. different drives on Windows</span>
-        <span class="n">under_root</span> <span class="o">=</span> <span class="kc">False</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">under_root</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
-            <span class="sa">f</span><span class="s2">"Cannot locate </span><span class="si">{</span><span class="n">key</span><span class="si">!r}</span><span class="s2"> in the hot store (got </span><span class="si">{</span><span class="n">path</span><span class="si">!r}</span><span class="s2">, not under "</span>
-            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">root</span><span class="si">!r}</span><span class="s2">); pass local_paths(..., path_of=...)"</span>
-        <span class="p">)</span>
-    <span class="k">return</span> <span class="n">path</span>
-
-
 <span class="k">def</span><span class="w"> </span><span class="nf">_file_size</span><span class="p">(</span><span class="n">hot</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Size of ``key``'s file when ``hot`` is file-backed, without reading it."""</span>
     <span class="k">try</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">getsize</span><span class="p">(</span><span class="n">_hot_path</span><span class="p">(</span><span class="n">hot</span><span class="p">,</span> <span class="n">key</span><span class="p">))</span>
-    <span class="k">except</span> <span class="p">(</span><span class="ne">OSError</span><span class="p">,</span> <span class="ne">TypeError</span><span class="p">,</span> <span class="ne">AttributeError</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">getsize</span><span class="p">(</span><span class="n">dol_path_of</span><span class="p">(</span><span class="n">hot</span><span class="p">,</span> <span class="n">key</span><span class="p">))</span>
+    <span class="k">except</span> <span class="p">(</span><span class="ne">OSError</span><span class="p">,</span> <span class="ne">TypeError</span><span class="p">,</span> <span class="ne">KeyError</span><span class="p">):</span>
         <span class="k">return</span> <span class="kc">None</span>
 
 
@@ -1269,17 +1249,14 @@ window.runMermaid = runMermaid;</script>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Mapping</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Read-only ``{key: real file path}``; materialises each key into ``hot``.</span>
 
-<span class="sd">    ``path_of(key)`` gives the file path of ``key`` in ``hot``. The default duck-types</span>
-<span class="sd">    a ``dol.Files``-like hot store (``rootdir`` and ``_id_of_key``; ``TypeError`` if there</span>
-<span class="sd">    is no ``rootdir``, or the path is not an absolute one under it); pass ``path_of`` for any other layout, e.g. a ``wrap_kvs``-wrapped store.</span>
+<span class="sd">    ``path_of(key)`` gives the file path of ``key`` in ``hot``; the default is</span>
+<span class="sd">    :func:`dol.path_of` on the hot store, which follows wrapped layers (``TypeError`` on access if ``hot`` is not</span>
+<span class="sd">    file-backed, before anything is fetched; ``KeyError`` for a key leaving its root).</span>
 <span class="sd">    ``FileNotFoundError`` is raised if the file is not there after materialisation.</span>
 <span class="sd">    ``key in paths`` checks the store without fetching.</span>
 <span class="sd">    """</span>
     <span class="k">if</span> <span class="n">path_of</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">hot</span> <span class="o">=</span> <span class="n">store</span><span class="o">.</span><span class="n">_hot</span>
-        <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">hot</span><span class="p">,</span> <span class="s2">"rootdir"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">"local_paths requires a hot store with a 'rootdir'"</span><span class="p">)</span>
-        <span class="n">path_of</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">key</span><span class="p">:</span> <span class="n">_checked_hot_path</span><span class="p">(</span><span class="n">hot</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span>  <span class="c1"># noqa: E731</span>
+        <span class="n">path_of</span> <span class="o">=</span> <span class="n">partial</span><span class="p">(</span><span class="n">dol_path_of</span><span class="p">,</span> <span class="n">store</span><span class="o">.</span><span class="n">_hot</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">_LocalPaths</span><span class="p">(</span><span class="n">store</span><span class="p">,</span> <span class="n">path_of</span><span class="p">)</span></div>
 
 </pre></div>

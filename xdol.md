@@ -1,4 +1,4 @@
-> built 2026-10-26 15:46 UTC from 47a18eb (master) · xdol 0.1.25. Details: build_info.json
+> built 2026-10-26 15:55 UTC from 5fe5e4d (master) · xdol 0.1.26. Details: build_info.json
 
 # index.html.md
 
@@ -432,7 +432,8 @@ A bytes store over a directory whose writes are atomic.
 Plain file writes can leave a truncated cassette if the process dies mid-write, which
 then fails to decode (or worse, decodes). Here each value is written to a temporary
 sibling and renamed into place (`os.replace`), and temporary files are invisible to
-iteration. Missing sub-directories of a key (`"a/b"`) are created.
+iteration (dol’s hidden `.name.<random>.tmp` siblings; leftovers of the older
+`*.xdol-tmp` scheme are skipped too). Missing sub-directories of a key (`"a/b"`) are created.
 
 ### *exception* xdol.memoize.CacheCorrupt
 
@@ -1329,9 +1330,9 @@ Base class of tiering errors.
 
 Read-only `{key: real file path}`; materialises each key into `hot`.
 
-`path_of(key)` gives the file path of `key` in `hot`. The default duck-types
-a `dol.Files`-like hot store (`rootdir` and `_id_of_key`; `TypeError` if there
-is no `rootdir`, or the path is not an absolute one under it); pass `path_of` for any other layout, e.g. a `wrap_kvs`-wrapped store.
+`path_of(key)` gives the file path of `key` in `hot`; the default is
+`dol.path_of()` on the hot store, which follows wrapped layers (`TypeError` on access if `hot` is not
+file-backed, before anything is fetched; `KeyError` for a key leaving its root).
 `FileNotFoundError` is raised if the file is not there after materialisation.
 `key in paths` checks the store without fetching.
 
@@ -1778,36 +1779,10 @@ Utility functions for xdol.
 
 ### Functions
 
-| [`atomic_write`](_autosummary/xdol.util.html.md#xdol.util.atomic_write)(path, data, \*[, tmp_suffix])   | Write `data` to `path` so that a crash leaves the old content or the new, never a torn file.   |
-|-----------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------|
-| `resolve_module_filepath`(module_spec[, ...])                                                 |                                                                                                |
-| `resolve_to_folder`(obj[, ...])                                                               |                                                                                                |
-| [`save_obj`](_autosummary/xdol.util.html.md#xdol.util.save_obj)(obj, \*[, encode, key, ...])        | Serialize and save a Python object with customizable encoding and storage.                     |
-
-### xdol.util.atomic_write(path, data, , tmp_suffix='.tmp')
-
-Write `data` to `path` so that a crash leaves the old content or the new, never a torn file.
-
-`data` is bytes or an iterable of byte chunks (written one at a time, so a large
-snapshot need not be held in memory). The chunks go to a uniquely named sibling of
-`path` (`<name>.<random><tmp_suffix>`), which is then renamed into place with
-`os.replace`; on any failure the sibling is removed. The parent directory must exist.
-The file gets the usual umask permissions. Crash-safe, not power-loss-durable (no fsync).
-
-```pycon
->>> import tempfile
->>> d = tempfile.mkdtemp()
->>> target = os.path.join(d, "f.txt")
->>> atomic_write(target, b"hello")
->>> open(target).read(), os.listdir(d)
-('hello', ['f.txt'])
->>> atomic_write(target, (c.encode() for c in "ab"))
->>> open(target).read()
-'ab'
-```
-
-* **Return type:**
-  [`None`](https://docs.python.org/3/builtins/constants.html#None)
+| `resolve_module_filepath`(module_spec[, ...])                                          |                                                                            |
+|----------------------------------------------------------------------------------------|----------------------------------------------------------------------------|
+| `resolve_to_folder`(obj[, ...])                                                        |                                                                            |
+| [`save_obj`](_autosummary/xdol.util.html.md#xdol.util.save_obj)(obj, \*[, encode, key, ...]) | Serialize and save a Python object with customizable encoding and storage. |
 
 ### xdol.util.save_obj(obj, \*, encode=<built-in function dumps>, key=None, save_under_key=None, return_func=None)
 
@@ -2020,18 +1995,16 @@ A value that fails to decode raises [`CodecDecodeError`](_autosummary/xdol.x_cod
 
 # About this build
 
-This documentation was built on **2026-10-26 15:46 UTC** from commit <a href="https://github.com/i2mint/xdol/commit/47a18eb62b3334feee0203b93ea2a2976744cdbf"><code>47a18eb</code></a> on branch <code>master</code>, for **xdol 0.1.25** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-10-26 15:55 UTC** from commit <a href="https://github.com/i2mint/xdol/commit/5fe5e4dbb4603b6dabe06c5a9ea064d1de28e6cc"><code>5fe5e4d</code></a> on branch <code>master</code>, for **xdol 0.1.26** (from <code>pyproject.toml</code>).
 
-#### WARNING
-The documentation and the package may be misaligned:
-
-- The documented version (0.1.25) is behind the latest release on PyPI (0.1.26): `pip install xdol` gives newer code than these docs describe.
+#### NOTE
+Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
 
 ## Source
 
 |                     |                                                                                                                                                    |
 |---------------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/i2mint/xdol/commit/47a18eb62b3334feee0203b93ea2a2976744cdbf"><code>47a18eb62b3334feee0203b93ea2a2976744cdbf</code></a> |
+| Commit              | <a href="https://github.com/i2mint/xdol/commit/5fe5e4dbb4603b6dabe06c5a9ea064d1de28e6cc"><code>5fe5e4dbb4603b6dabe06c5a9ea064d1de28e6cc</code></a> |
 | Branch              | <code>master</code>                                                                                                                                |
 | Tags at this commit | none                                                                                                                                               |
 | Working tree        | clean                                                                                                                                              |
@@ -2042,9 +2015,9 @@ The documentation and the package may be misaligned:
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>i2mint/xdol</code>                                                                   |
-| Run          | <a href="https://github.com/i2mint/xdol/actions/runs/40352486409">40352486409</a>          |
+| Run          | <a href="https://github.com/i2mint/xdol/actions/runs/40353832647">40353832647</a>          |
 | Ref          | <code>refs/heads/master</code>                                                             |
-| Event commit | <code>47a18eb62b3334feee0203b93ea2a2976744cdbf</code> (in the history of the built commit) |
+| Event commit | <code>5fe5e4dbb4603b6dabe06c5a9ea064d1de28e6cc</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -2069,13 +2042,13 @@ The documentation and the package may be misaligned:
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/xdol/0.1.26/">0.1.26</a>, newer than the documented version (0.1.25).
+Latest release: <a href="https://pypi.org/project/xdol/0.1.26/">0.1.26</a>, the same as the documented version.
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/i2mint/xdol && cd xdol
-git checkout 47a18eb62b3334feee0203b93ea2a2976744cdbf
+git checkout 5fe5e4dbb4603b6dabe06c5a9ea064d1de28e6cc
 pip install "epythet==0.2.22"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```

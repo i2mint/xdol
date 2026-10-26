@@ -44,7 +44,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../_static/documentation_options.js?v=4fa33042"></script>
+    <script src="../_static/documentation_options.js?v=785bba28"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -58,7 +58,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.25" />
+  <meta name="docsearch:version" content="0.1.26" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -584,9 +584,9 @@ counts as 0 until the key’s next hot hit.</p>
 <dt class="sig sig-object py" id="xdol.tiering.local_paths">
 <span class="sig-prename descclassname"><span class="pre">xdol.tiering.</span></span><span class="sig-name descname"><span class="pre">local_paths</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">store</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">path_of</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xdol/tiering.html#local_paths"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xdol.tiering.local_paths" title="Link to this definition">#</a></dt>
 <dd><p>Read-only <code class="docutils literal notranslate"><span class="pre">{key:</span> <span class="pre">real</span> <span class="pre">file</span> <span class="pre">path}</span></code>; materialises each key into <code class="docutils literal notranslate"><span class="pre">hot</span></code>.</p>
-<p><code class="docutils literal notranslate"><span class="pre">path_of(key)</span></code> gives the file path of <code class="docutils literal notranslate"><span class="pre">key</span></code> in <code class="docutils literal notranslate"><span class="pre">hot</span></code>. The default duck-types
-a <code class="docutils literal notranslate"><span class="pre">dol.Files</span></code>-like hot store (<code class="docutils literal notranslate"><span class="pre">rootdir</span></code> and <code class="docutils literal notranslate"><span class="pre">_id_of_key</span></code>; <code class="docutils literal notranslate"><span class="pre">TypeError</span></code> if there
-is no <code class="docutils literal notranslate"><span class="pre">rootdir</span></code>, or the path is not an absolute one under it); pass <code class="docutils literal notranslate"><span class="pre">path_of</span></code> for any other layout, e.g. a <code class="docutils literal notranslate"><span class="pre">wrap_kvs</span></code>-wrapped store.
+<p><code class="docutils literal notranslate"><span class="pre">path_of(key)</span></code> gives the file path of <code class="docutils literal notranslate"><span class="pre">key</span></code> in <code class="docutils literal notranslate"><span class="pre">hot</span></code>; the default is
+<code class="xref py py-func docutils literal notranslate"><span class="pre">dol.path_of()</span></code> on the hot store, which follows wrapped layers (<code class="docutils literal notranslate"><span class="pre">TypeError</span></code> on access if <code class="docutils literal notranslate"><span class="pre">hot</span></code> is not
+file-backed, before anything is fetched; <code class="docutils literal notranslate"><span class="pre">KeyError</span></code> for a key leaving its root).
 <code class="docutils literal notranslate"><span class="pre">FileNotFoundError</span></code> is raised if the file is not there after materialisation.
 <code class="docutils literal notranslate"><span class="pre">key</span> <span class="pre">in</span> <span class="pre">paths</span></code> checks the store without fetching.</p>
 <dl class="field-list simple">

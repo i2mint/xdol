@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../_static/documentation_options.js?v=4fa33042"></script>
+    <script src="../../_static/documentation_options.js?v=785bba28"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -411,7 +411,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.25" />
+  <meta name="docsearch:version" content="0.1.26" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -702,8 +702,8 @@ window.runMermaid = runMermaid;</script>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">inspect</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">uuid</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Iterable</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">dol</span><span class="w"> </span><span class="kn">import</span> <span class="n">atomic_write</span>  <span class="c1"># noqa: F401  (re-exported: lives in dol since 0.3.98)</span>
 
 
 <span class="c1"># Pattern: meshed</span>
@@ -743,46 +743,6 @@ window.runMermaid = runMermaid;</script>
     <span class="k">if</span> <span class="n">assert_output_is_existing_folder</span><span class="p">:</span>
         <span class="k">assert</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">obj</span><span class="p">),</span> <span class="s2">"obj should be a folder at this point"</span>
     <span class="k">return</span> <span class="n">obj</span>
-
-
-<div class="viewcode-block" id="atomic_write">
-<a class="viewcode-back" href="../../_autosummary/xdol.util.html#xdol.util.atomic_write">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">atomic_write</span><span class="p">(</span>
-    <span class="n">path</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="s2">"bytes | Iterable[bytes]"</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">tmp_suffix</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">".tmp"</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""Write ``data`` to ``path`` so that a crash leaves the old content or the new, never a torn file.</span>
-
-<span class="sd">    ``data`` is bytes or an iterable of byte chunks (written one at a time, so a large</span>
-<span class="sd">    snapshot need not be held in memory). The chunks go to a uniquely named sibling of</span>
-<span class="sd">    ``path`` (``&lt;name&gt;.&lt;random&gt;&lt;tmp_suffix&gt;``), which is then renamed into place with</span>
-<span class="sd">    ``os.replace``; on any failure the sibling is removed. The parent directory must exist.</span>
-<span class="sd">    The file gets the usual umask permissions. Crash-safe, not power-loss-durable (no fsync).</span>
-
-<span class="sd">    &gt;&gt;&gt; import tempfile</span>
-<span class="sd">    &gt;&gt;&gt; d = tempfile.mkdtemp()</span>
-<span class="sd">    &gt;&gt;&gt; target = os.path.join(d, "f.txt")</span>
-<span class="sd">    &gt;&gt;&gt; atomic_write(target, b"hello")</span>
-<span class="sd">    &gt;&gt;&gt; open(target).read(), os.listdir(d)</span>
-<span class="sd">    ('hello', ['f.txt'])</span>
-<span class="sd">    &gt;&gt;&gt; atomic_write(target, (c.encode() for c in "ab"))</span>
-<span class="sd">    &gt;&gt;&gt; open(target).read()</span>
-<span class="sd">    'ab'</span>
-<span class="sd">    """</span>
-    <span class="n">path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">fspath</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
-    <span class="n">chunks</span> <span class="o">=</span> <span class="p">[</span><span class="n">data</span><span class="p">]</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="p">(</span><span class="nb">bytes</span><span class="p">,</span> <span class="nb">bytearray</span><span class="p">,</span> <span class="nb">memoryview</span><span class="p">))</span> <span class="k">else</span> <span class="n">data</span>
-    <span class="n">tmp</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">uuid</span><span class="o">.</span><span class="n">uuid4</span><span class="p">()</span><span class="o">.</span><span class="n">hex</span><span class="p">[:</span><span class="mi">8</span><span class="p">]</span><span class="si">}{</span><span class="n">tmp_suffix</span><span class="si">}</span><span class="s2">"</span>
-    <span class="k">try</span><span class="p">:</span>
-        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">tmp</span><span class="p">,</span> <span class="s2">"xb"</span><span class="p">)</span> <span class="k">as</span> <span class="n">fh</span><span class="p">:</span>
-            <span class="k">for</span> <span class="n">chunk</span> <span class="ow">in</span> <span class="n">chunks</span><span class="p">:</span>
-                <span class="n">fh</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">chunk</span><span class="p">)</span>
-        <span class="n">os</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">tmp</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span>
-    <span class="k">except</span> <span class="ne">BaseException</span><span class="p">:</span>
-        <span class="k">try</span><span class="p">:</span>
-            <span class="n">os</span><span class="o">.</span><span class="n">unlink</span><span class="p">(</span><span class="n">tmp</span><span class="p">)</span>
-        <span class="k">except</span> <span class="ne">OSError</span><span class="p">:</span>
-            <span class="k">pass</span>
-        <span class="k">raise</span></div>
-
 
 
 <span class="c1"># ------------------------------------------------------------------------------</span>

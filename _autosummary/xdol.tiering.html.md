@@ -147,9 +147,9 @@ Base class of tiering errors.
 
 Read-only `{key: real file path}`; materialises each key into `hot`.
 
-`path_of(key)` gives the file path of `key` in `hot`. The default duck-types
-a `dol.Files`-like hot store (`rootdir` and `_id_of_key`; `TypeError` if there
-is no `rootdir`, or the path is not an absolute one under it); pass `path_of` for any other layout, e.g. a `wrap_kvs`-wrapped store.
+`path_of(key)` gives the file path of `key` in `hot`; the default is
+`dol.path_of()` on the hot store, which follows wrapped layers (`TypeError` on access if `hot` is not
+file-backed, before anything is fetched; `KeyError` for a key leaving its root).
 `FileNotFoundError` is raised if the file is not there after materialisation.
 `key in paths` checks the store without fetching.
 

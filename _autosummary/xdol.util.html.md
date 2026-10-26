@@ -4,36 +4,10 @@ Utility functions for xdol.
 
 ### Functions
 
-| [`atomic_write`](#xdol.util.atomic_write)(path, data, \*[, tmp_suffix])   | Write `data` to `path` so that a crash leaves the old content or the new, never a torn file.   |
-|-----------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------|
-| `resolve_module_filepath`(module_spec[, ...])                                                 |                                                                                                |
-| `resolve_to_folder`(obj[, ...])                                                               |                                                                                                |
-| [`save_obj`](#xdol.util.save_obj)(obj, \*[, encode, key, ...])        | Serialize and save a Python object with customizable encoding and storage.                     |
-
-### xdol.util.atomic_write(path, data, , tmp_suffix='.tmp')
-
-Write `data` to `path` so that a crash leaves the old content or the new, never a torn file.
-
-`data` is bytes or an iterable of byte chunks (written one at a time, so a large
-snapshot need not be held in memory). The chunks go to a uniquely named sibling of
-`path` (`<name>.<random><tmp_suffix>`), which is then renamed into place with
-`os.replace`; on any failure the sibling is removed. The parent directory must exist.
-The file gets the usual umask permissions. Crash-safe, not power-loss-durable (no fsync).
-
-```pycon
->>> import tempfile
->>> d = tempfile.mkdtemp()
->>> target = os.path.join(d, "f.txt")
->>> atomic_write(target, b"hello")
->>> open(target).read(), os.listdir(d)
-('hello', ['f.txt'])
->>> atomic_write(target, (c.encode() for c in "ab"))
->>> open(target).read()
-'ab'
-```
-
-* **Return type:**
-  [`None`](https://docs.python.org/3/builtins/constants.html#None)
+| `resolve_module_filepath`(module_spec[, ...])                                          |                                                                            |
+|----------------------------------------------------------------------------------------|----------------------------------------------------------------------------|
+| `resolve_to_folder`(obj[, ...])                                                        |                                                                            |
+| [`save_obj`](#xdol.util.save_obj)(obj, \*[, encode, key, ...]) | Serialize and save a Python object with customizable encoding and storage. |
 
 ### xdol.util.save_obj(obj, \*, encode=<built-in function dumps>, key=None, save_under_key=None, return_func=None)
 

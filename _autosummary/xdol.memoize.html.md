@@ -83,7 +83,8 @@ A bytes store over a directory whose writes are atomic.
 Plain file writes can leave a truncated cassette if the process dies mid-write, which
 then fails to decode (or worse, decodes). Here each value is written to a temporary
 sibling and renamed into place (`os.replace`), and temporary files are invisible to
-iteration. Missing sub-directories of a key (`"a/b"`) are created.
+iteration (dol’s hidden `.name.<random>.tmp` siblings; leftovers of the older
+`*.xdol-tmp` scheme are skipped too). Missing sub-directories of a key (`"a/b"`) are created.
 
 ### *exception* xdol.memoize.CacheCorrupt
 
