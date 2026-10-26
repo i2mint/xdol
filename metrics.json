@@ -1,7 +1,7 @@
 {
-  "collection_duration_seconds": 4.1904027462005615,
-  "commit_message": "Merge 7aac220e9fcae207579a69398ce30af8cc4e609e into 86a29c025eed54e8e2202989916617532bbd10a2",
-  "commit_sha": "2307f252ef5d594dcd92e281ec9df07ea8e03b52",
+  "collection_duration_seconds": 3.9034931659698486,
+  "commit_message": "Merge f0178590d162170b9b90b7d9c3a12e96edc6a9b9 into 86a29c025eed54e8e2202989916617532bbd10a2",
+  "commit_sha": "9b4066fdf0c128e01149f9c0c4ed32254432e34d",
   "metrics": {
     "coverage": {
       "branch_coverage": 0.0,
@@ -11,19 +11,19 @@
       "statements_total": 0
     },
     "umpyre_stats": {
-      "comment_lines": 14696,
-      "comment_lines_ratio": 0.05568480641421069,
-      "docs_lines": 38340,
-      "empty_lines": 34040,
-      "empty_lines_ratio": 0.12898141061103238,
-      "files_analyzed": 586,
-      "function_lines": 116860,
-      "function_lines_ratio": 0.4427957592245959,
-      "mean_lines_per_function": 16.5970742792217,
-      "num_classes": 1680,
-      "num_functions": 7041,
+      "comment_lines": 14808,
+      "comment_lines_ratio": 0.055669591500687975,
+      "docs_lines": 38377,
+      "empty_lines": 34357,
+      "empty_lines_ratio": 0.12916262528289688,
+      "files_analyzed": 596,
+      "function_lines": 118375,
+      "function_lines_ratio": 0.44502214302363174,
+      "mean_lines_per_function": 16.59540165428291,
+      "num_classes": 1692,
+      "num_functions": 7133,
       "pypi_version": "0.1.21",
-      "total_lines": 263914
+      "total_lines": 265998
     },
     "wily": {
       "cyclomatic_avg": 0.0,
@@ -34,14 +34,14 @@
     },
     "workflow_status": {
       "last_run_status": "success",
-      "last_success_timestamp": "2026-10-26T13:28:57Z",
+      "last_success_timestamp": "2026-10-26T13:30:17Z",
       "recent_failure_count": 1,
-      "run_url": "https://github.com/i2mint/xdol/actions/runs/40330767964",
+      "run_url": "https://github.com/i2mint/xdol/actions/runs/40330902100",
       "total_runs_analyzed": 10
     }
   },
   "python_version": "3.10",
   "schema_version": "1.0",
-  "timestamp": "2026-10-26T13:30:10.567361Z",
+  "timestamp": "2026-10-26T13:33:48.256947Z",
   "workflow_status": {}
 }
