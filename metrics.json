@@ -1,7 +1,7 @@
 {
-  "collection_duration_seconds": 4.118289232254028,
-  "commit_message": "tests(tiering): hot Files use permanent deletion (Windows trash needs pywin32 and warns)",
-  "commit_sha": "8936f971e1725ac6de3b87c87dd91c6999a3f150",
+  "collection_duration_seconds": 3.1366331577301025,
+  "commit_message": "Merge 8936f971e1725ac6de3b87c87dd91c6999a3f150 into ef2415f42d3faa9bf4ce26ac75c17d8c65f6976d",
+  "commit_sha": "d86eebe8eada04cfdfd93883c14ea9fa4691642a",
   "metrics": {
     "coverage": {
       "branch_coverage": 0.0,
@@ -11,19 +11,19 @@
       "statements_total": 0
     },
     "umpyre_stats": {
-      "comment_lines": 14811,
-      "comment_lines_ratio": 0.055646352047429584,
-      "docs_lines": 38407,
-      "empty_lines": 34387,
-      "empty_lines_ratio": 0.12919526756160699,
-      "files_analyzed": 596,
-      "function_lines": 118493,
-      "function_lines_ratio": 0.44518960186051404,
-      "mean_lines_per_function": 16.574765701496712,
-      "num_classes": 1692,
-      "num_functions": 7149,
+      "comment_lines": 14699,
+      "comment_lines_ratio": 0.05566137405852037,
+      "docs_lines": 38370,
+      "empty_lines": 34070,
+      "empty_lines_ratio": 0.12901442371411584,
+      "files_analyzed": 586,
+      "function_lines": 116978,
+      "function_lines_ratio": 0.4429659306495405,
+      "mean_lines_per_function": 16.57616550942327,
+      "num_classes": 1680,
+      "num_functions": 7057,
       "pypi_version": "0.1.22",
-      "total_lines": 266163
+      "total_lines": 264079
     },
     "wily": {
       "cyclomatic_avg": 0.0,
@@ -42,6 +42,6 @@
   },
   "python_version": "3.10",
   "schema_version": "1.0",
-  "timestamp": "2026-10-26T13:50:20.268692Z",
+  "timestamp": "2026-10-26T13:50:26.664916Z",
   "workflow_status": {}
 }
