@@ -1,22 +1,22 @@
 metric,value
 schema_version,1.0
-timestamp,2026-10-26T20:32:52.933034Z
-commit_sha,47bc945365d5083e65874698376b213a42b7c011
-commit_message,updating: compare and write the value __getitem__ returns; equal arrays compare equal (re-review of #22)
+timestamp,2026-10-26T20:32:56.610011Z
+commit_sha,bd2855df98c3c43137d701de548756f709ba80a0
+commit_message,Merge 47bc945365d5083e65874698376b213a42b7c011 into 30840d858910e9506cd4a27219e626d907fe3013
 python_version,3.10
-metrics.umpyre_stats.num_functions,7205
-metrics.umpyre_stats.num_classes,1696
-metrics.umpyre_stats.total_lines,267096
-metrics.umpyre_stats.empty_lines,34540
-metrics.umpyre_stats.comment_lines,14826
-metrics.umpyre_stats.docs_lines,38669
-metrics.umpyre_stats.function_lines,119171
-metrics.umpyre_stats.empty_lines_ratio,0.12931679995207715
-metrics.umpyre_stats.comment_lines_ratio,0.05550813190762872
-metrics.umpyre_stats.function_lines_ratio,0.4461729116123042
-metrics.umpyre_stats.mean_lines_per_function,16.54004163775156
-metrics.umpyre_stats.files_analyzed,597
-metrics.umpyre_stats.pypi_version,0.1.30
+metrics.umpyre_stats.num_functions,7113
+metrics.umpyre_stats.num_classes,1684
+metrics.umpyre_stats.total_lines,265012
+metrics.umpyre_stats.empty_lines,34223
+metrics.umpyre_stats.comment_lines,14714
+metrics.umpyre_stats.docs_lines,38632
+metrics.umpyre_stats.function_lines,117656
+metrics.umpyre_stats.empty_lines_ratio,0.12913754848837034
+metrics.umpyre_stats.comment_lines_ratio,0.05552201409747483
+metrics.umpyre_stats.function_lines_ratio,0.44396480159389007
+metrics.umpyre_stats.mean_lines_per_function,16.540981301841697
+metrics.umpyre_stats.files_analyzed,587
+metrics.umpyre_stats.pypi_version,0.1.31
 metrics.workflow_status.last_run_status,success
 metrics.workflow_status.last_success_timestamp,2026-10-26T20:29:43Z
 metrics.workflow_status.recent_failure_count,0
@@ -26,11 +26,14 @@ metrics.wily.cyclomatic_avg,0.0
 metrics.wily.maintainability_index,0.0
 metrics.wily.total_loc,0
 metrics.wily.files_analyzed,0
-metrics.wily.error,"wily build failed: [31mFailed to setup archiver: 'Dirty repository, make sure you commit/stash files first'[0m
+metrics.wily.error,"wily report failed: Usage: wily report [OPTIONS] FILE [METRICS]...
+Try 'wily report --help' for help.
+
+Error: Invalid value for '-f' / '--format': 'json' is not one of 'CONSOLE', 'HTML'.
 "
 metrics.coverage.line_coverage,0.0
 metrics.coverage.branch_coverage,0.0
 metrics.coverage.statements_covered,0
 metrics.coverage.statements_total,0
 metrics.coverage.error,No coverage file found
-collection_duration_seconds,3.372434616088867
+collection_duration_seconds,4.414005279541016

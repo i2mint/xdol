@@ -1,7 +1,7 @@
 {
-  "collection_duration_seconds": 3.372434616088867,
-  "commit_message": "updating: compare and write the value __getitem__ returns; equal arrays compare equal (re-review of #22)",
-  "commit_sha": "47bc945365d5083e65874698376b213a42b7c011",
+  "collection_duration_seconds": 4.414005279541016,
+  "commit_message": "Merge 47bc945365d5083e65874698376b213a42b7c011 into 30840d858910e9506cd4a27219e626d907fe3013",
+  "commit_sha": "bd2855df98c3c43137d701de548756f709ba80a0",
   "metrics": {
     "coverage": {
       "branch_coverage": 0.0,
@@ -11,23 +11,23 @@
       "statements_total": 0
     },
     "umpyre_stats": {
-      "comment_lines": 14826,
-      "comment_lines_ratio": 0.05550813190762872,
-      "docs_lines": 38669,
-      "empty_lines": 34540,
-      "empty_lines_ratio": 0.12931679995207715,
-      "files_analyzed": 597,
-      "function_lines": 119171,
-      "function_lines_ratio": 0.4461729116123042,
-      "mean_lines_per_function": 16.54004163775156,
-      "num_classes": 1696,
-      "num_functions": 7205,
-      "pypi_version": "0.1.30",
-      "total_lines": 267096
+      "comment_lines": 14714,
+      "comment_lines_ratio": 0.05552201409747483,
+      "docs_lines": 38632,
+      "empty_lines": 34223,
+      "empty_lines_ratio": 0.12913754848837034,
+      "files_analyzed": 587,
+      "function_lines": 117656,
+      "function_lines_ratio": 0.44396480159389007,
+      "mean_lines_per_function": 16.540981301841697,
+      "num_classes": 1684,
+      "num_functions": 7113,
+      "pypi_version": "0.1.31",
+      "total_lines": 265012
     },
     "wily": {
       "cyclomatic_avg": 0.0,
-      "error": "wily build failed: \u001b[31mFailed to setup archiver: 'Dirty repository, make sure you commit/stash files first'\u001b[0m\n",
+      "error": "wily report failed: Usage: wily report [OPTIONS] FILE [METRICS]...\nTry 'wily report --help' for help.\n\nError: Invalid value for '-f' / '--format': 'json' is not one of 'CONSOLE', 'HTML'.\n",
       "files_analyzed": 0,
       "maintainability_index": 0.0,
       "total_loc": 0
@@ -42,6 +42,6 @@
   },
   "python_version": "3.10",
   "schema_version": "1.0",
-  "timestamp": "2026-10-26T20:32:52.933034Z",
+  "timestamp": "2026-10-26T20:32:56.610011Z",
   "workflow_status": {}
 }
