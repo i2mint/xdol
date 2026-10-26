@@ -7,7 +7,14 @@ import pytest
 from dol import Files
 from dol.trash import permanent_delete
 
-from xdol import AccessLog, AccessStats, GdsfPolicy, HotWriteError, TieredStore
+from xdol import (
+    AccessLog,
+    AccessStats,
+    GdsfPolicy,
+    HotWriteError,
+    LruPolicy,
+    TieredStore,
+)
 from xdol.tiering import local_paths, pin, prefetch, status, sweep, unpin
 
 DAY = 86400
@@ -324,3 +331,146 @@ def test_release_does_not_read_the_hot_value(tmp_path):
     s["a"] = b"x"
     s._drop_hot("a")
     assert list(hot) == []
+
+
+def make_lru(budget, **kw):
+    clock = Clock()
+    kw = {"min_residency_s": 0, "admit_after_reads": 1, **kw}
+    s = TieredStore(
+        {},
+        {},
+        budget_bytes=budget,
+        policy=LruPolicy(**kw),
+        tracker=AccessLog(clock=clock),
+    )
+    return s, clock
+
+
+def test_lru_hot_hit_refreshes_recency():
+    s, clock = make_lru(20)
+    s["a"] = b"x" * 6
+    clock.t += 1
+    s["b"] = b"x" * 6
+    clock.t += 1
+    s["a"]  # hot hit: a is now more recent than b
+    clock.t += 1
+    s["c"] = b"x" * 6  # 18 > 17
+    assert set(s.hot) == {"a", "c"}
+
+
+def test_lru_ignores_frequency():
+    s, clock = make_lru(20)
+    s["a"] = b"x" * 6
+    s["b"] = b"x" * 6
+    for _ in range(5):
+        clock.t += 1
+        s["b"]  # b is read often, but long ago
+    clock.t += 10
+    s["a"]  # a is read once, most recently (GDSF would keep b)
+    clock.t += 1
+    s["c"] = b"x" * 6
+    assert set(s.hot) == {"a", "c"}
+
+
+def test_lru_respects_pins_and_residency():
+    s, clock = make_lru(10)
+    s["a"] = b"x" * 6
+    pin(s, "a")
+    clock.t += 1
+    s["b"] = b"y" * 6  # over budget: the pinned a is spared
+    assert set(s.hot) == {"a"}
+    s2 = TieredStore(
+        {}, {}, budget_bytes=10, policy=LruPolicy(), tracker=AccessLog(clock=Clock())
+    )
+    s2["a"] = b"x" * 6
+    with pytest.warns(UserWarning, match="protected"):
+        s2["b"] = b"y" * 6  # default residency protects both
+    assert len(s2.hot) == 2
+
+
+def test_local_paths_access_counts_as_use(tmp_path):
+    s, clock = make(100, hot=_files(tmp_path), cold={"a": b"xx"})
+    paths = local_paths(s)
+    paths["a"]
+    before = s.tracker["a"]
+    clock.t += 5
+    paths["a"]  # already hot: still recorded as a use
+    assert s.tracker["a"].reads == before.reads + 1
+    assert s.tracker["a"].last_access > before.last_access
+
+
+def test_local_paths_default_rejects_relative_path(tmp_path):
+    class Wrapped(dict):  # like a wrap_kvs-wrapped Files: ids are not full paths
+        rootdir = str(tmp_path) + os.sep
+
+        def _id_of_key(self, key):
+            return key
+
+    hot = Wrapped()
+    s, _ = make(None, hot=hot, cold={"a": b"x"})
+    with pytest.raises(TypeError, match="path_of"):
+        local_paths(s)["a"]
+
+
+def test_local_paths_path_of_and_contains(tmp_path):
+    s, _ = make(None, hot=_files(tmp_path), cold={"a": b"data"})
+    seen = []
+
+    def path_of(key):
+        seen.append(key)
+        return os.path.join(s.hot.rootdir, key)
+
+    paths = local_paths(s, path_of=path_of)
+    assert "a" in paths and "zz" not in paths
+    assert "a" not in s.hot  # `in` did not fetch
+    assert open(paths["a"], "rb").read() == b"data" and seen == ["a"]
+    # a hot store without rootdir works when path_of is given
+    s2, _ = make(None, cold={"a": b"d"})
+    p = tmp_path / "elsewhere"
+    p.write_bytes(b"d")
+    assert local_paths(s2, path_of=lambda k: str(p))["a"] == str(p)
+
+
+def test_local_paths_relative_rootdir_ok(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    s, _ = make(None, hot=Files("rel" + os.sep), cold={"a": b"x"})
+    os.mkdir("rel")
+    assert open(local_paths(s)["a"], "rb").read() == b"x"
+
+
+def test_local_paths_path_outside_root_rejected(tmp_path):
+    # default guard: a hot store whose ids point outside its rootdir
+    class Out(dict):
+        rootdir = str(tmp_path / "root") + os.sep
+
+        def _id_of_key(self, key):
+            return str(tmp_path / "other" / key)
+
+    s2, _ = make(None, hot=Out(), cold={"a": b"x"})
+    with pytest.raises(TypeError, match="path_of"):
+        local_paths(s2)["a"]
+    assert "a" not in s2.hot  # rejected before fetching
+
+
+def test_local_paths_refetches_file_deleted_behind_our_back(tmp_path):
+    s, _ = make(None, hot=_files(tmp_path), cold={"a": b"x"})
+    paths = local_paths(s)
+    p = paths["a"]
+    os.remove(p)
+    assert open(paths["a"], "rb").read() == b"x"
+
+
+def test_local_paths_use_bumps_gdsf_frequency(tmp_path):
+    s, _ = make(None, hot=_files(tmp_path), cold={"a": b"x"})
+    paths = local_paths(s)
+    paths["a"]
+    f0 = s._policy._entries["a"][0]
+    paths["a"]
+    assert s._policy._entries["a"][0] == f0 + 1
+
+
+def test_gdsf_forgets_entries_of_keys_no_longer_hot():
+    p = GdsfPolicy(min_residency_s=0)
+    p.on_hot_access("gone", AccessStats(size=1), admitted=True)
+    assert list(p.to_release({}, hot_bytes=100, budget_bytes=10, now=0)) == []
+    assert "gone" not in p._entries

@@ -35,6 +35,7 @@ from xdol.access import (
 from xdol.tiering import (
     TieredStore,
     GdsfPolicy,
+    LruPolicy,
     PlacementPolicy,
     SweepReport,
     TieringError,
