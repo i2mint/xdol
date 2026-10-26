@@ -221,10 +221,14 @@ def _hot_path(hot, key) -> str:
 
 
 def _checked_hot_path(hot, key) -> str:
-    """``_hot_path``, but only when it is an absolute path under ``hot.rootdir``."""
-    path = _hot_path(hot, key)
+    """``_hot_path`` as an absolute path, but only when it lies under ``hot.rootdir``."""
+    path = os.path.abspath(_hot_path(hot, key))
     root = os.path.abspath(hot.rootdir)
-    if not os.path.isabs(path) or os.path.commonpath([root, path]) != root:
+    try:
+        under_root = os.path.commonpath([root, path]) == root
+    except ValueError:  # e.g. different drives on Windows
+        under_root = False
+    if not under_root:
         raise TypeError(
             f"Cannot locate {key!r} in the hot store (got {path!r}, not under "
             f"{root!r}); pass local_paths(..., path_of=...)"
@@ -482,16 +486,20 @@ class _LocalPaths(Mapping):
 
     def __getitem__(self, key) -> str:
         store = self._store
+        path = self._path_of(key)  # before any fetch: a bad path_of costs nothing
+        if key in store._hot_sizes and not os.path.exists(path):
+            store._drop_hot(key)  # deleted behind our back: refetch from cold
         was_hot = key in store._hot_sizes
         prefetch(store, [key])
+        if not os.path.exists(path):
+            raise FileNotFoundError(f"{key!r} was not materialised at {path!r}")
         if (
             was_hot
         ):  # using the file is an access (recency/frequency), though nothing is read
-            store._tracker.record(key, "read", store._hot_sizes[key], served_from="hot")
+            size = os.path.getsize(path)
+            store._set_size(key, size)
+            store._tracker.record(key, "read", size, served_from="hot")
             store._touched(key, admitted=False)
-        path = self._path_of(key)
-        if not os.path.exists(path):
-            raise FileNotFoundError(f"{key!r} was not materialised at {path!r}")
         return path
 
     def __iter__(self):

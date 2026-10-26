@@ -429,3 +429,48 @@ def test_local_paths_path_of_and_contains(tmp_path):
     p = tmp_path / "elsewhere"
     p.write_bytes(b"d")
     assert local_paths(s2, path_of=lambda k: str(p))["a"] == str(p)
+
+
+def test_local_paths_relative_rootdir_ok(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    s, _ = make(None, hot=Files("rel" + os.sep), cold={"a": b"x"})
+    os.mkdir("rel")
+    assert open(local_paths(s)["a"], "rb").read() == b"x"
+
+
+def test_local_paths_path_outside_root_rejected(tmp_path):
+    # default guard: a hot store whose ids point outside its rootdir
+    class Out(dict):
+        rootdir = str(tmp_path / "root") + os.sep
+
+        def _id_of_key(self, key):
+            return str(tmp_path / "other" / key)
+
+    s2, _ = make(None, hot=Out(), cold={"a": b"x"})
+    with pytest.raises(TypeError, match="path_of"):
+        local_paths(s2)["a"]
+    assert "a" not in s2.hot  # rejected before fetching
+
+
+def test_local_paths_refetches_file_deleted_behind_our_back(tmp_path):
+    s, _ = make(None, hot=_files(tmp_path), cold={"a": b"x"})
+    paths = local_paths(s)
+    p = paths["a"]
+    os.remove(p)
+    assert open(paths["a"], "rb").read() == b"x"
+
+
+def test_local_paths_use_bumps_gdsf_frequency(tmp_path):
+    s, _ = make(None, hot=_files(tmp_path), cold={"a": b"x"})
+    paths = local_paths(s)
+    paths["a"]
+    f0 = s._policy._entries["a"][0]
+    paths["a"]
+    assert s._policy._entries["a"][0] == f0 + 1
+
+
+def test_gdsf_forgets_entries_of_keys_no_longer_hot():
+    p = GdsfPolicy(min_residency_s=0)
+    p.on_hot_access("gone", AccessStats(size=1), admitted=True)
+    assert list(p.to_release({}, hot_bytes=100, budget_bytes=10, now=0)) == []
+    assert "gone" not in p._entries
