@@ -3,11 +3,14 @@
 import itertools
 import json
 import os
+import random
 import warnings
 from dataclasses import FrozenInstanceError
 
 import pytest
 from dol import Files
+
+from xdol.access import _fold_buffered, _fold_streaming, _OutOfOrder
 
 from xdol import (
     AccessLog,
@@ -425,7 +428,54 @@ def test_record_survives_bad_sizes_and_backwards_clock():
     assert "a" not in log
 
 
-def test_streaming_and_buffered_replay_agree(tmp_path):
+def _random_log_lines(rng):
+    """Unstamped lines, equal and backwards ts, mid-file snapshots, torn lines."""
+    lines, t = [], 0
+    for _ in range(rng.randint(0, 25)):
+        r = rng.random()
+        if r < 0.08:
+            lines.append('{"k": "a", "op": "re')
+            continue
+        if r < 0.15:
+            stats = {
+                "reads": rng.randint(0, 5),
+                "size": rng.randint(0, 9),
+                "last_access": float(rng.randint(0, 20)),
+            }
+            lines.append(json.dumps({"k": rng.choice("abc"), "op": "snapshot", "stats": stats}))
+            continue
+        ev = {
+            "k": rng.choice("abc"),
+            "op": rng.choice(["read", "write", "delete", "pin", "unpin", "release"]),
+            "n": rng.randint(0, 9),
+        }
+        if rng.random() < 0.8:
+            t += rng.choice([0, 0, 1, 2]) if rng.random() < 0.85 else -rng.randint(1, 3)
+            ev["ts"] = t
+        lines.append(json.dumps(ev))
+    tail = "\n" if rng.random() < 0.7 else ""
+    return ("\n".join(lines) + tail).encode().splitlines(keepends=True)
+
+
+def test_streaming_and_buffered_replay_agree_fuzz():
+    rng = random.Random(0)
+    streamed = 0
+    for _ in range(3000):
+        lines = _random_log_lines(rng)
+        buffered = {}
+        b_last, b_n = _fold_buffered(lines, buffered)
+        streaming = {}
+        try:
+            s_last, s_n = _fold_streaming(lines, streaming)
+        except _OutOfOrder:
+            continue
+        streamed += 1
+        assert streaming == buffered, lines
+        assert (s_last, s_n) == (b_last, b_n), lines
+    assert streamed > 100  # the fuzz does exercise the streaming path
+
+
+def test_shuffled_log_gives_same_stats(tmp_path):
     ordered = [
         {"k": "a", "op": "write", "n": 5, "ts": 1},
         {"k": "a", "op": "read", "n": 5, "ts": 2},
@@ -433,11 +483,9 @@ def test_streaming_and_buffered_replay_agree(tmp_path):
     ]
     p = tmp_path / "ordered.jsonl"
     p.write_text("".join(json.dumps(e) + "\n" for e in ordered))
-    log = AccessLog(p)
-    # the same events shuffled give the same stats (buffered path)
     q = tmp_path / "shuffled.jsonl"
     q.write_text("".join(json.dumps(e) + "\n" for e in reversed(ordered)))
-    assert dict(AccessLog(q)) == dict(log)
+    assert dict(AccessLog(q)) == dict(AccessLog(p))
 
 
 def test_snapshot_after_events_still_applied_first(tmp_path):
@@ -461,5 +509,41 @@ def test_compact_above_threshold(tmp_path):
     assert len(p.read_text().splitlines()) == 1
     assert reopened["a"].reads == 10
     assert AccessLog(p)["a"].reads == 10
-    AccessLog(p, compact_above=5)  # below the threshold now: untouched
-    assert len(p.read_text().splitlines()) == 1
+
+
+def test_compact_above_counts_events_not_snapshot_lines(tmp_path):
+    p = tmp_path / "log.jsonl"
+    log = AccessLog(p, tag="t")
+    for k in range(10):  # more keys than the threshold
+        log.record(str(k), "read", 1)
+    log.close()
+    AccessLog(p, compact_above=5)  # 10 events: compacted to 10 snapshot lines
+    assert len(p.read_text().splitlines()) == 10
+    before = os.stat(p)
+    reopened = AccessLog(p, compact_above=5)  # 0 events: untouched
+    after = os.stat(p)
+    assert (after.st_ino, after.st_mtime_ns) == (before.st_ino, before.st_mtime_ns)
+    assert len(reopened) == 10
+
+
+def test_compact_above_failure_only_warns(tmp_path, monkeypatch):
+    p = tmp_path / "log.jsonl"
+    log = AccessLog(p, tag="t")
+    for _ in range(10):
+        log.record("a", "read", 3)
+    log.close()
+
+    def fail(self):
+        raise OSError("read-only")
+
+    monkeypatch.setattr(AccessLog, "compact", fail)
+    with pytest.warns(UserWarning, match="could not compact"):
+        reopened = AccessLog(p, compact_above=5)
+    assert reopened["a"].reads == 10
+    assert len(p.read_text().splitlines()) == 10
+
+
+@pytest.mark.parametrize("bad", [-1, 1.5, True, "5"])
+def test_compact_above_validated(tmp_path, bad):
+    with pytest.raises(ValueError):
+        AccessLog(tmp_path / "log.jsonl", compact_above=bad)
