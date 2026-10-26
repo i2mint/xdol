@@ -1,39 +1,36 @@
 metric,value
 schema_version,1.0
-timestamp,2026-10-26T06:40:36.113047Z
-commit_sha,695371b81cddf1627905c46fd979872ea2c9e1bd
-commit_message,"Add backfill, reconcile, verify to xdol.updating (closes #15) (#19)"
+timestamp,2026-10-26T07:06:43.246324Z
+commit_sha,623287ccc6fe1b4f36939e79244afa614f0e75ee
+commit_message,"Add xdol.tiering: TieredStore, GdsfPolicy, sweep/pin/prefetch/local_paths (closes #16)"
 python_version,3.10
-metrics.umpyre_stats.num_functions,7096
-metrics.umpyre_stats.num_classes,1684
-metrics.umpyre_stats.total_lines,265224
-metrics.umpyre_stats.empty_lines,34256
-metrics.umpyre_stats.comment_lines,14726
-metrics.umpyre_stats.docs_lines,38310
-metrics.umpyre_stats.function_lines,118065
-metrics.umpyre_stats.empty_lines_ratio,0.12915874883117667
-metrics.umpyre_stats.comment_lines_ratio,0.05552287877416825
-metrics.umpyre_stats.function_lines_ratio,0.445152022441408
-metrics.umpyre_stats.mean_lines_per_function,16.63824689966178
-metrics.umpyre_stats.files_analyzed,594
+metrics.umpyre_stats.num_functions,7126
+metrics.umpyre_stats.num_classes,1691
+metrics.umpyre_stats.total_lines,265579
+metrics.umpyre_stats.empty_lines,34322
+metrics.umpyre_stats.comment_lines,14731
+metrics.umpyre_stats.docs_lines,38333
+metrics.umpyre_stats.function_lines,118278
+metrics.umpyre_stats.empty_lines_ratio,0.12923461568874045
+metrics.umpyre_stats.comment_lines_ratio,0.05546748801674831
+metrics.umpyre_stats.function_lines_ratio,0.44535900805410067
+metrics.umpyre_stats.mean_lines_per_function,16.598091495930397
+metrics.umpyre_stats.files_analyzed,595
 metrics.umpyre_stats.pypi_version,0.1.19
 metrics.workflow_status.last_run_status,success
-metrics.workflow_status.last_success_timestamp,2026-10-26T06:39:04Z
-metrics.workflow_status.recent_failure_count,0
-metrics.workflow_status.run_url,https://github.com/i2mint/xdol/actions/runs/40280966370
+metrics.workflow_status.last_success_timestamp,2026-10-26T06:41:47Z
+metrics.workflow_status.recent_failure_count,2
+metrics.workflow_status.run_url,https://github.com/i2mint/xdol/actions/runs/40281284779
 metrics.workflow_status.total_runs_analyzed,10
 metrics.wily.cyclomatic_avg,0.0
 metrics.wily.maintainability_index,0.0
 metrics.wily.total_loc,0
 metrics.wily.files_analyzed,0
-metrics.wily.error,"wily report failed: Usage: wily report [OPTIONS] FILE [METRICS]...
-Try 'wily report --help' for help.
-
-Error: Invalid value for '-f' / '--format': 'json' is not one of 'CONSOLE', 'HTML'.
+metrics.wily.error,"wily build failed: [31mFailed to setup archiver: 'Dirty repository, make sure you commit/stash files first'[0m
 "
 metrics.coverage.line_coverage,0.0
 metrics.coverage.branch_coverage,0.0
 metrics.coverage.statements_covered,0
 metrics.coverage.statements_total,0
 metrics.coverage.error,No coverage file found
-collection_duration_seconds,3.605409622192383
+collection_duration_seconds,3.2415919303894043
