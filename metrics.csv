@@ -1,56 +1,39 @@
 metric,value
 schema_version,1.0
-timestamp,2026-10-26T18:09:55.804201Z
-commit_sha,6645d0a37a4b82e8335236ff498215bce8d98c68
-commit_message,"access: stream AccessLog replay; opt-in compact_above (#32) (#36)
-
-* access: stream AccessLog replay; opt-in compact_above (#32)
-
-* test: drop vacuous assert
-
-* access: one replay-line generator; compact_above counts events; never raise on open
-
-- _replay_lines yields parsed lines with unstamped ts filled from the running
-  max; _fold_streaming / _fold_buffered are module-level folds over it.
-- compact_above counts event lines only (a compacted file is not rewritten on
-  every open); validated as None or a non-negative int.
-- auto-compaction failure warns once instead of raising from the constructor.
-- tests: seeded fuzz of streaming vs buffered folds, inode/mtime regression,
-  compaction-failure warning, compact_above validation.
-
-Refs #32
-
-* access: buffered replay's last_ts floors at 0.0, as before (negative ts)
-
-Refs #32"
+timestamp,2026-10-26T18:15:30.211485Z
+commit_sha,bb34dc4d1d74a71870eccbb3fd5e8126fc534bc5
+commit_message,"tiering: max_item_fraction admission, residency from admission (admitted_at), warn once per stuck episode (#24)"
 python_version,3.10
-metrics.umpyre_stats.num_functions,7179
-metrics.umpyre_stats.num_classes,1695
-metrics.umpyre_stats.total_lines,266684
-metrics.umpyre_stats.empty_lines,34479
-metrics.umpyre_stats.comment_lines,14815
-metrics.umpyre_stats.docs_lines,38580
-metrics.umpyre_stats.function_lines,118873
-metrics.umpyre_stats.empty_lines_ratio,0.12928784628999115
-metrics.umpyre_stats.comment_lines_ratio,0.0555526390784599
-metrics.umpyre_stats.function_lines_ratio,0.44574477658952166
-metrics.umpyre_stats.mean_lines_per_function,16.558434322329017
-metrics.umpyre_stats.files_analyzed,597
+metrics.umpyre_stats.num_functions,7087
+metrics.umpyre_stats.num_classes,1683
+metrics.umpyre_stats.total_lines,264640
+metrics.umpyre_stats.empty_lines,34162
+metrics.umpyre_stats.comment_lines,14704
+metrics.umpyre_stats.docs_lines,38543
+metrics.umpyre_stats.function_lines,117394
+metrics.umpyre_stats.empty_lines_ratio,0.1290885731559855
+metrics.umpyre_stats.comment_lines_ratio,0.055562273276904474
+metrics.umpyre_stats.function_lines_ratio,0.4435988512696493
+metrics.umpyre_stats.mean_lines_per_function,16.564695922110907
+metrics.umpyre_stats.files_analyzed,587
 metrics.umpyre_stats.pypi_version,0.1.27
 metrics.workflow_status.last_run_status,success
-metrics.workflow_status.last_success_timestamp,2026-10-26T18:08:29Z
+metrics.workflow_status.last_success_timestamp,2026-10-26T18:11:07Z
 metrics.workflow_status.recent_failure_count,0
-metrics.workflow_status.run_url,https://github.com/i2mint/xdol/actions/runs/40374905253
+metrics.workflow_status.run_url,https://github.com/i2mint/xdol/actions/runs/40375401910
 metrics.workflow_status.total_runs_analyzed,10
 metrics.wily.cyclomatic_avg,0.0
 metrics.wily.maintainability_index,0.0
 metrics.wily.total_loc,0
 metrics.wily.files_analyzed,0
-metrics.wily.error,"wily build failed: [31mFailed to setup archiver: 'Dirty repository, make sure you commit/stash files first'[0m
+metrics.wily.error,"wily report failed: Usage: wily report [OPTIONS] FILE [METRICS]...
+Try 'wily report --help' for help.
+
+Error: Invalid value for '-f' / '--format': 'json' is not one of 'CONSOLE', 'HTML'.
 "
 metrics.coverage.line_coverage,0.0
 metrics.coverage.branch_coverage,0.0
 metrics.coverage.statements_covered,0
 metrics.coverage.statements_total,0
 metrics.coverage.error,No coverage file found
-collection_duration_seconds,3.161508083343506
+collection_duration_seconds,4.391191005706787
