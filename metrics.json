@@ -1,7 +1,7 @@
 {
-  "collection_duration_seconds": 3.3560941219329834,
-  "commit_message": "Add xdol.tiering: TieredStore, GdsfPolicy, sweep/pin/prefetch/local_paths (closes #16)",
-  "commit_sha": "623287ccc6fe1b4f36939e79244afa614f0e75ee",
+  "collection_duration_seconds": 3.281980276107788,
+  "commit_message": "Merge 623287ccc6fe1b4f36939e79244afa614f0e75ee into 5bb461ff431a338f9460d7c76627d4651056cb15",
+  "commit_sha": "52d177b0870c5b7810ba1ac2605d1b3010956765",
   "metrics": {
     "coverage": {
       "branch_coverage": 0.0,
@@ -22,7 +22,7 @@
       "mean_lines_per_function": 16.59980096673301,
       "num_classes": 1679,
       "num_functions": 7034,
-      "pypi_version": "0.1.19",
+      "pypi_version": "0.1.20",
       "total_lines": 263495
     },
     "wily": {
@@ -42,6 +42,6 @@
   },
   "python_version": "3.10",
   "schema_version": "1.0",
-  "timestamp": "2026-10-26T07:06:44.653719Z",
+  "timestamp": "2026-10-26T07:06:50.868910Z",
   "workflow_status": {}
 }
