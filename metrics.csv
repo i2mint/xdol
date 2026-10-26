@@ -1,26 +1,26 @@
 metric,value
 schema_version,1.0
-timestamp,2026-10-26T19:01:04.946849Z
-commit_sha,f81fa3fae449f9cd9e4c01618f25f3766758dfd2
-commit_message,Merge 13d3dfaf561ac18422ffc6484a6b5aebf841806c into 5e81b587f15ad72d61b215d164199291fe942c78
+timestamp,2026-10-26T19:02:41.297335Z
+commit_sha,2c9b15169d42c3bf2e9ff6794d5b941c5e57491c
+commit_message,Merge 7a9f5e480da8ef88ce2a8f9dd79645ad125fdde8 into 5e81b587f15ad72d61b215d164199291fe942c78
 python_version,3.10
 metrics.umpyre_stats.num_functions,7183
 metrics.umpyre_stats.num_classes,1695
-metrics.umpyre_stats.total_lines,266773
+metrics.umpyre_stats.total_lines,266774
 metrics.umpyre_stats.empty_lines,34487
-metrics.umpyre_stats.comment_lines,14819
+metrics.umpyre_stats.comment_lines,14820
 metrics.umpyre_stats.docs_lines,38605
-metrics.umpyre_stats.function_lines,118945
-metrics.umpyre_stats.empty_lines_ratio,0.12927470171269206
-metrics.umpyre_stats.comment_lines_ratio,0.05554909979645616
-metrics.umpyre_stats.function_lines_ratio,0.44586596094807196
-metrics.umpyre_stats.mean_lines_per_function,16.55923708756787
+metrics.umpyre_stats.function_lines,118946
+metrics.umpyre_stats.empty_lines_ratio,0.12927421712760614
+metrics.umpyre_stats.comment_lines_ratio,0.0555526400623749
+metrics.umpyre_stats.function_lines_ratio,0.44586803811465886
+metrics.umpyre_stats.mean_lines_per_function,16.559376305164974
 metrics.umpyre_stats.files_analyzed,597
 metrics.umpyre_stats.pypi_version,0.1.29
 metrics.workflow_status.last_run_status,success
-metrics.workflow_status.last_success_timestamp,2026-10-26T19:00:58Z
+metrics.workflow_status.last_success_timestamp,2026-10-26T19:01:11Z
 metrics.workflow_status.recent_failure_count,0
-metrics.workflow_status.run_url,https://github.com/i2mint/xdol/actions/runs/40382725282
+metrics.workflow_status.run_url,https://github.com/i2mint/xdol/actions/runs/40382753639
 metrics.workflow_status.total_runs_analyzed,10
 metrics.wily.cyclomatic_avg,0.0
 metrics.wily.maintainability_index,0.0
@@ -36,4 +36,4 @@ metrics.coverage.branch_coverage,0.0
 metrics.coverage.statements_covered,0
 metrics.coverage.statements_total,0
 metrics.coverage.error,No coverage file found
-collection_duration_seconds,3.4287846088409424
+collection_duration_seconds,4.0518269538879395
