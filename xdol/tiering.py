@@ -107,7 +107,10 @@ class _ResidencyPolicy:
         pass
 
     def is_protected(self, stats: AccessStats, *, now: float) -> bool:
-        return stats.pinned or now - stats.last_access < self.min_residency_s
+        # residency counts from admission; unknown (e.g. admitted before it was logged)
+        # falls back to the last access
+        since = stats.admitted_at or stats.last_access
+        return stats.pinned or now - since < self.min_residency_s
 
     def _release_order(
         self, candidates: list[tuple[Any, AccessStats]], *, now: float
@@ -247,6 +250,12 @@ class TieredStore(MutableMapping):
     :param policy: a :class:`PlacementPolicy`; default :class:`GdsfPolicy`.
     :param tracker: an :class:`AccessLog` (its ``clock`` is the store's clock); default
         :func:`xdol.access.default_access_log_for` ``(hot)``.
+    :param max_item_fraction: in ``(0, 1]``; with a bounded budget, an item larger than
+        ``max_item_fraction * budget_bytes`` is never held hot by the store itself: a
+        read miss is served from cold without admission, and a write goes to cold only
+        (dropping any stale hot copy). The default ``1.0`` keeps only items larger than
+        the whole budget out. :func:`prefetch` and :func:`local_paths` are explicit
+        requests and are exempt.
 
     Keys already in ``hot`` at construction are not recorded as accesses. Their size
     comes from the tracker, else from the file size when ``hot`` is file-backed, else
@@ -261,14 +270,21 @@ class TieredStore(MutableMapping):
         budget_bytes: int | None,
         policy: PlacementPolicy | None = None,
         tracker: AccessLog | None = None,
+        max_item_fraction: float = 1.0,
     ):
+        if not 0 < max_item_fraction <= 1:
+            raise ValueError(
+                f"max_item_fraction must be in (0, 1], not {max_item_fraction!r}"
+            )
         self._hot, self._cold = hot, cold
         self._budget = budget_bytes
+        self._max_item_fraction = max_item_fraction
         self._policy = GdsfPolicy() if policy is None else policy
         self._tracker = default_access_log_for(hot) if tracker is None else tracker
         self._hot_sizes: dict = {}
         self._hot_bytes = 0
         self._last_sweep: SweepReport | None = None
+        self._warned_protected = False
         for k in list(hot):
             st = self._tracker.stats(k)
             known = st.size if st is not None else 0
@@ -279,6 +295,7 @@ class TieredStore(MutableMapping):
     policy = property(lambda self: self._policy)
     tracker = property(lambda self: self._tracker)
     budget_bytes = property(lambda self: self._budget)
+    max_item_fraction = property(lambda self: self._max_item_fraction)
 
     # -- private bookkeeping ------------------------------------------------
     def _now(self) -> float:
@@ -295,15 +312,30 @@ class TieredStore(MutableMapping):
         self._set_size(k, size)
         return admitted
 
-    def _drop_hot(self, k) -> None:
+    def _drop_hot(self, k, *, record_release: bool = True) -> bool:
+        """Drop ``k``'s hot copy; return whether there was one.
+
+        A dropped copy is logged as a ``release`` (``admitted_at`` means "hot since"),
+        unless ``record_release`` is false (a delete, which logs its own event).
+        """
         try:
             del self._hot[k]  # not .pop: MutableMapping.pop reads the value first
         except KeyError:
             pass
+        was_hot = k in self._hot_sizes
         self._hot_bytes -= self._hot_sizes.pop(k, 0)
         self._policy.on_hot_drop(k)
+        if was_hot and record_release:
+            self._tracker.record(k, "release", 0)
+        return was_hot
+
+    def _too_big(self, size: int) -> bool:
+        """Whether an item of ``size`` bytes is never held hot (``max_item_fraction``)."""
+        return bool(self._budget) and size > self._max_item_fraction * self._budget
 
     def _touched(self, k, *, admitted: bool) -> None:
+        if admitted:
+            self._tracker.record(k, "admit", 0)
         self._policy.on_hot_access(k, self._tracker.stats(k), admitted=admitted)
 
     def _check_release(self, *, exclude: Iterable = ()) -> None:
@@ -317,7 +349,7 @@ class TieredStore(MutableMapping):
         size = _require_size(v)
         self._cold[k] = v
         try:
-            if self._budget == 0:
+            if self._budget == 0 or self._too_big(size):
                 self._drop_hot(k)  # never leave a stale hot copy behind
                 admitted = None
             else:
@@ -334,8 +366,13 @@ class TieredStore(MutableMapping):
     def __delitem__(self, k):
         # Hot first: a failure then leaves the record in cold, never a deleted
         # record still served from hot.
-        self._drop_hot(k)
-        del self._cold[k]
+        was_hot = self._drop_hot(k, record_release=False)
+        try:
+            del self._cold[k]
+        except BaseException:
+            if was_hot:  # the hot copy is gone but the key is not: log the release
+                self._tracker.record(k, "release", 0)
+            raise
         self._tracker.record(k, "delete", 0)
 
     def __getitem__(self, k):
@@ -348,27 +385,27 @@ class TieredStore(MutableMapping):
                 self._drop_hot(k)
         if served_from is None:
             v, served_from = self._cold[k], "cold"
-            if self._admits(k, now):
-                admitted = self._admit(k, v)
         size = value_size(v)
         if served_from == "hot":
             self._set_size(k, size)  # also learns sizes unknown at startup
+        elif self._admits(k, now, size=size):
+            admitted = self._admit(k, v, size)
         self._tracker.record(k, "read", size, served_from=served_from)
         if served_from == "hot" or admitted:
             self._touched(k, admitted=admitted)
         self._check_release()
         return v
 
-    def _admits(self, k, now: float) -> bool:
+    def _admits(self, k, now: float, *, size: int) -> bool:
         if self._budget is None:
             return True
-        if self._budget == 0:
+        if self._budget == 0 or self._too_big(size):
             return False
         return self._policy.admit(k, self._tracker.stats(k), now=now)
 
-    def _admit(self, k, v) -> bool:
+    def _admit(self, k, v, size: int) -> bool:
         try:
-            return self._put_hot(k, v, value_size(v))
+            return self._put_hot(k, v, size)
         except Exception as e:
             self._drop_hot(k)
             warnings.warn(f"Could not admit {k!r} to the hot tier: {e!r}")
@@ -388,16 +425,24 @@ class TieredStore(MutableMapping):
 
 
 def _release(store: TieredStore, key, released: list) -> None:
-    store._drop_hot(key)
-    store._tracker.record(key, "release", 0)
+    store._drop_hot(key)  # logs the release
     released.append(key)
+
+
+def _warn_once_per_stuck_episode(store: TieredStore, stuck: bool) -> None:
+    """Warn when a sweep gets stuck on protected keys, once until it gets unstuck."""
+    if stuck and not store._warned_protected:
+        warnings.warn(
+            "sweep could not reach the low watermark: remaining keys are protected."
+        )
+    store._warned_protected = stuck
 
 
 def sweep(store: TieredStore, *, exclude: Iterable = ()) -> SweepReport:
     """Release hot copies, lowest priority first, down to the low watermark.
 
     Never touches ``cold``, nor the keys in ``exclude``. Warns if every remaining key
-    is protected. With ``budget_bytes=0`` (no hot tier) every hot copy is released,
+    is protected, once per stuck episode (until a sweep reaches it again). With ``budget_bytes=0`` (no hot tier) every hot copy is released,
     protected or not.
     """
     before = store._hot_bytes
@@ -422,12 +467,10 @@ def sweep(store: TieredStore, *, exclude: Iterable = ()) -> SweepReport:
             if store._hot_bytes <= target:
                 break
             _release(store, k, released)
-        if store._hot_bytes > target and _exceeds_watermark(
+        stuck = store._hot_bytes > target and _exceeds_watermark(
             before, budget, store._policy.high_watermark
-        ):
-            warnings.warn(
-                "sweep could not reach the low watermark: remaining keys are protected."
-            )
+        )
+        _warn_once_per_stuck_episode(store, stuck)
     report = SweepReport(released, before, store._hot_bytes)
     store._last_sweep = report
     return report
@@ -444,6 +487,8 @@ def unpin(store: TieredStore, key) -> None:
 
 def prefetch(store: TieredStore, keys: Iterable) -> None:
     """Admit ``keys`` to hot regardless of policy, as reads served from cold.
+
+    An explicit request: exempt from ``max_item_fraction`` too.
 
     The release this may trigger never releases ``keys``.
     """
@@ -507,6 +552,9 @@ def local_paths(
     store: TieredStore, *, path_of: Callable[[Any], str] | None = None
 ) -> Mapping:
     """Read-only ``{key: real file path}``; materialises each key into ``hot``.
+
+    Materialisation is an explicit request, like :func:`prefetch`: exempt from the
+    policy and from ``max_item_fraction``.
 
     ``path_of(key)`` gives the file path of ``key`` in ``hot``; the default is
     :func:`dol.path_of` on the hot store, which follows wrapped layers (``TypeError`` on access if ``hot`` is not

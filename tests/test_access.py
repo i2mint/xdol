@@ -548,3 +548,20 @@ def test_compact_above_failure_only_warns(tmp_path, monkeypatch):
 def test_compact_above_validated(tmp_path, bad):
     with pytest.raises(ValueError):
         AccessLog(tmp_path / "log.jsonl", compact_above=bad)
+
+
+def test_snapshot_without_admitted_at_loads(tmp_path):
+    p = tmp_path / "old.jsonl"
+    old = {"reads": 3, "size": 2, "last_access": 5.0, "pinned": True}
+    p.write_text(json.dumps({"k": "a", "op": "snapshot", "stats": old}) + "\n")
+    st = AccessLog(p)["a"]
+    assert st.reads == 3 and st.pinned and st.admitted_at == 0.0
+
+
+def test_merge_stats_admitted_at_from_latest_access():
+    early = {"a": AccessStats(last_access=10.0, admitted_at=8.0)}
+    late = {"a": AccessStats(last_access=20.0, admitted_at=0.0)}  # since released
+    assert merge_stats(early, late)["a"].admitted_at == 0.0
+    assert merge_stats(late, early)["a"].admitted_at == 0.0
+    late = {"a": AccessStats(last_access=20.0, admitted_at=15.0)}
+    assert merge_stats(late, early)["a"].admitted_at == 15.0
