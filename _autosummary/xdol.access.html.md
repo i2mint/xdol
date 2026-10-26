@@ -20,15 +20,20 @@ only knows paths can append to the same file):
 ```
 
 Only `k` and `op` are required: an event without `n` leaves the size alone.
-Replay does not trust file order (several writers may append to one file): recency
-fields take the max timestamp seen, `first_seen` the min.
+Replay does not trust file order (several writers may append to one file): it parses
+every line (a torn or ill-typed one, e.g. a NaN `ts` or a string `n`, is skipped),
+applies the snapshot lines first, then folds the other events in `(ts, line number)`
+order, exactly as live recording folds them. So a `delete` clears a key (pin
+included) and only later-stamped events bring it back. An event without `ts` is
+ordered right after the line before it in the file (it takes that line’s timestamp,
+`0` at the top of the file): an unstamped `delete` still deletes what came before.
 
 Keys must be JSON scalars, in practice `str`: a key that does not survive a JSON
 round trip (a tuple, a `Path`…) is counted in memory but lost or changed on reopen,
 and recording one warns once.
 
 A compacted file holds `{"k": key, "op": "snapshot", "stats": {...}}` lines, folded as
-initial state.
+initial state (the baseline the events after it build on).
 
 ```pycon
 >>> log = AccessLog()
@@ -68,7 +73,9 @@ Append-only JSONL access log, readable as a `Mapping` of key -> AccessStats.
   * **clock** ([`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[], [`float`](https://docs.python.org/3/builtins/functions.html#float)]) – callable returning unix seconds.
   * **tag** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – label stamped on each event; defaults to `platform.node()`.
 
-A tracker never raises into a store’s read path: if the file cannot be written,
+Opening replays the file in timestamp order (see the module docstring), so the
+stats equal what recording those events live would give. A tracker never raises
+into a store’s read path: if the file cannot be written,
 a warning is issued once and counting continues in memory. Not thread-safe.
 
 #### compact()

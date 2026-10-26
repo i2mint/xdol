@@ -63,7 +63,9 @@ with `F` its accesses since admission to hot, `cost(size) = cost_per_request +
 cost_per_byte * size` and `L` the H of the last released key at that time
 (per process; resets at restart). Releasing the lowest H raises `L`, so a key
 not accessed for a while loses to newer ones however often it was read. A key
-already hot when this process first sees it is seeded with its logged frequency.
+already hot when this process first sees it starts fresh, `F = 1`, as if just
+admitted: its logged history (often long, all of it older than `L`’s reset)
+would otherwise keep it favoured after every restart.
 
 #### priority(frequency, size)
 
@@ -120,8 +122,13 @@ Bases: [`MutableMapping`](https://docs.python.org/3/library/collections.abc.html
 Bounded hot store over a cold source of truth. See the module docstring.
 
 * **Parameters:**
-  * **budget_bytes** ([`int`](https://docs.python.org/3/builtins/functions.html#int) | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – `None`: hot is a full mirror (never released, every read miss
-    admitted); `0`: cold-only; `> 0`: bounded.
+  * **budget_bytes** ([`int`](https://docs.python.org/3/builtins/functions.html#int) | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – 
+
+    `None`: hot is a full mirror (never released, every read miss
+    admitted); `0`: cold-only, no hot tier (writes skip hot and read misses are not admitted, but only
+    [`sweep()`](#xdol.tiering.sweep) enforces it: [`prefetch()`](#xdol.tiering.prefetch) and [`local_paths()`](#xdol.tiering.local_paths) still fill
+    > hot until the next sweep, which releases every hot copy, protected or not);
+    > `> 0`: bounded.
   * **policy** ([`PlacementPolicy`](#xdol.tiering.PlacementPolicy) | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – a [`PlacementPolicy`](#xdol.tiering.PlacementPolicy); default [`GdsfPolicy`](#xdol.tiering.GdsfPolicy).
   * **tracker** ([`AccessLog`](xdol.access.html.md#xdol.access.AccessLog) | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – an `AccessLog` (its `clock` is the store’s clock); default
     [`xdol.access.default_access_log_for()`](xdol.access.html.md#xdol.access.default_access_log_for) `(hot)`.
@@ -170,7 +177,8 @@ The release this may trigger never releases `keys`.
 Release hot copies, lowest priority first, down to the low watermark.
 
 Never touches `cold`, nor the keys in `exclude`. Warns if every remaining key
-is protected.
+is protected. With `budget_bytes=0` (no hot tier) every hot copy is released,
+protected or not.
 
 * **Return type:**
   [`SweepReport`](#xdol.tiering.SweepReport)

@@ -44,7 +44,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../_static/documentation_options.js?v=ebdbb45b"></script>
+    <script src="../_static/documentation_options.js?v=4fa33042"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -58,7 +58,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.24" />
+  <meta name="docsearch:version" content="0.1.25" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -472,7 +472,9 @@ with <code class="docutils literal notranslate"><span class="pre">F</span></code
 <span class="pre">cost_per_byte</span> <span class="pre">*</span> <span class="pre">size</span></code> and <code class="docutils literal notranslate"><span class="pre">L</span></code> the H of the last released key at that time
 (per process; resets at restart). Releasing the lowest H raises <code class="docutils literal notranslate"><span class="pre">L</span></code>, so a key
 not accessed for a while loses to newer ones however often it was read. A key
-already hot when this process first sees it is seeded with its logged frequency.</p>
+already hot when this process first sees it starts fresh, <code class="docutils literal notranslate"><span class="pre">F</span> <span class="pre">=</span> <span class="pre">1</span></code>, as if just
+admitted: its logged history (often long, all of it older than <code class="docutils literal notranslate"><span class="pre">L</span></code>’s reset)
+would otherwise keep it favoured after every restart.</p>
 <dl class="field-list simple">
 </dl>
 <dl class="py method">
@@ -552,8 +554,14 @@ oldest-<code class="docutils literal notranslate"><span class="pre">last_access<
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>budget_bytes</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a> | <span class="highlight sphinx_autodoc_typehints-value"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></a></span></span>) – <code class="docutils literal notranslate"><span class="pre">None</span></code>: hot is a full mirror (never released, every read miss
-admitted); <code class="docutils literal notranslate"><span class="pre">0</span></code>: cold-only; <code class="docutils literal notranslate"><span class="pre">&gt;</span> <span class="pre">0</span></code>: bounded.</p></li>
+<li><p><strong>budget_bytes</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a> | <span class="highlight sphinx_autodoc_typehints-value"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></a></span></span>) – <p><code class="docutils literal notranslate"><span class="pre">None</span></code>: hot is a full mirror (never released, every read miss
+admitted); <code class="docutils literal notranslate"><span class="pre">0</span></code>: cold-only, no hot tier (writes skip hot and read misses are not admitted, but only
+<a class="reference internal" href="#xdol.tiering.sweep" title="xdol.tiering.sweep"><code class="xref py py-func docutils literal notranslate"><span class="pre">sweep()</span></code></a> enforces it: <a class="reference internal" href="#xdol.tiering.prefetch" title="xdol.tiering.prefetch"><code class="xref py py-func docutils literal notranslate"><span class="pre">prefetch()</span></code></a> and <a class="reference internal" href="#xdol.tiering.local_paths" title="xdol.tiering.local_paths"><code class="xref py py-func docutils literal notranslate"><span class="pre">local_paths()</span></code></a> still fill</p>
+<blockquote>
+<div><p>hot until the next sweep, which releases every hot copy, protected or not);
+<code class="docutils literal notranslate"><span class="pre">&gt;</span> <span class="pre">0</span></code>: bounded.</p>
+</div></blockquote>
+</p></li>
 <li><p><strong>policy</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#xdol.tiering.PlacementPolicy" title="xdol.tiering.PlacementPolicy"><code class="xref py py-class docutils literal notranslate"><span class="pre">PlacementPolicy</span></code></a> | <span class="highlight sphinx_autodoc_typehints-value"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></a></span></span>) – a <a class="reference internal" href="#xdol.tiering.PlacementPolicy" title="xdol.tiering.PlacementPolicy"><code class="xref py py-class docutils literal notranslate"><span class="pre">PlacementPolicy</span></code></a>; default <a class="reference internal" href="#xdol.tiering.GdsfPolicy" title="xdol.tiering.GdsfPolicy"><code class="xref py py-class docutils literal notranslate"><span class="pre">GdsfPolicy</span></code></a>.</p></li>
 <li><p><strong>tracker</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="xdol.access.html#xdol.access.AccessLog" title="xdol.access.AccessLog"><code class="xref py py-class docutils literal notranslate"><span class="pre">AccessLog</span></code></a> | <span class="highlight sphinx_autodoc_typehints-value"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></a></span></span>) – an <code class="xref py py-class docutils literal notranslate"><span class="pre">AccessLog</span></code> (its <code class="docutils literal notranslate"><span class="pre">clock</span></code> is the store’s clock); default
 <a class="reference internal" href="xdol.access.html#xdol.access.default_access_log_for" title="xdol.access.default_access_log_for"><code class="xref py py-func docutils literal notranslate"><span class="pre">xdol.access.default_access_log_for()</span></code></a> <code class="docutils literal notranslate"><span class="pre">(hot)</span></code>.</p></li>
@@ -616,7 +624,8 @@ is no <code class="docutils literal notranslate"><span class="pre">rootdir</span
 <span class="sig-prename descclassname"><span class="pre">xdol.tiering.</span></span><span class="sig-name descname"><span class="pre">sweep</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">store</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">exclude</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">()</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xdol/tiering.html#sweep"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xdol.tiering.sweep" title="Link to this definition">#</a></dt>
 <dd><p>Release hot copies, lowest priority first, down to the low watermark.</p>
 <p>Never touches <code class="docutils literal notranslate"><span class="pre">cold</span></code>, nor the keys in <code class="docutils literal notranslate"><span class="pre">exclude</span></code>. Warns if every remaining key
-is protected.</p>
+is protected. With <code class="docutils literal notranslate"><span class="pre">budget_bytes=0</span></code> (no hot tier) every hot copy is released,
+protected or not.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#xdol.tiering.SweepReport" title="xdol.tiering.SweepReport"><code class="xref py py-class docutils literal notranslate"><span class="pre">SweepReport</span></code></a></span></p>

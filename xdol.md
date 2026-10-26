@@ -1,4 +1,4 @@
-> built 2026-10-26 15:19 UTC from ec42c3a (master) · xdol 0.1.24. Details: build_info.json
+> built 2026-10-26 15:46 UTC from 47a18eb (master) · xdol 0.1.25. Details: build_info.json
 
 # index.html.md
 
@@ -56,15 +56,20 @@ only knows paths can append to the same file):
 ```
 
 Only `k` and `op` are required: an event without `n` leaves the size alone.
-Replay does not trust file order (several writers may append to one file): recency
-fields take the max timestamp seen, `first_seen` the min.
+Replay does not trust file order (several writers may append to one file): it parses
+every line (a torn or ill-typed one, e.g. a NaN `ts` or a string `n`, is skipped),
+applies the snapshot lines first, then folds the other events in `(ts, line number)`
+order, exactly as live recording folds them. So a `delete` clears a key (pin
+included) and only later-stamped events bring it back. An event without `ts` is
+ordered right after the line before it in the file (it takes that line’s timestamp,
+`0` at the top of the file): an unstamped `delete` still deletes what came before.
 
 Keys must be JSON scalars, in practice `str`: a key that does not survive a JSON
 round trip (a tuple, a `Path`…) is counted in memory but lost or changed on reopen,
 and recording one warns once.
 
 A compacted file holds `{"k": key, "op": "snapshot", "stats": {...}}` lines, folded as
-initial state.
+initial state (the baseline the events after it build on).
 
 ```pycon
 >>> log = AccessLog()
@@ -104,7 +109,9 @@ Append-only JSONL access log, readable as a `Mapping` of key -> AccessStats.
   * **clock** ([`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[], [`float`](https://docs.python.org/3/builtins/functions.html#float)]) – callable returning unix seconds.
   * **tag** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – label stamped on each event; defaults to `platform.node()`.
 
-A tracker never raises into a store’s read path: if the file cannot be written,
+Opening replays the file in timestamp order (see the module docstring), so the
+stats equal what recording those events live would give. A tracker never raises
+into a store’s read path: if the file cannot be written,
 a warning is issued once and counting continues in memory. Not thread-safe.
 
 #### compact()
@@ -1238,7 +1245,9 @@ with `F` its accesses since admission to hot, `cost(size) = cost_per_request +
 cost_per_byte * size` and `L` the H of the last released key at that time
 (per process; resets at restart). Releasing the lowest H raises `L`, so a key
 not accessed for a while loses to newer ones however often it was read. A key
-already hot when this process first sees it is seeded with its logged frequency.
+already hot when this process first sees it starts fresh, `F = 1`, as if just
+admitted: its logged history (often long, all of it older than `L`’s reset)
+would otherwise keep it favoured after every restart.
 
 #### priority(frequency, size)
 
@@ -1295,8 +1304,13 @@ Bases: [`MutableMapping`](https://docs.python.org/3/library/collections.abc.html
 Bounded hot store over a cold source of truth. See the module docstring.
 
 * **Parameters:**
-  * **budget_bytes** ([`int`](https://docs.python.org/3/builtins/functions.html#int) | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – `None`: hot is a full mirror (never released, every read miss
-    admitted); `0`: cold-only; `> 0`: bounded.
+  * **budget_bytes** ([`int`](https://docs.python.org/3/builtins/functions.html#int) | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – 
+
+    `None`: hot is a full mirror (never released, every read miss
+    admitted); `0`: cold-only, no hot tier (writes skip hot and read misses are not admitted, but only
+    [`sweep()`](_autosummary/xdol.tiering.html.md#xdol.tiering.sweep) enforces it: [`prefetch()`](_autosummary/xdol.tiering.html.md#xdol.tiering.prefetch) and [`local_paths()`](_autosummary/xdol.tiering.html.md#xdol.tiering.local_paths) still fill
+    > hot until the next sweep, which releases every hot copy, protected or not);
+    > `> 0`: bounded.
   * **policy** ([`PlacementPolicy`](_autosummary/xdol.tiering.html.md#xdol.tiering.PlacementPolicy) | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – a [`PlacementPolicy`](_autosummary/xdol.tiering.html.md#xdol.tiering.PlacementPolicy); default [`GdsfPolicy`](_autosummary/xdol.tiering.html.md#xdol.tiering.GdsfPolicy).
   * **tracker** ([`AccessLog`](_autosummary/xdol.access.html.md#xdol.access.AccessLog) | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – an `AccessLog` (its `clock` is the store’s clock); default
     [`xdol.access.default_access_log_for()`](_autosummary/xdol.access.html.md#xdol.access.default_access_log_for) `(hot)`.
@@ -1345,7 +1359,8 @@ The release this may trigger never releases `keys`.
 Release hot copies, lowest priority first, down to the low watermark.
 
 Never touches `cold`, nor the keys in `exclude`. Warns if every remaining key
-is protected.
+is protected. With `budget_bytes=0` (no hot tier) every hot copy is released,
+protected or not.
 
 * **Return type:**
   [`SweepReport`](_autosummary/xdol.tiering.html.md#xdol.tiering.SweepReport)
@@ -2005,18 +2020,18 @@ A value that fails to decode raises [`CodecDecodeError`](_autosummary/xdol.x_cod
 
 # About this build
 
-This documentation was built on **2026-10-26 15:19 UTC** from commit <a href="https://github.com/i2mint/xdol/commit/ec42c3abe28a7b744112842ed5e7283591b92a25"><code>ec42c3a</code></a> on branch <code>master</code>, for **xdol 0.1.24** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-10-26 15:46 UTC** from commit <a href="https://github.com/i2mint/xdol/commit/47a18eb62b3334feee0203b93ea2a2976744cdbf"><code>47a18eb</code></a> on branch <code>master</code>, for **xdol 0.1.25** (from <code>pyproject.toml</code>).
 
 #### WARNING
 The documentation and the package may be misaligned:
 
-- The documented version (0.1.24) is behind the latest release on PyPI (0.1.25): `pip install xdol` gives newer code than these docs describe.
+- The documented version (0.1.25) is behind the latest release on PyPI (0.1.26): `pip install xdol` gives newer code than these docs describe.
 
 ## Source
 
 |                     |                                                                                                                                                    |
 |---------------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/i2mint/xdol/commit/ec42c3abe28a7b744112842ed5e7283591b92a25"><code>ec42c3abe28a7b744112842ed5e7283591b92a25</code></a> |
+| Commit              | <a href="https://github.com/i2mint/xdol/commit/47a18eb62b3334feee0203b93ea2a2976744cdbf"><code>47a18eb62b3334feee0203b93ea2a2976744cdbf</code></a> |
 | Branch              | <code>master</code>                                                                                                                                |
 | Tags at this commit | none                                                                                                                                               |
 | Working tree        | clean                                                                                                                                              |
@@ -2027,9 +2042,9 @@ The documentation and the package may be misaligned:
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>i2mint/xdol</code>                                                                   |
-| Run          | <a href="https://github.com/i2mint/xdol/actions/runs/40347936637">40347936637</a>          |
+| Run          | <a href="https://github.com/i2mint/xdol/actions/runs/40352486409">40352486409</a>          |
 | Ref          | <code>refs/heads/master</code>                                                             |
-| Event commit | <code>ec42c3abe28a7b744112842ed5e7283591b92a25</code> (in the history of the built commit) |
+| Event commit | <code>47a18eb62b3334feee0203b93ea2a2976744cdbf</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -2054,13 +2069,13 @@ The documentation and the package may be misaligned:
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/xdol/0.1.25/">0.1.25</a>, newer than the documented version (0.1.24).
+Latest release: <a href="https://pypi.org/project/xdol/0.1.26/">0.1.26</a>, newer than the documented version (0.1.25).
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/i2mint/xdol && cd xdol
-git checkout ec42c3abe28a7b744112842ed5e7283591b92a25
+git checkout 47a18eb62b3334feee0203b93ea2a2976744cdbf
 pip install "epythet==0.2.22"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```

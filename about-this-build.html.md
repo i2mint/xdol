@@ -2,18 +2,18 @@
 
 # About this build
 
-This documentation was built on **2026-10-26 15:19 UTC** from commit <a href="https://github.com/i2mint/xdol/commit/ec42c3abe28a7b744112842ed5e7283591b92a25"><code>ec42c3a</code></a> on branch <code>master</code>, for **xdol 0.1.24** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-10-26 15:46 UTC** from commit <a href="https://github.com/i2mint/xdol/commit/47a18eb62b3334feee0203b93ea2a2976744cdbf"><code>47a18eb</code></a> on branch <code>master</code>, for **xdol 0.1.25** (from <code>pyproject.toml</code>).
 
 #### WARNING
 The documentation and the package may be misaligned:
 
-- The documented version (0.1.24) is behind the latest release on PyPI (0.1.25): `pip install xdol` gives newer code than these docs describe.
+- The documented version (0.1.25) is behind the latest release on PyPI (0.1.26): `pip install xdol` gives newer code than these docs describe.
 
 ## Source
 
 |                     |                                                                                                                                                    |
 |---------------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/i2mint/xdol/commit/ec42c3abe28a7b744112842ed5e7283591b92a25"><code>ec42c3abe28a7b744112842ed5e7283591b92a25</code></a> |
+| Commit              | <a href="https://github.com/i2mint/xdol/commit/47a18eb62b3334feee0203b93ea2a2976744cdbf"><code>47a18eb62b3334feee0203b93ea2a2976744cdbf</code></a> |
 | Branch              | <code>master</code>                                                                                                                                |
 | Tags at this commit | none                                                                                                                                               |
 | Working tree        | clean                                                                                                                                              |
@@ -24,9 +24,9 @@ The documentation and the package may be misaligned:
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>i2mint/xdol</code>                                                                   |
-| Run          | <a href="https://github.com/i2mint/xdol/actions/runs/40347936637">40347936637</a>          |
+| Run          | <a href="https://github.com/i2mint/xdol/actions/runs/40352486409">40352486409</a>          |
 | Ref          | <code>refs/heads/master</code>                                                             |
-| Event commit | <code>ec42c3abe28a7b744112842ed5e7283591b92a25</code> (in the history of the built commit) |
+| Event commit | <code>47a18eb62b3334feee0203b93ea2a2976744cdbf</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -51,13 +51,13 @@ The documentation and the package may be misaligned:
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/xdol/0.1.25/">0.1.25</a>, newer than the documented version (0.1.24).
+Latest release: <a href="https://pypi.org/project/xdol/0.1.26/">0.1.26</a>, newer than the documented version (0.1.25).
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/i2mint/xdol && cd xdol
-git checkout ec42c3abe28a7b744112842ed5e7283591b92a25
+git checkout 47a18eb62b3334feee0203b93ea2a2976744cdbf
 pip install "epythet==0.2.22"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```

@@ -44,7 +44,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../_static/documentation_options.js?v=ebdbb45b"></script>
+    <script src="../_static/documentation_options.js?v=4fa33042"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -58,7 +58,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.24" />
+  <meta name="docsearch:version" content="0.1.25" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -398,13 +398,18 @@ only knows paths can append to the same file):</p>
 </pre></div>
 </div>
 <p>Only <code class="docutils literal notranslate"><span class="pre">k</span></code> and <code class="docutils literal notranslate"><span class="pre">op</span></code> are required: an event without <code class="docutils literal notranslate"><span class="pre">n</span></code> leaves the size alone.
-Replay does not trust file order (several writers may append to one file): recency
-fields take the max timestamp seen, <code class="docutils literal notranslate"><span class="pre">first_seen</span></code> the min.</p>
+Replay does not trust file order (several writers may append to one file): it parses
+every line (a torn or ill-typed one, e.g. a NaN <code class="docutils literal notranslate"><span class="pre">ts</span></code> or a string <code class="docutils literal notranslate"><span class="pre">n</span></code>, is skipped),
+applies the snapshot lines first, then folds the other events in <code class="docutils literal notranslate"><span class="pre">(ts,</span> <span class="pre">line</span> <span class="pre">number)</span></code>
+order, exactly as live recording folds them. So a <code class="docutils literal notranslate"><span class="pre">delete</span></code> clears a key (pin
+included) and only later-stamped events bring it back. An event without <code class="docutils literal notranslate"><span class="pre">ts</span></code> is
+ordered right after the line before it in the file (it takes that line’s timestamp,
+<code class="docutils literal notranslate"><span class="pre">0</span></code> at the top of the file): an unstamped <code class="docutils literal notranslate"><span class="pre">delete</span></code> still deletes what came before.</p>
 <p>Keys must be JSON scalars, in practice <code class="docutils literal notranslate"><span class="pre">str</span></code>: a key that does not survive a JSON
 round trip (a tuple, a <code class="docutils literal notranslate"><span class="pre">Path</span></code>…) is counted in memory but lost or changed on reopen,
 and recording one warns once.</p>
 <p>A compacted file holds <code class="docutils literal notranslate"><span class="pre">{&quot;k&quot;:</span> <span class="pre">key,</span> <span class="pre">&quot;op&quot;:</span> <span class="pre">&quot;snapshot&quot;,</span> <span class="pre">&quot;stats&quot;:</span> <span class="pre">{...}}</span></code> lines, folded as
-initial state.</p>
+initial state (the baseline the events after it build on).</p>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">log</span> <span class="o">=</span> <span class="n">AccessLog</span><span class="p">()</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">store</span> <span class="o">=</span> <span class="n">track_access</span><span class="p">({</span><span class="s1">'a'</span><span class="p">:</span> <span class="sa">b</span><span class="s1">'xyz'</span><span class="p">},</span> <span class="n">tracker</span><span class="o">=</span><span class="n">log</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">store</span><span class="p">[</span><span class="s1">'a'</span><span class="p">]</span>
@@ -461,7 +466,9 @@ initial state.</p>
 </ul>
 </dd>
 </dl>
-<p>A tracker never raises into a store’s read path: if the file cannot be written,
+<p>Opening replays the file in timestamp order (see the module docstring), so the
+stats equal what recording those events live would give. A tracker never raises
+into a store’s read path: if the file cannot be written,
 a warning is issued once and counting continues in memory. Not thread-safe.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="xdol.access.AccessLog.compact">
