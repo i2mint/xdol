@@ -1778,9 +1778,9 @@ The documentation and the package may be misaligned:
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>i2mint/xdol</code>                                                                   |
-| Run          | <a href="https://github.com/i2mint/xdol/actions/runs/40281114850">40281114850</a>          |
+| Run          | <a href="https://github.com/i2mint/xdol/actions/runs/40281124514">40281124514</a>          |
 | Ref          | <code>refs/heads/master</code>                                                             |
-| Event commit | <code>71786f7db0f3ce9d0a541f7e7ca907d88d51c5ee</code> (in the history of the built commit) |
+| Event commit | <code>695371b81cddf1627905c46fd979872ea2c9e1bd</code> (in the history of the built commit) |
 
 ## Tools
 
