@@ -598,12 +598,12 @@ def test_backfill_never_overwrites():
     from xdol.updating import backfill
 
     master, copy = {"a": 1}, {"a": 9, "b": 2}
-    stats = backfill(copy, master)
+    stats = backfill(copy=copy, master=master)
     assert master == {"a": 1, "b": 2} and stats.added == 1 and stats.updated == 0
 
     # A None value in master is still a value: it must not be overwritten
     master, copy = {"a": None}, {"a": 1}
-    stats = backfill(copy, master)
+    stats = backfill(copy=copy, master=master)
     assert master == {"a": None} and stats.updated == 0 and stats.added == 0
 
 
@@ -628,7 +628,7 @@ def test_backfill_reads_only_the_values_it_pushes():
 
     master = _ReadCounter(a=1, shared=2)
     copy = _ReadCounter(shared=20, b=3, c=4)
-    stats = backfill(copy, master)
+    stats = backfill(copy=copy, master=master)
     assert master.reads == []
     assert sorted(copy.reads) == ["b", "c"]  # each pushed value read once
     assert dict(master) == {"a": 1, "shared": 2, "b": 3, "c": 4}
@@ -638,17 +638,18 @@ def test_backfill_reads_only_the_values_it_pushes():
 def test_reconcile_prefers_master_and_honours_policy():
     from xdol.updating import reconcile, DefaultPolicy
 
-    master, copy = {"a": 1, "b": 2}, {"a": 9}
-    stats = reconcile(master, copy)
-    assert copy == {"a": 1, "b": 2}
+    # An identical key is left alone (the old PREFER_SOURCE default rewrote it)
+    master, copy = {"a": 1, "b": 2, "c": 3}, {"a": 9, "c": 3}
+    stats = reconcile(master=master, copy=copy)
+    assert copy == {"a": 1, "b": 2, "c": 3}
     assert (stats.examined, stats.updated, stats.added, stats.unchanged) == (
-        2,
+        3,
         1,
         1,
-        0,
+        1,
     )
     master, copy = {"a": 1, "b": 2}, {"a": 9}
-    stats = reconcile(master, copy, policy=DefaultPolicy.PREFER_TARGET)
+    stats = reconcile(master=master, copy=copy, policy=DefaultPolicy.PREFER_TARGET)
     assert copy == {"a": 9, "b": 2}
     assert (stats.updated, stats.added, stats.unchanged) == (0, 1, 1)
 
@@ -658,10 +659,10 @@ def test_verify_reports_three_sets_and_writes_nothing():
 
     copy, master = {"a": 1, "b": 2, "c": 3}, {"a": 1, "b": 20, "d": 4}
     before = dict(copy), dict(master)
-    r = verify(copy, master)
+    r = verify(copy=copy, master=master)
     assert (r.only_in_copy, r.only_in_master, r.mismatched) == (["c"], ["d"], ["b"])
     assert not r.ok and (copy, master) == before
-    assert verify(copy, master, keys=["a"]).ok
+    assert verify(copy=copy, master=master, keys_to_consider=["a"]).ok
 
 
 def test_verify_key_info_does_not_read_values():
@@ -677,12 +678,12 @@ def test_verify_key_info_does_not_read_values():
     # Values differ but key_info matches: ok, so the values were not compared
     c, m = NoRead(a=1, b=2), NoRead(a=10, b=20)
     sizes = {"a": 1, "b": 2}
-    assert verify(c, m, key_info=lambda s, k: sizes[k]).ok
+    assert verify(copy=c, master=m, key_info_for=lambda s: sizes.__getitem__).ok
 
     # Values match but key_info differs: mismatch, so key_info is what decides
     c, m = NoRead(a=1, b=2), NoRead(a=1, b=2)
     etags = {id(c): {"a": "x", "b": "y"}, id(m): {"a": "x", "b": "z"}}
-    r = verify(c, m, key_info=lambda s, k: etags[id(s)][k])
+    r = verify(copy=c, master=m, key_info_for=lambda s: etags[id(s)].__getitem__)
     assert r.mismatched == ["b"] and not r.only_in_copy and not r.only_in_master
 
 
@@ -690,7 +691,7 @@ def test_content_hash_key_info_default():
     from xdol.updating import content_hash_key_info, verify
 
     def h(v):
-        return content_hash_key_info({"k": v}, "k")
+        return content_hash_key_info({"k": v})("k")
 
     # bytes-like values are hashed by content
     assert h(b"abc") == h(bytearray(b"abc")) == h(memoryview(b"abc"))
@@ -702,6 +703,160 @@ def test_content_hash_key_info_default():
     # lone surrogates hash instead of raising
     assert h("\ud800") != h("\ud801")
     # anything else is compared with ==
-    assert verify({"k": {"x": 1, "y": 2}}, {"k": {"y": 2, "x": 1}}).ok
-    assert verify({"k": 1}, {"k": 1.0}).ok
-    assert verify({"k": [1, 2]}, {"k": [1, 3]}).mismatched == ["k"]
+    assert verify(copy={"k": {"x": 1, "y": 2}}, master={"k": {"y": 2, "x": 1}}).ok
+    assert verify(copy={"k": 1}, master={"k": 1.0}).ok
+    assert verify(copy={"k": [1, 2]}, master={"k": [1, 3]}).mismatched == ["k"]
+
+
+def test_master_copy_roles_are_keyword_only():
+    # #22: swapping positional arguments to reconcile silently overwrote master
+    from xdol.updating import backfill, reconcile, verify
+
+    master, copy = {"a": 1}, {"a": 9}
+    for f in (backfill, reconcile, verify):
+        with pytest.raises(TypeError):
+            f(master, copy)
+    assert master == {"a": 1} and copy == {"a": 9}
+
+
+def test_reconcile_key_info_for_skips_identical_without_reading_values():
+    from xdol.updating import reconcile
+
+    class NoRead(dict):
+        def __getitem__(self, k):
+            raise AssertionError(f"value read: {k}")
+
+        def get(self, k, default=None):
+            raise AssertionError(f"value read: {k}")
+
+    etags = {"a": "x", "b": "y"}
+    master, copy = NoRead(a=1, b=2), NoRead(a=1, b=2)
+    s = reconcile(master=master, copy=copy, key_info_for=lambda s: etags.get)
+    assert (s.examined, s.updated, s.unchanged) == (2, 0, 2)
+
+
+def test_reconcile_does_not_rewrite_identical_values():
+    from xdol.updating import reconcile
+
+    class Writes(dict):
+        written = []
+
+        def __setitem__(self, k, v):
+            self.written.append(k)
+            super().__setitem__(k, v)
+
+    copy = Writes(a=1, b=2)
+    s = reconcile(master={"a": 1, "b": 3}, copy=copy)
+    assert copy.written == ["b"] and (s.updated, s.unchanged) == (1, 1)
+
+
+def test_keys_to_consider_callable_gets_master_then_copy():
+    from xdol.updating import backfill, reconcile, verify
+
+    seen = []
+
+    def keys(master, copy):
+        seen.append((master, copy))
+        return ["a"]
+
+    master, copy = {"a": 1, "b": 2}, {"a": 1}
+    assert verify(copy=copy, master=master, keys_to_consider=keys).ok
+    assert reconcile(master=master, copy=copy, keys_to_consider=keys).examined == 1
+    assert backfill(master=master, copy=copy, keys_to_consider=keys).examined == 1
+    assert all(m is master and c is copy for m, c in seen) and len(seen) == 3
+
+
+def test_update_if_different_key_info_is_deprecated():
+    from xdol.updating import update_if_different
+
+    with pytest.warns(DeprecationWarning, match="target_key_info"):
+        update_if_different({"a": 1}, {"a": 2}, key_info=lambda k, v: v)
+
+
+def test_verify_keys_are_master_first_and_deduplicated():
+    from xdol.updating import verify
+
+    r = verify(master={"b": 1, "a": 1}, copy={"a": 2, "b": 2})
+    assert r.mismatched == ["b", "a"]
+    r = verify(master={"a": 1}, copy={"a": 2}, keys_to_consider=["a", "a"])
+    assert r.mismatched == ["a"]
+
+
+class _Incomparable:
+    """``!=`` raises, or gives a non-bool whose truth can't be taken (like arrays)."""
+
+    def __init__(self, ne):
+        self.ne = ne
+
+    def __ne__(self, other):
+        return self.ne()
+
+
+class _NoTruth:
+    def __bool__(self):
+        raise ValueError("truth value is ambiguous")
+
+
+def _raise():
+    raise TypeError("can't compare")
+
+
+@pytest.mark.parametrize("ne", [_raise, _NoTruth])
+def test_incomparable_values_count_as_different(ne):
+    from xdol.updating import reconcile, verify
+
+    master, copy = {"a": _Incomparable(ne)}, {"a": _Incomparable(ne)}
+    assert verify(master=master, copy=copy).mismatched == ["a"]
+    assert reconcile(master=master, copy=copy).updated == 1
+    assert copy["a"] is master["a"]
+
+
+def test_numpy_values_are_compared_safely():
+    np = pytest.importorskip("numpy")
+    from xdol.updating import reconcile, verify
+
+    master, copy = {"a": np.array([1, 2])}, {"a": np.array([1, 3])}
+    assert verify(master=master, copy=copy).mismatched == ["a"]
+    assert reconcile(master=master, copy=copy).updated == 1
+    assert copy["a"] is master["a"]
+    master, copy = {"a": np.array([1, 2])}, {"a": np.array([1, 2])}  # equal
+    assert verify(master=master, copy=copy).ok
+    assert reconcile(master=master, copy=copy).unchanged == 1
+
+
+def test_copy_writes_what_getitem_returns():
+    # the value compared is the value written: a store decoding in __getitem__ only
+    # (dict.get bypasses it) must not have its raw value copied
+    from xdol.updating import reconcile, update_with_policy
+
+    class Decoding(dict):
+        def __getitem__(self, k):
+            return super().__getitem__(k).decode()
+
+    master, copy = Decoding(a=b"new", b=b"same"), {"a": "old", "b": "same"}
+    s = reconcile(master=master, copy=copy)
+    assert copy == {"a": "new", "b": "same"} and (s.updated, s.unchanged) == (1, 1)
+    target = {}
+    update_with_policy.all(target, Decoding(a=b"x"))
+    assert target == {"a": "x"}
+
+
+def test_reconcile_reads_each_master_value_at_most_once():
+    from xdol.updating import reconcile, DefaultPolicy
+
+    def pair():
+        return _ReadCounter(same=1, changed=2, new=3), _ReadCounter(same=1, changed=9)
+
+    # Default: each value read once, to compare; a changed one is not read again
+    master, copy = pair()
+    s = reconcile(master=master, copy=copy)
+    assert sorted(master.reads) == ["changed", "new", "same"]
+    assert (s.updated, s.added, s.unchanged) == (1, 1, 1)
+
+    # Presence-only policies read only the values they copy, once each
+    master, copy = pair()
+    reconcile(master=master, copy=copy, policy=DefaultPolicy.PREFER_SOURCE)
+    assert sorted(master.reads) == ["changed", "new", "same"] and copy.reads == []
+    master, copy = pair()
+    reconcile(master=master, copy=copy, policy=DefaultPolicy.PREFER_TARGET)
+    assert master.reads == ["new"] and copy.reads == []
