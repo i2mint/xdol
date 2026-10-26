@@ -1,7 +1,7 @@
 {
-  "collection_duration_seconds": 3.3401200771331787,
-  "commit_message": "access/tiering: GDSF recency seed, stale delete guard, vanished hot copy (#37, #38) (#41)\n\n* access/tiering: GDSF recency seed, stale-delete guard, float-size snapshots; drop vanished hot copy (#37, #38)\n\n* Review fixes: snapshot-aware live clock, validate seed_half_life_s, unknown recency ranks oldest (#37, #38)\n\n* Comment/docstring nits from review",
-  "commit_sha": "722dc80d2c4b33dbd8364cfaaa66b33d63475800",
+  "collection_duration_seconds": 4.2142462730407715,
+  "commit_message": "access: _LockedAppender (fork-safe, read-only lock fallback), tombstone line kind, merge_stats own-tombstone rule (review of #23)",
+  "commit_sha": "d6403698d952fd7ca14c775b3a1f013a5ab6e566",
   "metrics": {
     "coverage": {
       "branch_coverage": 0.0,
@@ -11,19 +11,19 @@
       "statements_total": 0
     },
     "umpyre_stats": {
-      "comment_lines": 14820,
-      "comment_lines_ratio": 0.0555526400623749,
-      "docs_lines": 38605,
-      "empty_lines": 34487,
-      "empty_lines_ratio": 0.12927421712760614,
-      "files_analyzed": 597,
-      "function_lines": 118946,
-      "function_lines_ratio": 0.44586803811465886,
-      "mean_lines_per_function": 16.559376305164974,
-      "num_classes": 1695,
-      "num_functions": 7183,
-      "pypi_version": "0.1.29",
-      "total_lines": 266774
+      "comment_lines": 14713,
+      "comment_lines_ratio": 0.055539617228492696,
+      "docs_lines": 38611,
+      "empty_lines": 34209,
+      "empty_lines_ratio": 0.12913442301158884,
+      "files_analyzed": 587,
+      "function_lines": 117579,
+      "function_lines_ratio": 0.443845079460949,
+      "mean_lines_per_function": 16.537130801687763,
+      "num_classes": 1684,
+      "num_functions": 7110,
+      "pypi_version": "0.1.30",
+      "total_lines": 264910
     },
     "wily": {
       "cyclomatic_avg": 0.0,
@@ -34,14 +34,14 @@
     },
     "workflow_status": {
       "last_run_status": "success",
-      "last_success_timestamp": "2026-10-26T19:03:20Z",
+      "last_success_timestamp": "2026-10-26T19:06:06Z",
       "recent_failure_count": 0,
-      "run_url": "https://github.com/i2mint/xdol/actions/runs/40383018183",
+      "run_url": "https://github.com/i2mint/xdol/actions/runs/40383542953",
       "total_runs_analyzed": 10
     }
   },
   "python_version": "3.10",
   "schema_version": "1.0",
-  "timestamp": "2026-10-26T19:04:37.043176Z",
+  "timestamp": "2026-10-26T20:07:03.256565Z",
   "workflow_status": {}
 }
