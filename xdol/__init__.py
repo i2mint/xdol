@@ -19,3 +19,10 @@ from xdol.memoize import (
     CacheCorrupt,
     CacheWriteError,
 )
+from xdol.access import (
+    AccessStats,
+    AccessLog,
+    track_access,
+    merge_stats,
+    default_access_log_for,
+)
