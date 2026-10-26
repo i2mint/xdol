@@ -15,7 +15,7 @@ Event schema, one JSON object per line (plain string keys, so a filesystem trace
 only knows paths can append to the same file):
 
 ```default
-{"k": key, "op": "read"|"write"|"delete"|"release"|"pin"|"unpin",
+{"k": key, "op": "read"|"write"|"delete"|"admit"|"release"|"pin"|"unpin",
  "n": bytes, "from": "hot"|"cold"|null, "ts": unix_seconds, "tag": str|null}
 ```
 
@@ -101,7 +101,7 @@ Alias of `self.get(key)`.
 * **Return type:**
   [`AccessStats`](#xdol.access.AccessStats) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
-### *class* xdol.access.AccessStats(size=0, reads=0, writes=0, first_seen=0.0, last_access=0.0, last_read=0.0, pinned=False)
+### *class* xdol.access.AccessStats(size=0, reads=0, writes=0, first_seen=0.0, last_access=0.0, last_read=0.0, pinned=False, admitted_at=0.0)
 
 Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
@@ -120,8 +120,10 @@ Without a `rootdir`, an in-memory log, with a warning.
 
 Merge several `Mapping[key, AccessStats]` (e.g. logs) into one dict.
 
-Sums reads/writes, takes the `size` of the latest access, min `first_seen`
-(ignoring unknown zeros), max `last_access`/`last_read`, OR of `pinned`.
+Sums reads/writes, takes the `size` and `admitted_at` of the log with the
+latest `last_access` (the one that saw the key’s current state), min
+`first_seen` (ignoring unknown zeros), max `last_access`/`last_read`, OR of
+`pinned`.
 
 * **Return type:**
   [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)

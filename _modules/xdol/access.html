@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../_static/documentation_options.js?v=dc233e31"></script>
+    <script src="../../_static/documentation_options.js?v=34399df3"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -411,7 +411,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.27" />
+  <meta name="docsearch:version" content="0.1.28" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -712,7 +712,7 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">Event schema, one JSON object per line (plain string keys, so a filesystem tracer that</span>
 <span class="sd">only knows paths can append to the same file)::</span>
 
-<span class="sd">    {"k": key, "op": "read"|"write"|"delete"|"release"|"pin"|"unpin",</span>
+<span class="sd">    {"k": key, "op": "read"|"write"|"delete"|"admit"|"release"|"pin"|"unpin",</span>
 <span class="sd">     "n": bytes, "from": "hot"|"cold"|null, "ts": unix_seconds, "tag": str|null}</span>
 
 <span class="sd">Only ``k`` and ``op`` are required: an event without ``n`` leaves the size alone.</span>
@@ -757,7 +757,7 @@ window.runMermaid = runMermaid;</script>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">dol</span><span class="w"> </span><span class="kn">import</span> <span class="n">atomic_write</span>
 
-<span class="n">OPS</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"read"</span><span class="p">,</span> <span class="s2">"write"</span><span class="p">,</span> <span class="s2">"delete"</span><span class="p">,</span> <span class="s2">"release"</span><span class="p">,</span> <span class="s2">"pin"</span><span class="p">,</span> <span class="s2">"unpin"</span><span class="p">)</span>
+<span class="n">OPS</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"read"</span><span class="p">,</span> <span class="s2">"write"</span><span class="p">,</span> <span class="s2">"delete"</span><span class="p">,</span> <span class="s2">"admit"</span><span class="p">,</span> <span class="s2">"release"</span><span class="p">,</span> <span class="s2">"pin"</span><span class="p">,</span> <span class="s2">"unpin"</span><span class="p">)</span>
 <span class="n">_CREATING_OPS</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"read"</span><span class="p">,</span> <span class="s2">"write"</span><span class="p">,</span> <span class="s2">"pin"</span><span class="p">)</span>  <span class="c1"># other ops on an unknown key are no-ops</span>
 
 
@@ -774,6 +774,7 @@ window.runMermaid = runMermaid;</script>
     <span class="n">last_access</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span>
     <span class="n">last_read</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span>
     <span class="n">pinned</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">admitted_at</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span>  <span class="c1"># when the hot copy was admitted; 0.0: unknown or not hot</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">frequency</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
@@ -944,7 +945,10 @@ window.runMermaid = runMermaid;</script>
         <span class="n">st</span> <span class="o">=</span> <span class="n">replace</span><span class="p">(</span><span class="n">st</span><span class="p">,</span> <span class="o">**</span><span class="n">changes</span><span class="p">)</span>
     <span class="k">elif</span> <span class="n">op</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"pin"</span><span class="p">,</span> <span class="s2">"unpin"</span><span class="p">):</span>
         <span class="n">st</span> <span class="o">=</span> <span class="n">replace</span><span class="p">(</span><span class="n">st</span><span class="p">,</span> <span class="n">pinned</span><span class="o">=</span><span class="n">op</span> <span class="o">==</span> <span class="s2">"pin"</span><span class="p">)</span>
-    <span class="c1"># "release": the hot copy went away; frequency history is kept deliberately.</span>
+    <span class="k">elif</span> <span class="n">op</span> <span class="o">==</span> <span class="s2">"admit"</span><span class="p">:</span>
+        <span class="n">st</span> <span class="o">=</span> <span class="n">replace</span><span class="p">(</span><span class="n">st</span><span class="p">,</span> <span class="n">admitted_at</span><span class="o">=</span><span class="n">ts</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">op</span> <span class="o">==</span> <span class="s2">"release"</span><span class="p">:</span>  <span class="c1"># frequency history is kept deliberately</span>
+        <span class="n">st</span> <span class="o">=</span> <span class="n">replace</span><span class="p">(</span><span class="n">st</span><span class="p">,</span> <span class="n">admitted_at</span><span class="o">=</span><span class="mf">0.0</span><span class="p">)</span>
     <span class="n">stats_by_key</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">st</span>
 
 
@@ -1006,8 +1010,7 @@ window.runMermaid = runMermaid;</script>
                 <span class="k">except</span> <span class="ne">OSError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>  <span class="c1"># a constructor never raises over compaction</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">_warn_once</span><span class="p">(</span>
                         <span class="s2">"_warned_compact"</span><span class="p">,</span>
-                        <span class="sa">f</span><span class="s2">"AccessLog could not compact </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="si">!r}</span><span class="s2"> (</span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">); "</span>
-                        <span class="s2">"left as is."</span><span class="p">,</span>
+                        <span class="sa">f</span><span class="s2">"AccessLog could not compact </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="si">!r}</span><span class="s2"> (</span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">); left as is."</span><span class="p">,</span>
                     <span class="p">)</span>
 
     <span class="c1"># -- reading -----------------------------------------------------------</span>
@@ -1131,8 +1134,10 @@ window.runMermaid = runMermaid;</script>
 <span class="k">def</span><span class="w"> </span><span class="nf">merge_stats</span><span class="p">(</span><span class="o">*</span><span class="n">logs</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Merge several ``Mapping[key, AccessStats]`` (e.g. logs) into one dict.</span>
 
-<span class="sd">    Sums reads/writes, takes the ``size`` of the latest access, min ``first_seen``</span>
-<span class="sd">    (ignoring unknown zeros), max ``last_access``/``last_read``, OR of ``pinned``.</span>
+<span class="sd">    Sums reads/writes, takes the ``size`` and ``admitted_at`` of the log with the</span>
+<span class="sd">    latest ``last_access`` (the one that saw the key's current state), min</span>
+<span class="sd">    ``first_seen`` (ignoring unknown zeros), max ``last_access``/``last_read``, OR of</span>
+<span class="sd">    ``pinned``.</span>
 <span class="sd">    """</span>
     <span class="n">out</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">AccessStats</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
     <span class="k">for</span> <span class="n">log</span> <span class="ow">in</span> <span class="n">logs</span><span class="p">:</span>
@@ -1141,15 +1146,17 @@ window.runMermaid = runMermaid;</script>
             <span class="k">if</span> <span class="n">cur</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="n">out</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">st</span>
                 <span class="k">continue</span>
+            <span class="n">latest</span> <span class="o">=</span> <span class="n">st</span> <span class="k">if</span> <span class="n">st</span><span class="o">.</span><span class="n">last_access</span> <span class="o">&gt;=</span> <span class="n">cur</span><span class="o">.</span><span class="n">last_access</span> <span class="k">else</span> <span class="n">cur</span>
             <span class="n">out</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">replace</span><span class="p">(</span>
                 <span class="n">cur</span><span class="p">,</span>
                 <span class="n">reads</span><span class="o">=</span><span class="n">cur</span><span class="o">.</span><span class="n">reads</span> <span class="o">+</span> <span class="n">st</span><span class="o">.</span><span class="n">reads</span><span class="p">,</span>
                 <span class="n">writes</span><span class="o">=</span><span class="n">cur</span><span class="o">.</span><span class="n">writes</span> <span class="o">+</span> <span class="n">st</span><span class="o">.</span><span class="n">writes</span><span class="p">,</span>
-                <span class="n">size</span><span class="o">=</span><span class="n">st</span><span class="o">.</span><span class="n">size</span> <span class="k">if</span> <span class="n">st</span><span class="o">.</span><span class="n">last_access</span> <span class="o">&gt;=</span> <span class="n">cur</span><span class="o">.</span><span class="n">last_access</span> <span class="k">else</span> <span class="n">cur</span><span class="o">.</span><span class="n">size</span><span class="p">,</span>
+                <span class="n">size</span><span class="o">=</span><span class="n">latest</span><span class="o">.</span><span class="n">size</span><span class="p">,</span>
                 <span class="n">first_seen</span><span class="o">=</span><span class="n">_min_nonzero</span><span class="p">(</span><span class="n">cur</span><span class="o">.</span><span class="n">first_seen</span><span class="p">,</span> <span class="n">st</span><span class="o">.</span><span class="n">first_seen</span><span class="p">),</span>
                 <span class="n">last_access</span><span class="o">=</span><span class="nb">max</span><span class="p">(</span><span class="n">cur</span><span class="o">.</span><span class="n">last_access</span><span class="p">,</span> <span class="n">st</span><span class="o">.</span><span class="n">last_access</span><span class="p">),</span>
                 <span class="n">last_read</span><span class="o">=</span><span class="nb">max</span><span class="p">(</span><span class="n">cur</span><span class="o">.</span><span class="n">last_read</span><span class="p">,</span> <span class="n">st</span><span class="o">.</span><span class="n">last_read</span><span class="p">),</span>
                 <span class="n">pinned</span><span class="o">=</span><span class="n">cur</span><span class="o">.</span><span class="n">pinned</span> <span class="ow">or</span> <span class="n">st</span><span class="o">.</span><span class="n">pinned</span><span class="p">,</span>
+                <span class="n">admitted_at</span><span class="o">=</span><span class="n">latest</span><span class="o">.</span><span class="n">admitted_at</span><span class="p">,</span>
             <span class="p">)</span>
     <span class="k">return</span> <span class="n">out</span></div>
 

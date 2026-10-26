@@ -1,4 +1,4 @@
-> built 2026-10-26 18:10 UTC from 6645d0a (master) · xdol 0.1.27. Details: build_info.json
+> built 2026-10-26 18:23 UTC from 3375cd2 (master) · xdol 0.1.28. Details: build_info.json
 
 # index.html.md
 
@@ -51,7 +51,7 @@ Event schema, one JSON object per line (plain string keys, so a filesystem trace
 only knows paths can append to the same file):
 
 ```default
-{"k": key, "op": "read"|"write"|"delete"|"release"|"pin"|"unpin",
+{"k": key, "op": "read"|"write"|"delete"|"admit"|"release"|"pin"|"unpin",
  "n": bytes, "from": "hot"|"cold"|null, "ts": unix_seconds, "tag": str|null}
 ```
 
@@ -137,7 +137,7 @@ Alias of `self.get(key)`.
 * **Return type:**
   [`AccessStats`](_autosummary/xdol.access.html.md#xdol.access.AccessStats) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
-### *class* xdol.access.AccessStats(size=0, reads=0, writes=0, first_seen=0.0, last_access=0.0, last_read=0.0, pinned=False)
+### *class* xdol.access.AccessStats(size=0, reads=0, writes=0, first_seen=0.0, last_access=0.0, last_read=0.0, pinned=False, admitted_at=0.0)
 
 Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
@@ -156,8 +156,10 @@ Without a `rootdir`, an in-memory log, with a warning.
 
 Merge several `Mapping[key, AccessStats]` (e.g. logs) into one dict.
 
-Sums reads/writes, takes the `size` of the latest access, min `first_seen`
-(ignoring unknown zeros), max `last_access`/`last_read`, OR of `pinned`.
+Sums reads/writes, takes the `size` and `admitted_at` of the log with the
+latest `last_access` (the one that saw the key’s current state), min
+`first_seen` (ignoring unknown zeros), max `last_access`/`last_read`, OR of
+`pinned`.
 
 * **Return type:**
   [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)
@@ -1304,7 +1306,7 @@ Decides what enters and leaves the hot tier.
 
 Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
-### *class* xdol.tiering.TieredStore(hot, cold, , budget_bytes, policy=None, tracker=None)
+### *class* xdol.tiering.TieredStore(hot, cold, , budget_bytes, policy=None, tracker=None, max_item_fraction=1.0)
 
 Bases: [`MutableMapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping)
 
@@ -1321,6 +1323,12 @@ Bounded hot store over a cold source of truth. See the module docstring.
   * **policy** ([`PlacementPolicy`](_autosummary/xdol.tiering.html.md#xdol.tiering.PlacementPolicy) | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – a [`PlacementPolicy`](_autosummary/xdol.tiering.html.md#xdol.tiering.PlacementPolicy); default [`GdsfPolicy`](_autosummary/xdol.tiering.html.md#xdol.tiering.GdsfPolicy).
   * **tracker** ([`AccessLog`](_autosummary/xdol.access.html.md#xdol.access.AccessLog) | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – an `AccessLog` (its `clock` is the store’s clock); default
     [`xdol.access.default_access_log_for()`](_autosummary/xdol.access.html.md#xdol.access.default_access_log_for) `(hot)`.
+  * **max_item_fraction** ([`float`](https://docs.python.org/3/builtins/functions.html#float)) – in `(0, 1]`; with a bounded budget, an item larger than
+    `max_item_fraction * budget_bytes` is never held hot by the store itself: a
+    read miss is served from cold without admission, and a write goes to cold only
+    (dropping any stale hot copy). The default `1.0` keeps only items larger than
+    the whole budget out. [`prefetch()`](_autosummary/xdol.tiering.html.md#xdol.tiering.prefetch) and [`local_paths()`](_autosummary/xdol.tiering.html.md#xdol.tiering.local_paths) are explicit
+    requests and are exempt.
 
 Keys already in `hot` at construction are not recorded as accesses. Their size
 comes from the tracker, else from the file size when `hot` is file-backed, else
@@ -1335,6 +1343,9 @@ Base class of tiering errors.
 ### xdol.tiering.local_paths(store, , path_of=None)
 
 Read-only `{key: real file path}`; materialises each key into `hot`.
+
+Materialisation is an explicit request, like [`prefetch()`](_autosummary/xdol.tiering.html.md#xdol.tiering.prefetch): exempt from the
+policy and from `max_item_fraction`.
 
 `path_of(key)` gives the file path of `key` in `hot`; the default is
 `dol.path_of()` on the hot store, which follows wrapped layers (`TypeError` on access if `hot` is not
@@ -1356,6 +1367,8 @@ Protect `key`’s hot copy from release (persisted in the tracker).
 
 Admit `keys` to hot regardless of policy, as reads served from cold.
 
+An explicit request: exempt from `max_item_fraction` too.
+
 The release this may trigger never releases `keys`.
 
 * **Return type:**
@@ -1366,7 +1379,7 @@ The release this may trigger never releases `keys`.
 Release hot copies, lowest priority first, down to the low watermark.
 
 Never touches `cold`, nor the keys in `exclude`. Warns if every remaining key
-is protected. With `budget_bytes=0` (no hot tier) every hot copy is released,
+is protected, once per stuck episode (until a sweep reaches it again). With `budget_bytes=0` (no hot tier) every hot copy is released,
 protected or not.
 
 * **Return type:**
@@ -2001,18 +2014,16 @@ A value that fails to decode raises [`CodecDecodeError`](_autosummary/xdol.x_cod
 
 # About this build
 
-This documentation was built on **2026-10-26 18:10 UTC** from commit <a href="https://github.com/i2mint/xdol/commit/6645d0a37a4b82e8335236ff498215bce8d98c68"><code>6645d0a</code></a> on branch <code>master</code>, for **xdol 0.1.27** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-10-26 18:23 UTC** from commit <a href="https://github.com/i2mint/xdol/commit/3375cd28c26fcb126ab515d399e98d63623bd7e0"><code>3375cd2</code></a> on branch <code>master</code>, for **xdol 0.1.28** (from <code>pyproject.toml</code>).
 
-#### WARNING
-The documentation and the package may be misaligned:
-
-- The documented version (0.1.27) is behind the latest release on PyPI (0.1.28): `pip install xdol` gives newer code than these docs describe.
+#### NOTE
+Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
 
 ## Source
 
 |                     |                                                                                                                                                    |
 |---------------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/i2mint/xdol/commit/6645d0a37a4b82e8335236ff498215bce8d98c68"><code>6645d0a37a4b82e8335236ff498215bce8d98c68</code></a> |
+| Commit              | <a href="https://github.com/i2mint/xdol/commit/3375cd28c26fcb126ab515d399e98d63623bd7e0"><code>3375cd28c26fcb126ab515d399e98d63623bd7e0</code></a> |
 | Branch              | <code>master</code>                                                                                                                                |
 | Tags at this commit | none                                                                                                                                               |
 | Working tree        | clean                                                                                                                                              |
@@ -2023,9 +2034,9 @@ The documentation and the package may be misaligned:
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>i2mint/xdol</code>                                                                   |
-| Run          | <a href="https://github.com/i2mint/xdol/actions/runs/40375158879">40375158879</a>          |
+| Run          | <a href="https://github.com/i2mint/xdol/actions/runs/40377026979">40377026979</a>          |
 | Ref          | <code>refs/heads/master</code>                                                             |
-| Event commit | <code>6645d0a37a4b82e8335236ff498215bce8d98c68</code> (in the history of the built commit) |
+| Event commit | <code>3375cd28c26fcb126ab515d399e98d63623bd7e0</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -2050,13 +2061,13 @@ The documentation and the package may be misaligned:
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/xdol/0.1.28/">0.1.28</a>, newer than the documented version (0.1.27).
+Latest release: <a href="https://pypi.org/project/xdol/0.1.28/">0.1.28</a>, the same as the documented version.
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/i2mint/xdol && cd xdol
-git checkout 6645d0a37a4b82e8335236ff498215bce8d98c68
+git checkout 3375cd28c26fcb126ab515d399e98d63623bd7e0
 pip install "epythet==0.2.22"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```

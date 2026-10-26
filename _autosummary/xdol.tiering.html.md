@@ -115,7 +115,7 @@ Decides what enters and leaves the hot tier.
 
 Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
-### *class* xdol.tiering.TieredStore(hot, cold, , budget_bytes, policy=None, tracker=None)
+### *class* xdol.tiering.TieredStore(hot, cold, , budget_bytes, policy=None, tracker=None, max_item_fraction=1.0)
 
 Bases: [`MutableMapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping)
 
@@ -132,6 +132,12 @@ Bounded hot store over a cold source of truth. See the module docstring.
   * **policy** ([`PlacementPolicy`](#xdol.tiering.PlacementPolicy) | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – a [`PlacementPolicy`](#xdol.tiering.PlacementPolicy); default [`GdsfPolicy`](#xdol.tiering.GdsfPolicy).
   * **tracker** ([`AccessLog`](xdol.access.html.md#xdol.access.AccessLog) | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – an `AccessLog` (its `clock` is the store’s clock); default
     [`xdol.access.default_access_log_for()`](xdol.access.html.md#xdol.access.default_access_log_for) `(hot)`.
+  * **max_item_fraction** ([`float`](https://docs.python.org/3/builtins/functions.html#float)) – in `(0, 1]`; with a bounded budget, an item larger than
+    `max_item_fraction * budget_bytes` is never held hot by the store itself: a
+    read miss is served from cold without admission, and a write goes to cold only
+    (dropping any stale hot copy). The default `1.0` keeps only items larger than
+    the whole budget out. [`prefetch()`](#xdol.tiering.prefetch) and [`local_paths()`](#xdol.tiering.local_paths) are explicit
+    requests and are exempt.
 
 Keys already in `hot` at construction are not recorded as accesses. Their size
 comes from the tracker, else from the file size when `hot` is file-backed, else
@@ -146,6 +152,9 @@ Base class of tiering errors.
 ### xdol.tiering.local_paths(store, , path_of=None)
 
 Read-only `{key: real file path}`; materialises each key into `hot`.
+
+Materialisation is an explicit request, like [`prefetch()`](#xdol.tiering.prefetch): exempt from the
+policy and from `max_item_fraction`.
 
 `path_of(key)` gives the file path of `key` in `hot`; the default is
 `dol.path_of()` on the hot store, which follows wrapped layers (`TypeError` on access if `hot` is not
@@ -167,6 +176,8 @@ Protect `key`’s hot copy from release (persisted in the tracker).
 
 Admit `keys` to hot regardless of policy, as reads served from cold.
 
+An explicit request: exempt from `max_item_fraction` too.
+
 The release this may trigger never releases `keys`.
 
 * **Return type:**
@@ -177,7 +188,7 @@ The release this may trigger never releases `keys`.
 Release hot copies, lowest priority first, down to the low watermark.
 
 Never touches `cold`, nor the keys in `exclude`. Warns if every remaining key
-is protected. With `budget_bytes=0` (no hot tier) every hot copy is released,
+is protected, once per stuck episode (until a sweep reaches it again). With `budget_bytes=0` (no hot tier) every hot copy is released,
 protected or not.
 
 * **Return type:**
