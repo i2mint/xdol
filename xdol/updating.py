@@ -59,7 +59,8 @@ from collections.abc import Iterable
 from enum import Enum, auto
 from functools import partial
 from typing_extensions import Protocol
-from dataclasses import dataclass
+import hashlib
+from dataclasses import dataclass, field
 
 from dol.dig import inner_most_key
 
@@ -711,3 +712,108 @@ def update_files_by_timestamp(
         keys_to_consider=keys_to_consider,
         verbose=verbose,
     )
+
+
+# ---------------------------------------------------------------------------
+# Named entry points for a master / copy pair (companions of xdol.tiering)
+
+
+def _as_update_stats(stats: dict[str, int]) -> UpdateStats:
+    return UpdateStats(**stats)
+
+
+def backfill(
+    copy: Mapping[K, V],
+    master: MutableMapping[K, V],
+    *,
+    keys_to_consider: KeysToConsider = _just_source_keys,
+) -> UpdateStats:
+    """Push to ``master`` the items that only ``copy`` has. Never overwrites.
+
+    >>> master, copy = {'a': 1}, {'a': 9, 'b': 2}
+    >>> backfill(copy, master).added
+    1
+    >>> master
+    {'a': 1, 'b': 2}
+    """
+    return _as_update_stats(
+        update_missing_only(master, copy, keys_to_consider=keys_to_consider)
+    )
+
+
+def reconcile(
+    master: Mapping[K, V],
+    copy: MutableMapping[K, V],
+    *,
+    policy: DefaultPolicy | UpdateDecider = DefaultPolicy.PREFER_SOURCE,
+    keys_to_consider: KeysToConsider = _just_source_keys,
+) -> UpdateStats:
+    """Update ``copy`` from ``master``: master wins unless ``policy`` forbids.
+
+    >>> master, copy = {'a': 1, 'b': 2}, {'a': 9}
+    >>> reconcile(master, copy).updated
+    1
+    >>> copy
+    {'a': 1, 'b': 2}
+    """
+    return _as_update_stats(
+        update_with_policy(
+            copy,
+            master,
+            policy=policy,
+            keys_to_consider=keys_to_consider,
+        )
+    )
+
+
+@dataclass
+class VerifyReport:
+    """Result of :func:`verify`: the keys where ``copy`` and ``master`` disagree."""
+
+    only_in_copy: list = field(default_factory=list)
+    only_in_master: list = field(default_factory=list)
+    mismatched: list = field(default_factory=list)
+
+    @property
+    def ok(self) -> bool:
+        return not (self.only_in_copy or self.only_in_master or self.mismatched)
+
+
+def content_hash_key_info(store: Mapping, key: K) -> str:
+    """Default ``key_info`` for :func:`verify`: sha256 of the value's content."""
+    value = store[key]
+    if isinstance(value, str):
+        value = value.encode()
+    elif not isinstance(value, (bytes, bytearray, memoryview)):
+        value = repr(value).encode()
+    return hashlib.sha256(value).hexdigest()
+
+
+def verify(
+    copy: Mapping[K, V],
+    master: Mapping[K, V],
+    *,
+    keys: Iterable[K] | None = None,
+    key_info: Callable[[Mapping, K], Any] = content_hash_key_info,
+) -> VerifyReport:
+    """Compare ``copy`` with ``master`` without writing anything.
+
+    :param keys: restrict the comparison to these keys (default: all keys of both).
+    :param key_info: ``key_info(store, key)`` returns what to compare; pass a cheaper
+        one (size, ETag) to avoid reading values.
+
+    >>> r = verify({'a': 1, 'b': 2, 'c': 3}, {'a': 1, 'b': 20, 'd': 4})
+    >>> r.only_in_copy, r.only_in_master, r.mismatched
+    (['c'], ['d'], ['b'])
+    """
+    candidates = union_iter(copy, master) if keys is None else keys
+    report = VerifyReport()
+    for key in candidates:
+        in_copy, in_master = key in copy, key in master
+        if in_copy and not in_master:
+            report.only_in_copy.append(key)
+        elif in_master and not in_copy:
+            report.only_in_master.append(key)
+        elif in_copy and in_master and key_info(copy, key) != key_info(master, key):
+            report.mismatched.append(key)
+    return report
