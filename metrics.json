@@ -1,7 +1,7 @@
 {
-  "collection_duration_seconds": 4.0360376834869385,
-  "commit_message": "Drop eager file-backed probe, keep legacy temp filter, tests for dol-backed paths (review of #34)",
-  "commit_sha": "e3e36ac2b690d3797f6c8b17e632e16bd5f9e400",
+  "collection_duration_seconds": 4.228553771972656,
+  "commit_message": "Merge e3e36ac2b690d3797f6c8b17e632e16bd5f9e400 into 36d9084d9b6011d66a8bf80929ab65a0dad16855",
+  "commit_sha": "7fb112c2df31bc19398aba886fc502adb9f80d54",
   "metrics": {
     "coverage": {
       "branch_coverage": 0.0,
@@ -22,7 +22,7 @@
       "mean_lines_per_function": 16.566661953909232,
       "num_classes": 1682,
       "num_functions": 7073,
-      "pypi_version": "0.1.25",
+      "pypi_version": "0.1.26",
       "total_lines": 264374
     },
     "wily": {
@@ -34,14 +34,14 @@
     },
     "workflow_status": {
       "last_run_status": "success",
-      "last_success_timestamp": "2026-10-26T15:49:10Z",
+      "last_success_timestamp": "2026-10-26T15:53:13Z",
       "recent_failure_count": 0,
-      "run_url": "https://github.com/i2mint/xdol/actions/runs/40352823431",
+      "run_url": "https://github.com/i2mint/xdol/actions/runs/40353539754",
       "total_runs_analyzed": 10
     }
   },
   "python_version": "3.10",
   "schema_version": "1.0",
-  "timestamp": "2026-10-26T15:53:07.550174Z",
+  "timestamp": "2026-10-26T15:53:17.466118Z",
   "workflow_status": {}
 }
