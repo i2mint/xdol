@@ -1,0 +1,47 @@
+{
+  "collection_duration_seconds": 3.104426145553589,
+  "commit_message": "Fix backfill reads/None-overwrite and content_hash_key_info (review of #19)\n\n- backfill decides on key presence only (PREFER_TARGET with a presence key\n  info): it reads no master value and each pushed copy value once, and a\n  None-valued master key is no longer overwritten.\n- content_hash_key_info hashes str/bytes-like values with a type tag (str via\n  surrogatepass) and returns any other value as is, so verify compares it\n  with == instead of a repr() digest.\n- Tests: None-valued master, read counter on backfill, key_info decides in\n  both directions (with .get blocked), reconcile stats, default content hash.\n- Rewrite the garbled module docstring; drop duplicate Iterable/Protocol\n  imports.",
+  "commit_sha": "7aac220e9fcae207579a69398ce30af8cc4e609e",
+  "metrics": {
+    "coverage": {
+      "branch_coverage": 0.0,
+      "error": "No coverage file found",
+      "line_coverage": 0.0,
+      "statements_covered": 0,
+      "statements_total": 0
+    },
+    "umpyre_stats": {
+      "comment_lines": 14696,
+      "comment_lines_ratio": 0.05568480641421069,
+      "docs_lines": 38340,
+      "empty_lines": 34040,
+      "empty_lines_ratio": 0.12898141061103238,
+      "files_analyzed": 586,
+      "function_lines": 116860,
+      "function_lines_ratio": 0.4427957592245959,
+      "mean_lines_per_function": 16.5970742792217,
+      "num_classes": 1680,
+      "num_functions": 7041,
+      "pypi_version": "0.1.21",
+      "total_lines": 263914
+    },
+    "wily": {
+      "cyclomatic_avg": 0.0,
+      "error": "wily report failed: Usage: wily report [OPTIONS] FILE [METRICS]...\nTry 'wily report --help' for help.\n\nError: Invalid value for '-f' / '--format': 'json' is not one of 'CONSOLE', 'HTML'.\n",
+      "files_analyzed": 0,
+      "maintainability_index": 0.0,
+      "total_loc": 0
+    },
+    "workflow_status": {
+      "last_run_status": "success",
+      "last_success_timestamp": "2026-10-26T07:09:51Z",
+      "recent_failure_count": 2,
+      "run_url": "https://github.com/i2mint/xdol/actions/runs/40284055601",
+      "total_runs_analyzed": 10
+    }
+  },
+  "python_version": "3.10",
+  "schema_version": "1.0",
+  "timestamp": "2026-10-26T13:28:36.767885Z",
+  "workflow_status": {}
+}
