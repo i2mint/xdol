@@ -1,4 +1,4 @@
-> built 2026-10-26 15:55 UTC from 5fe5e4d (master) · xdol 0.1.26. Details: build_info.json
+> built 2026-10-26 18:10 UTC from 6645d0a (master) · xdol 0.1.27. Details: build_info.json
 
 # index.html.md
 
@@ -94,11 +94,11 @@ True
 
 ### Classes
 
-| [`AccessLog`](_autosummary/xdol.access.html.md#xdol.access.AccessLog)([path, clock, tag])           | Append-only JSONL access log, readable as a `Mapping` of key -> AccessStats.   |
-|------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------|
-| [`AccessStats`](_autosummary/xdol.access.html.md#xdol.access.AccessStats)([size, reads, writes, ...]) | Access statistics of one key (immutable: update with `dataclasses.replace`).   |
+| [`AccessLog`](_autosummary/xdol.access.html.md#xdol.access.AccessLog)([path, clock, tag, compact_above])   | Append-only JSONL access log, readable as a `Mapping` of key -> AccessStats.   |
+|-------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------|
+| [`AccessStats`](_autosummary/xdol.access.html.md#xdol.access.AccessStats)([size, reads, writes, ...])        | Access statistics of one key (immutable: update with `dataclasses.replace`).   |
 
-### *class* xdol.access.AccessLog(path=None, \*, clock=<built-in function time>, tag=None)
+### *class* xdol.access.AccessLog(path=None, \*, clock=<built-in function time>, tag=None, compact_above=None)
 
 Bases: [`Mapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping)
 
@@ -108,9 +108,15 @@ Append-only JSONL access log, readable as a `Mapping` of key -> AccessStats.
   * **path** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`PathLike`](https://docs.python.org/3/library/os.html#os.PathLike) | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – log file; `None` keeps everything in memory (tests).
   * **clock** ([`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[], [`float`](https://docs.python.org/3/builtins/functions.html#float)]) – callable returning unix seconds.
   * **tag** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – label stamped on each event; defaults to `platform.node()`.
+  * **compact_above** ([`int`](https://docs.python.org/3/builtins/functions.html#int) | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – when opening finds more than this many events (lines other
+    than snapshots) in the file, [`compact()`](_autosummary/xdol.access.html.md#xdol.access.AccessLog.compact) it (`None`: never; the file then grows with every access).
+    Same caveat as [`compact()`](_autosummary/xdol.access.html.md#xdol.access.AccessLog.compact): only for a log with a single writer.
 
 Opening replays the file in timestamp order (see the module docstring), so the
-stats equal what recording those events live would give. A tracker never raises
+stats equal what recording those events live would give. Replay streams in constant
+memory when the file is already in that order (the normal case for one writer) and
+buffers it only when timestamps go back: a log several writers append to is out of
+order, so opening it still costs memory proportional to its length. A tracker never raises
 into a store’s read path: if the file cannot be written,
 a warning is issued once and counting continues in memory. Not thread-safe.
 
@@ -1995,16 +2001,18 @@ A value that fails to decode raises [`CodecDecodeError`](_autosummary/xdol.x_cod
 
 # About this build
 
-This documentation was built on **2026-10-26 15:55 UTC** from commit <a href="https://github.com/i2mint/xdol/commit/5fe5e4dbb4603b6dabe06c5a9ea064d1de28e6cc"><code>5fe5e4d</code></a> on branch <code>master</code>, for **xdol 0.1.26** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-10-26 18:10 UTC** from commit <a href="https://github.com/i2mint/xdol/commit/6645d0a37a4b82e8335236ff498215bce8d98c68"><code>6645d0a</code></a> on branch <code>master</code>, for **xdol 0.1.27** (from <code>pyproject.toml</code>).
 
-#### NOTE
-Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
+#### WARNING
+The documentation and the package may be misaligned:
+
+- The documented version (0.1.27) is behind the latest release on PyPI (0.1.28): `pip install xdol` gives newer code than these docs describe.
 
 ## Source
 
 |                     |                                                                                                                                                    |
 |---------------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/i2mint/xdol/commit/5fe5e4dbb4603b6dabe06c5a9ea064d1de28e6cc"><code>5fe5e4dbb4603b6dabe06c5a9ea064d1de28e6cc</code></a> |
+| Commit              | <a href="https://github.com/i2mint/xdol/commit/6645d0a37a4b82e8335236ff498215bce8d98c68"><code>6645d0a37a4b82e8335236ff498215bce8d98c68</code></a> |
 | Branch              | <code>master</code>                                                                                                                                |
 | Tags at this commit | none                                                                                                                                               |
 | Working tree        | clean                                                                                                                                              |
@@ -2015,9 +2023,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>i2mint/xdol</code>                                                                   |
-| Run          | <a href="https://github.com/i2mint/xdol/actions/runs/40353832647">40353832647</a>          |
+| Run          | <a href="https://github.com/i2mint/xdol/actions/runs/40375158879">40375158879</a>          |
 | Ref          | <code>refs/heads/master</code>                                                             |
-| Event commit | <code>5fe5e4dbb4603b6dabe06c5a9ea064d1de28e6cc</code> (in the history of the built commit) |
+| Event commit | <code>6645d0a37a4b82e8335236ff498215bce8d98c68</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -2042,13 +2050,13 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/xdol/0.1.26/">0.1.26</a>, the same as the documented version.
+Latest release: <a href="https://pypi.org/project/xdol/0.1.28/">0.1.28</a>, newer than the documented version (0.1.27).
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/i2mint/xdol && cd xdol
-git checkout 5fe5e4dbb4603b6dabe06c5a9ea064d1de28e6cc
+git checkout 6645d0a37a4b82e8335236ff498215bce8d98c68
 pip install "epythet==0.2.22"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```

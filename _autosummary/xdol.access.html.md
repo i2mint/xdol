@@ -58,11 +58,11 @@ True
 
 ### Classes
 
-| [`AccessLog`](#xdol.access.AccessLog)([path, clock, tag])           | Append-only JSONL access log, readable as a `Mapping` of key -> AccessStats.   |
-|------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------|
-| [`AccessStats`](#xdol.access.AccessStats)([size, reads, writes, ...]) | Access statistics of one key (immutable: update with `dataclasses.replace`).   |
+| [`AccessLog`](#xdol.access.AccessLog)([path, clock, tag, compact_above])   | Append-only JSONL access log, readable as a `Mapping` of key -> AccessStats.   |
+|-------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------|
+| [`AccessStats`](#xdol.access.AccessStats)([size, reads, writes, ...])        | Access statistics of one key (immutable: update with `dataclasses.replace`).   |
 
-### *class* xdol.access.AccessLog(path=None, \*, clock=<built-in function time>, tag=None)
+### *class* xdol.access.AccessLog(path=None, \*, clock=<built-in function time>, tag=None, compact_above=None)
 
 Bases: [`Mapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping)
 
@@ -72,9 +72,15 @@ Append-only JSONL access log, readable as a `Mapping` of key -> AccessStats.
   * **path** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`PathLike`](https://docs.python.org/3/library/os.html#os.PathLike) | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – log file; `None` keeps everything in memory (tests).
   * **clock** ([`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[], [`float`](https://docs.python.org/3/builtins/functions.html#float)]) – callable returning unix seconds.
   * **tag** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – label stamped on each event; defaults to `platform.node()`.
+  * **compact_above** ([`int`](https://docs.python.org/3/builtins/functions.html#int) | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – when opening finds more than this many events (lines other
+    than snapshots) in the file, [`compact()`](#xdol.access.AccessLog.compact) it (`None`: never; the file then grows with every access).
+    Same caveat as [`compact()`](#xdol.access.AccessLog.compact): only for a log with a single writer.
 
 Opening replays the file in timestamp order (see the module docstring), so the
-stats equal what recording those events live would give. A tracker never raises
+stats equal what recording those events live would give. Replay streams in constant
+memory when the file is already in that order (the normal case for one writer) and
+buffers it only when timestamps go back: a log several writers append to is out of
+order, so opening it still costs memory proportional to its length. A tracker never raises
 into a store’s read path: if the file cannot be written,
 a warning is issued once and counting continues in memory. Not thread-safe.
 

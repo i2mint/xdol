@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../_static/documentation_options.js?v=785bba28"></script>
+    <script src="../../_static/documentation_options.js?v=dc233e31"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -411,7 +411,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.26" />
+  <meta name="docsearch:version" content="0.1.27" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -851,6 +851,67 @@ window.runMermaid = runMermaid;</script>
     <span class="k">return</span> <span class="kc">None</span>
 
 
+<span class="k">class</span><span class="w"> </span><span class="nc">_OutOfOrder</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""The log is not in replay order: streaming replay gives up for the buffered one."""</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_replay_lines</span><span class="p">(</span><span class="n">lines</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""``(seq, key, op, n, ts, stats)`` for each usable line of ``lines``, in file order.</span>
+
+<span class="sd">    Torn, undecodable and foreign lines are skipped. ``ts`` is ``None`` for a snapshot</span>
+<span class="sd">    line; an event without ``ts`` takes the running max of the timestamps before it</span>
+<span class="sd">    (``0.0`` at the top), so it is ordered right after the lines before it.</span>
+<span class="sd">    """</span>
+    <span class="n">running</span> <span class="o">=</span> <span class="mf">0.0</span>
+    <span class="k">for</span> <span class="n">seq</span><span class="p">,</span> <span class="n">raw</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">lines</span><span class="p">):</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">ev</span> <span class="o">:=</span> <span class="n">_parse_event</span><span class="p">(</span><span class="n">raw</span><span class="p">))</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">continue</span>
+        <span class="n">key</span><span class="p">,</span> <span class="n">op</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">ts</span><span class="p">,</span> <span class="n">stats</span> <span class="o">=</span> <span class="n">ev</span>
+        <span class="k">if</span> <span class="n">op</span> <span class="o">!=</span> <span class="s2">"snapshot"</span><span class="p">:</span>
+            <span class="n">ts</span> <span class="o">=</span> <span class="n">running</span> <span class="k">if</span> <span class="n">ts</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">ts</span>
+            <span class="n">running</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">running</span><span class="p">,</span> <span class="n">ts</span><span class="p">)</span>
+        <span class="k">yield</span> <span class="n">seq</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">op</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">ts</span><span class="p">,</span> <span class="n">stats</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_fold_streaming</span><span class="p">(</span><span class="n">lines</span><span class="p">,</span> <span class="n">stats_by_key</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""Fold ``lines`` already in replay order into ``stats_by_key``, in constant memory.</span>
+
+<span class="sd">    Returns ``(last_ts, number_of_events)``. Raises :class:`_OutOfOrder` (leaving</span>
+<span class="sd">    ``stats_by_key`` partly folded) at a snapshot after an event or a timestamp going</span>
+<span class="sd">    back.</span>
+<span class="sd">    """</span>
+    <span class="n">last_ts</span><span class="p">,</span> <span class="n">nevents</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">op</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">ts</span><span class="p">,</span> <span class="n">stats</span> <span class="ow">in</span> <span class="n">_replay_lines</span><span class="p">(</span><span class="n">lines</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">op</span> <span class="o">==</span> <span class="s2">"snapshot"</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">nevents</span><span class="p">:</span>  <span class="c1"># a baseline must be applied before any event</span>
+                <span class="k">raise</span> <span class="n">_OutOfOrder</span>
+            <span class="n">stats_by_key</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">stats</span>
+            <span class="k">continue</span>
+        <span class="k">if</span> <span class="n">ts</span> <span class="o">&lt;</span> <span class="n">last_ts</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">_OutOfOrder</span>
+        <span class="n">last_ts</span><span class="p">,</span> <span class="n">nevents</span> <span class="o">=</span> <span class="n">ts</span><span class="p">,</span> <span class="n">nevents</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="n">_apply</span><span class="p">(</span><span class="n">stats_by_key</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">op</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">ts</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">last_ts</span><span class="p">,</span> <span class="n">nevents</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_fold_buffered</span><span class="p">(</span><span class="n">lines</span><span class="p">,</span> <span class="n">stats_by_key</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""Fold ``lines`` in any order: snapshots first, then events by ``(ts, line)``.</span>
+
+<span class="sd">    Returns ``(last_ts, number_of_events)``.</span>
+<span class="sd">    """</span>
+    <span class="n">events</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">seq</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">op</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">ts</span><span class="p">,</span> <span class="n">stats</span> <span class="ow">in</span> <span class="n">_replay_lines</span><span class="p">(</span><span class="n">lines</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">op</span> <span class="o">==</span> <span class="s2">"snapshot"</span><span class="p">:</span>  <span class="c1"># the compacted baseline: applied first</span>
+            <span class="n">stats_by_key</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">stats</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">events</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">ts</span><span class="p">,</span> <span class="n">seq</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">op</span><span class="p">,</span> <span class="n">n</span><span class="p">))</span>
+    <span class="n">events</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">e</span><span class="p">:</span> <span class="n">e</span><span class="p">[:</span><span class="mi">2</span><span class="p">])</span>
+    <span class="k">for</span> <span class="n">ts</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">op</span><span class="p">,</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">events</span><span class="p">:</span>
+        <span class="n">_apply</span><span class="p">(</span><span class="n">stats_by_key</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">op</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">ts</span><span class="p">)</span>
+    <span class="c1"># the running max starts at 0.0, as in streaming (and live recording)</span>
+    <span class="k">return</span> <span class="nb">max</span><span class="p">([</span><span class="mf">0.0</span><span class="p">,</span> <span class="o">*</span><span class="p">(</span><span class="n">e</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">events</span><span class="p">)]),</span> <span class="nb">len</span><span class="p">(</span><span class="n">events</span><span class="p">)</span>
+
+
 <span class="k">def</span><span class="w"> </span><span class="nf">_apply</span><span class="p">(</span><span class="n">stats_by_key</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">op</span><span class="p">,</span> <span class="n">nbytes</span><span class="p">,</span> <span class="n">ts</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Fold one event into ``stats_by_key`` (shared by live recording and replay).</span>
 
@@ -895,9 +956,15 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">    :param path: log file; ``None`` keeps everything in memory (tests).</span>
 <span class="sd">    :param clock: callable returning unix seconds.</span>
 <span class="sd">    :param tag: label stamped on each event; defaults to ``platform.node()``.</span>
+<span class="sd">    :param compact_above: when opening finds more than this many events (lines other</span>
+<span class="sd">        than snapshots) in the file, :meth:`compact` it (``None``: never; the file then grows with every access).</span>
+<span class="sd">        Same caveat as :meth:`compact`: only for a log with a single writer.</span>
 
 <span class="sd">    Opening replays the file in timestamp order (see the module docstring), so the</span>
-<span class="sd">    stats equal what recording those events live would give. A tracker never raises</span>
+<span class="sd">    stats equal what recording those events live would give. Replay streams in constant</span>
+<span class="sd">    memory when the file is already in that order (the normal case for one writer) and</span>
+<span class="sd">    buffers it only when timestamps go back: a log several writers append to is out of</span>
+<span class="sd">    order, so opening it still costs memory proportional to its length. A tracker never raises</span>
 <span class="sd">    into a store's read path: if the file cannot be written,</span>
 <span class="sd">    a warning is issued once and counting continues in memory. Not thread-safe.</span>
 <span class="sd">    """</span>
@@ -912,37 +979,52 @@ window.runMermaid = runMermaid;</script>
         <span class="o">*</span><span class="p">,</span>
         <span class="n">clock</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[],</span> <span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">,</span>
         <span class="n">tag</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">compact_above</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">path</span> <span class="o">=</span> <span class="kc">None</span> <span class="k">if</span> <span class="n">path</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">os</span><span class="o">.</span><span class="n">fspath</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">clock</span> <span class="o">=</span> <span class="n">clock</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">tag</span> <span class="o">=</span> <span class="n">platform</span><span class="o">.</span><span class="n">node</span><span class="p">()</span> <span class="k">if</span> <span class="n">tag</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">tag</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_stats</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">AccessStats</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_fh</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">compact_above</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="p">(</span>
+            <span class="nb">isinstance</span><span class="p">(</span><span class="n">compact_above</span><span class="p">,</span> <span class="nb">bool</span><span class="p">)</span>
+            <span class="ow">or</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">compact_above</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span>
+            <span class="ow">or</span> <span class="n">compact_above</span> <span class="o">&lt;</span> <span class="mi">0</span>
+        <span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"compact_above must be None or a non-negative int, not </span><span class="si">{</span><span class="n">compact_above</span><span class="si">!r}</span><span class="s2">"</span>
+            <span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_warned_io</span> <span class="o">=</span> <span class="kc">False</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_warned_key</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_warned_compact</span> <span class="o">=</span> <span class="kc">False</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_last_ts</span> <span class="o">=</span> <span class="mf">0.0</span>  <span class="c1"># the clock may step back: events never go back in time</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">path</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">):</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_fold_file</span><span class="p">()</span>
+            <span class="n">nevents</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fold_file</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">compact_above</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">nevents</span> <span class="o">&gt;</span> <span class="n">compact_above</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">compact</span><span class="p">()</span>
+                <span class="k">except</span> <span class="ne">OSError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>  <span class="c1"># a constructor never raises over compaction</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_warn_once</span><span class="p">(</span>
+                        <span class="s2">"_warned_compact"</span><span class="p">,</span>
+                        <span class="sa">f</span><span class="s2">"AccessLog could not compact </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="si">!r}</span><span class="s2"> (</span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">); "</span>
+                        <span class="s2">"left as is."</span><span class="p">,</span>
+                    <span class="p">)</span>
 
     <span class="c1"># -- reading -----------------------------------------------------------</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">_fold_file</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">"""Replay the file: parse, sort, fold (see the module docstring for the rule)."""</span>
-        <span class="n">events</span><span class="p">,</span> <span class="n">last_ts</span> <span class="o">=</span> <span class="p">[],</span> <span class="mf">0.0</span>
-        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">,</span> <span class="s2">"rb"</span><span class="p">)</span> <span class="k">as</span> <span class="n">fh</span><span class="p">:</span>
-            <span class="k">for</span> <span class="n">seq</span><span class="p">,</span> <span class="n">raw</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">fh</span><span class="p">):</span>
-                <span class="k">if</span> <span class="p">(</span><span class="n">ev</span> <span class="o">:=</span> <span class="n">_parse_event</span><span class="p">(</span><span class="n">raw</span><span class="p">))</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-                    <span class="k">continue</span>  <span class="c1"># torn, undecodable or foreign line: skip, never fail</span>
-                <span class="n">key</span><span class="p">,</span> <span class="n">op</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">ts</span><span class="p">,</span> <span class="n">stats</span> <span class="o">=</span> <span class="n">ev</span>
-                <span class="k">if</span> <span class="n">op</span> <span class="o">==</span> <span class="s2">"snapshot"</span><span class="p">:</span>  <span class="c1"># the compacted baseline: applied first</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">_stats</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">stats</span>
-                    <span class="k">continue</span>
-                <span class="k">if</span> <span class="n">ts</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-                    <span class="n">ts</span> <span class="o">=</span> <span class="n">last_ts</span>  <span class="c1"># unstamped: ordered after every line before it</span>
-                <span class="n">last_ts</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">last_ts</span><span class="p">,</span> <span class="n">ts</span><span class="p">)</span>
-                <span class="n">events</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">ts</span><span class="p">,</span> <span class="n">seq</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">op</span><span class="p">,</span> <span class="n">n</span><span class="p">))</span>
-        <span class="k">for</span> <span class="n">ts</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">op</span><span class="p">,</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">events</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">e</span><span class="p">:</span> <span class="n">e</span><span class="p">[:</span><span class="mi">2</span><span class="p">]):</span>
-            <span class="n">_apply</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_stats</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">op</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">ts</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_last_ts</span> <span class="o">=</span> <span class="n">last_ts</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_fold_file</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Replay the file (see the module docstring); return its number of events.</span>
+
+<span class="sd">        Streams (constant memory) while the file is already in replay order; the first</span>
+<span class="sd">        line breaking that order restarts with the buffered fold, which sorts.</span>
+<span class="sd">        """</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">,</span> <span class="s2">"rb"</span><span class="p">)</span> <span class="k">as</span> <span class="n">fh</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_last_ts</span><span class="p">,</span> <span class="n">nevents</span> <span class="o">=</span> <span class="n">_fold_streaming</span><span class="p">(</span><span class="n">fh</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_stats</span><span class="p">)</span>
+        <span class="k">except</span> <span class="n">_OutOfOrder</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_stats</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">,</span> <span class="s2">"rb"</span><span class="p">)</span> <span class="k">as</span> <span class="n">fh</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_last_ts</span><span class="p">,</span> <span class="n">nevents</span> <span class="o">=</span> <span class="n">_fold_buffered</span><span class="p">(</span><span class="n">fh</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_stats</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">nevents</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AccessStats</span><span class="p">:</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_stats</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
