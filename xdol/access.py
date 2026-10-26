@@ -254,11 +254,18 @@ class AccessLog(Mapping):
         if self.path is None:
             return
         self.close()
-        lines = (
-            json.dumps({"k": key, "op": "snapshot", "stats": asdict(st)}, default=str)
-            for key, st in self._stats.items()
+        atomic_write(
+            self.path,
+            (
+                (
+                    json.dumps(
+                        {"k": key, "op": "snapshot", "stats": asdict(st)}, default=str
+                    )
+                    + "\n"
+                ).encode("utf-8")
+                for key, st in self._stats.items()
+            ),
         )
-        atomic_write(self.path, "".join(line + "\n" for line in lines))
 
     def close(self) -> None:
         if self._fh is not None:

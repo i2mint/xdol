@@ -277,3 +277,11 @@ def test_track_access_clock_with_tracker_is_an_error():
 def test_access_log_keeps_identity_semantics():
     a, b = AccessLog(), AccessLog()
     assert a != b and a == a and len({a, b}) == 2
+
+
+def test_compact_leaves_no_temp_file(tmp_path):
+    log = AccessLog(str(tmp_path / "log.jsonl"))
+    log.record("a", "read")
+    log.compact()
+    assert os.listdir(tmp_path) == ["log.jsonl"]
+    assert json.loads((tmp_path / "log.jsonl").read_text().splitlines()[0])["k"] == "a"
