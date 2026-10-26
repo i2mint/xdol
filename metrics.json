@@ -1,7 +1,7 @@
 {
-  "collection_duration_seconds": 2.911834716796875,
-  "commit_message": "updating: safe value comparison, no double download, verify compares values by default, presence-only policies read nothing (review of #22)",
-  "commit_sha": "e1b225d19be88c8e7defd0ed73947a1a267ca446",
+  "collection_duration_seconds": 4.003201961517334,
+  "commit_message": "Merge e1b225d19be88c8e7defd0ed73947a1a267ca446 into 30840d858910e9506cd4a27219e626d907fe3013",
+  "commit_sha": "b2fc74c254e470cd097d84b7cf169838f4e28fcb",
   "metrics": {
     "coverage": {
       "branch_coverage": 0.0,
@@ -22,26 +22,26 @@
       "mean_lines_per_function": 16.539997188246872,
       "num_classes": 1684,
       "num_functions": 7113,
-      "pypi_version": "0.1.30",
+      "pypi_version": "0.1.31",
       "total_lines": 265005
     },
     "wily": {
       "cyclomatic_avg": 0.0,
-      "error": "wily build failed: \u001b[31mFailed to setup archiver: 'Dirty repository, make sure you commit/stash files first'\u001b[0m\n",
+      "error": "wily report failed: Usage: wily report [OPTIONS] FILE [METRICS]...\nTry 'wily report --help' for help.\n\nError: Invalid value for '-f' / '--format': 'json' is not one of 'CONSOLE', 'HTML'.\n",
       "files_analyzed": 0,
       "maintainability_index": 0.0,
       "total_loc": 0
     },
     "workflow_status": {
       "last_run_status": "success",
-      "last_success_timestamp": "2026-10-26T20:18:51Z",
+      "last_success_timestamp": "2026-10-26T20:29:28Z",
       "recent_failure_count": 0,
-      "run_url": "https://github.com/i2mint/xdol/actions/runs/40394451595",
+      "run_url": "https://github.com/i2mint/xdol/actions/runs/40395935626",
       "total_runs_analyzed": 10
     }
   },
   "python_version": "3.10",
   "schema_version": "1.0",
-  "timestamp": "2026-10-26T20:29:20.848992Z",
+  "timestamp": "2026-10-26T20:29:33.574610Z",
   "workflow_status": {}
 }
