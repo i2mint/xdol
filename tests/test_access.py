@@ -565,3 +565,37 @@ def test_merge_stats_admitted_at_from_latest_access():
     assert merge_stats(late, early)["a"].admitted_at == 0.0
     late = {"a": AccessStats(last_access=20.0, admitted_at=15.0)}
     assert merge_stats(late, early)["a"].admitted_at == 15.0
+
+
+def test_old_delete_does_not_wipe_a_newer_snapshot(tmp_path):
+    p = tmp_path / "log.jsonl"
+    _write_lines(
+        p,
+        {"k": "a", "op": "snapshot", "stats": {"reads": 4, "size": 1, "last_access": 50.0}},
+        {"k": "a", "op": "delete", "ts": 10.0},
+        {"k": "b", "op": "snapshot", "stats": {"reads": 1, "last_access": 5.0}},
+        {"k": "b", "op": "delete", "ts": 5.0},  # same stamp: the delete wins
+    )
+    log = AccessLog(p)
+    assert log["a"].reads == 4 and "b" not in log
+
+
+def test_snapshot_with_float_size_loads(tmp_path):
+    p = tmp_path / "old.jsonl"
+    _write_lines(p, {"k": "a", "op": "snapshot", "stats": {"reads": 2, "size": 7.0}})
+    st = AccessLog(p)["a"]
+    assert st.size == 7 and type(st.size) is int and st.reads == 2
+
+
+def test_delete_after_reopen_with_clock_behind_snapshot_still_deletes(tmp_path):
+    p = tmp_path / "log.jsonl"
+    _write_lines(p, {"k": "a", "op": "snapshot", "stats": {"pinned": True, "last_access": 100.0}})
+    log = AccessLog(p, clock=lambda: 90.0)
+    log.record("a", "delete")
+    assert "a" not in log and "a" not in AccessLog(p)
+
+
+def test_non_integral_float_size_snapshot_is_rejected(tmp_path):
+    p = tmp_path / "old.jsonl"
+    _write_lines(p, {"k": "a", "op": "snapshot", "stats": {"size": 7.5}})
+    assert "a" not in AccessLog(p)

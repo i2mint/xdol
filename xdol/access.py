@@ -120,6 +120,9 @@ _FIELD_CHECKS = {  # derived from AccessStats: a foreign line must not poison re
 def _stats_from_snapshot(data: dict) -> AccessStats:
     """``AccessStats`` from a snapshot's dict; unknown fields dropped, bad types rejected."""
     data = {k: v for k, v in data.items() if k in _FIELD_CHECKS}
+    for name, v in data.items():  # older versions wrote a float size
+        if _FIELD_CHECKS[name] is _TYPE_CHECKS[int] and type(v) is float:
+            data[name] = int(v) if _is_finite(v) and v.is_integer() else v
     if not all(_FIELD_CHECKS[k](v) for k, v in data.items()):
         raise TypeError("snapshot field with the wrong type")
     return AccessStats(**data)
@@ -212,15 +215,20 @@ def _apply(stats_by_key: dict, key, op, nbytes, ts) -> None:
 
     ``nbytes=None`` leaves the size alone. Recency is a max, ``first_seen`` a min and
     the size comes from the latest read or write; ``delete`` drops the entry (pin
-    included), so a later read or write recreates it unpinned. Replay sorts events by
+    included), so a later read or write recreates it unpinned, unless the key was
+    accessed after the delete's timestamp (then the delete is stale and ignored; live
+    recording never meets this: the log starts its clock after every snapshot stamp). Replay sorts events by
     timestamp before folding them, so it gives what live recording gave.
     """
     if op not in OPS:
         return
-    if op == "delete":
-        stats_by_key.pop(key, None)
-        return
     st = stats_by_key.get(key)
+    if op == "delete":
+        # a delete older than the key's last access (e.g. an old log line replayed over
+        # a snapshot) was followed by a re-creation: it must not wipe the key
+        if st is None or ts >= st.last_access:
+            stats_by_key.pop(key, None)
+        return
     if st is None:
         if op not in _CREATING_OPS:
             return
@@ -319,6 +327,11 @@ class AccessLog(Mapping):
             self._stats.clear()
             with open(self.path, "rb") as fh:
                 self._last_ts, nevents = _fold_buffered(fh, self._stats)
+        # live events must not be stamped before what a snapshot already recorded
+        self._last_ts = max(
+            [self._last_ts]
+            + [max(st.last_access, st.admitted_at) for st in self._stats.values()]
+        )
         return nevents
 
     def __getitem__(self, key) -> AccessStats:
