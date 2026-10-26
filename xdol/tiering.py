@@ -165,7 +165,7 @@ class GdsfPolicy(_ResidencyPolicy):
     would otherwise keep it favoured after every restart. A key not accessed during
     this process (a cron ``sweep``) is ranked on its recency instead: ``F`` is
     ``0.5 ** (age / seed_half_life_s)``, ``age`` being the time since its
-    ``last_access``, so among such keys the least recently used goes first.
+    ``last_access``, so among such keys of equal size the least recently used goes first (a key seeded this way and then accessed continues from ``F + 1``).
     """
 
     cost_per_request: float = 1.0
@@ -176,13 +176,19 @@ class GdsfPolicy(_ResidencyPolicy):
         default_factory=dict, init=False, repr=False, compare=False
     )  # k: (F, H)
 
-    def priority(self, frequency: int, size: int) -> float:
+    def __post_init__(self):
+        if self.seed_half_life_s is not None and not self.seed_half_life_s > 0:
+            raise ValueError(
+                f"seed_half_life_s must be None or positive, not {self.seed_half_life_s!r}"
+            )
+
+    def priority(self, frequency: float, size: int) -> float:
         """H of a key accessed now with this frequency and size."""
         size = max(size, 1)
         cost = self.cost_per_request + self.cost_per_byte * size
         return self._aging + frequency * cost / size
 
-    def _set(self, key, frequency: int, size: int) -> float:
+    def _set(self, key, frequency: float, size: int) -> float:
         h = self.priority(frequency, size)
         self._entries[key] = (frequency, h)
         return h
@@ -201,8 +207,8 @@ class GdsfPolicy(_ResidencyPolicy):
 
     def _seed_frequency(self, stats: AccessStats, *, now: float) -> float:
         """``F`` of a hot key this process has not seen accessed: decays with its age."""
-        if self.seed_half_life_s is None or not stats.last_access:
-            return 1
+        if self.seed_half_life_s is None:
+            return 1  # unknown recency (last_access 0) is the oldest: F near 0, as LRU
         return 0.5 ** (max(now - stats.last_access, 0.0) / self.seed_half_life_s)
 
     def _h(self, key, stats: AccessStats, *, now: float) -> float:
@@ -395,9 +401,9 @@ class TieredStore(MutableMapping):
                 v, served_from = self._hot[k], "hot"
             except KeyError:
                 pass
-        if served_from is None and k in self._hot_sizes:
-            self._drop_hot(k)  # the hot copy vanished behind our back: forget it
         if served_from is None:
+            if k in self._hot_sizes:
+                self._drop_hot(k)  # the hot copy vanished behind our back: forget it
             v, served_from = self._cold[k], "cold"
         size = value_size(v)
         if served_from == "hot":

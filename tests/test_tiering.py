@@ -720,3 +720,19 @@ def test_hot_copy_deleted_behind_our_back_not_readmitted_frees_size():
     assert s["a"] == b"xyz"
     assert "a" not in s.hot and s._hot_bytes == 0 and s._hot_sizes == {}
     assert s.tracker["a"].admitted_at == 0.0
+
+
+@pytest.mark.parametrize("bad", [0, -1.0])
+def test_gdsf_seed_half_life_validated(bad):
+    with pytest.raises(ValueError):
+        GdsfPolicy(seed_half_life_s=bad)
+
+
+def test_gdsf_unknown_recency_is_released_first():
+    stats = {
+        "known": AccessStats(size=3, last_access=99 * DAY),
+        "unknown": AccessStats(size=3),
+    }
+    policy = GdsfPolicy(min_residency_s=0)
+    released = policy.to_release(stats, hot_bytes=9, budget_bytes=10, now=100 * DAY)
+    assert list(released) == ["unknown", "known"]

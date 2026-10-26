@@ -585,3 +585,17 @@ def test_snapshot_with_float_size_loads(tmp_path):
     _write_lines(p, {"k": "a", "op": "snapshot", "stats": {"reads": 2, "size": 7.0}})
     st = AccessLog(p)["a"]
     assert st.size == 7 and type(st.size) is int and st.reads == 2
+
+
+def test_delete_after_reopen_with_clock_behind_snapshot_still_deletes(tmp_path):
+    p = tmp_path / "log.jsonl"
+    _write_lines(p, {"k": "a", "op": "snapshot", "stats": {"pinned": True, "last_access": 100.0}})
+    log = AccessLog(p, clock=lambda: 90.0)
+    log.record("a", "delete")
+    assert "a" not in log and "a" not in AccessLog(p)
+
+
+def test_non_integral_float_size_snapshot_is_rejected(tmp_path):
+    p = tmp_path / "old.jsonl"
+    _write_lines(p, {"k": "a", "op": "snapshot", "stats": {"size": 7.5}})
+    assert "a" not in AccessLog(p)
