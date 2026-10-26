@@ -162,11 +162,15 @@ class GdsfPolicy(_ResidencyPolicy):
     not accessed for a while loses to newer ones however often it was read. A key
     already hot when this process first sees it starts fresh, ``F = 1``, as if just
     admitted: its logged history (often long, all of it older than ``L``'s reset)
-    would otherwise keep it favoured after every restart.
+    would otherwise keep it favoured after every restart. A key not accessed during
+    this process (a cron ``sweep``) is ranked on its recency instead: ``F`` is
+    ``0.5 ** (age / seed_half_life_s)``, ``age`` being the time since its
+    ``last_access``, so among such keys the least recently used goes first.
     """
 
     cost_per_request: float = 1.0
     cost_per_byte: float = 0.0
+    seed_half_life_s: float | None = 30 * 86400  # None: seed F = 1, ignoring recency
     _aging: float = field(default=0.0, init=False, repr=False, compare=False)
     _entries: dict = field(
         default_factory=dict, init=False, repr=False, compare=False
@@ -195,9 +199,17 @@ class GdsfPolicy(_ResidencyPolicy):
     def on_hot_drop(self, key) -> None:
         self._entries.pop(key, None)
 
-    def _h(self, key, stats: AccessStats) -> float:
+    def _seed_frequency(self, stats: AccessStats, *, now: float) -> float:
+        """``F`` of a hot key this process has not seen accessed: decays with its age."""
+        if self.seed_half_life_s is None or not stats.last_access:
+            return 1
+        return 0.5 ** (max(now - stats.last_access, 0.0) / self.seed_half_life_s)
+
+    def _h(self, key, stats: AccessStats, *, now: float) -> float:
         entry = self._entries.get(key)
-        return entry[1] if entry else self._set(key, 1, stats.size)
+        if entry:
+            return entry[1]
+        return self._set(key, self._seed_frequency(stats, now=now), stats.size)
 
     def _forget_unknown(self, hot_keys) -> None:
         for k in self._entries.keys() - hot_keys:
@@ -205,7 +217,7 @@ class GdsfPolicy(_ResidencyPolicy):
 
     def _release_order(self, candidates, *, now: float) -> Iterator:
         ranked = sorted(
-            ((self._h(k, st), k) for k, st in candidates), key=lambda hk: hk[0]
+            ((self._h(k, st, now=now), k) for k, st in candidates), key=lambda hk: hk[0]
         )
         for h, k in ranked:
             # Lazy: the consumer stops pulling at the low watermark, so L reflects
@@ -382,7 +394,9 @@ class TieredStore(MutableMapping):
             try:
                 v, served_from = self._hot[k], "hot"
             except KeyError:
-                self._drop_hot(k)
+                pass
+        if served_from is None and k in self._hot_sizes:
+            self._drop_hot(k)  # the hot copy vanished behind our back: forget it
         if served_from is None:
             v, served_from = self._cold[k], "cold"
         size = value_size(v)

@@ -682,3 +682,41 @@ def test_admitted_at_survives_compact_and_reopen(tmp_path):
     assert admitted
     log.compact()
     assert AccessLog(path)["a"].admitted_at == admitted
+
+
+def test_gdsf_unseen_hot_keys_are_ranked_by_recency():
+    now = 100 * DAY
+    stats = {  # the more recent key comes first: ties would keep this order
+        "new": AccessStats(size=3, last_access=now - DAY),
+        "old": AccessStats(size=3, last_access=now - 60 * DAY),
+    }
+    policy = GdsfPolicy(min_residency_s=0)
+    released = policy.to_release(stats, hot_bytes=9, budget_bytes=10, now=now)
+    assert list(released) == ["old", "new"]
+
+
+def test_gdsf_seed_half_life_none_ignores_recency():
+    policy = GdsfPolicy(seed_half_life_s=None)
+    assert policy._seed_frequency(AccessStats(size=1, last_access=1.0), now=1e9) == 1
+
+
+def test_hot_copy_deleted_behind_our_back_is_released_then_readmitted():
+    s, clock = make(100, admit_after_reads=1)
+    s["a"] = b"xyz"
+    s["a"]
+    del s.hot["a"]
+    clock.t += 10
+    assert s["a"] == b"xyz"
+    assert s._hot_sizes == {"a": 3} and s._hot_bytes == 3
+    assert s.tracker["a"].admitted_at == clock.t  # a fresh admission, not the old one
+
+
+def test_hot_copy_deleted_behind_our_back_not_readmitted_frees_size():
+    s, clock = make(100)
+    s["a"] = b"xyz"
+    s["a"]
+    del s.hot["a"]
+    clock.t += 365 * DAY  # past the admission window: the cold read does not readmit
+    assert s["a"] == b"xyz"
+    assert "a" not in s.hot and s._hot_bytes == 0 and s._hot_sizes == {}
+    assert s.tracker["a"].admitted_at == 0.0
