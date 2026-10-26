@@ -1,26 +1,26 @@
 metric,value
 schema_version,1.0
-timestamp,2026-10-26T13:56:36.171927Z
-commit_sha,89fcc95c1da31511300a793d1f46137f200646c5
-commit_message,"tiering/access: re-review cuts — on_hot_drop (no policy-entry leak), release never reads the value, AccessLog keeps identity, private _exceeds_watermark, one hot-bytes name"
+timestamp,2026-10-26T13:56:49.305212Z
+commit_sha,ab01147f70adc75ae8b8aeb06c916378bf37c13d
+commit_message,Merge 89fcc95c1da31511300a793d1f46137f200646c5 into ef2415f42d3faa9bf4ce26ac75c17d8c65f6976d
 python_version,3.10
-metrics.umpyre_stats.num_functions,7150
-metrics.umpyre_stats.num_classes,1692
-metrics.umpyre_stats.total_lines,266172
-metrics.umpyre_stats.empty_lines,34389
-metrics.umpyre_stats.comment_lines,14812
-metrics.umpyre_stats.docs_lines,38408
-metrics.umpyre_stats.function_lines,118498
-metrics.umpyre_stats.empty_lines_ratio,0.1291984130562193
-metrics.umpyre_stats.comment_lines_ratio,0.0556482274619419
-metrics.umpyre_stats.function_lines_ratio,0.44519333363389085
-metrics.umpyre_stats.mean_lines_per_function,16.573146853146852
-metrics.umpyre_stats.files_analyzed,596
+metrics.umpyre_stats.num_functions,7058
+metrics.umpyre_stats.num_classes,1680
+metrics.umpyre_stats.total_lines,264088
+metrics.umpyre_stats.empty_lines,34072
+metrics.umpyre_stats.comment_lines,14700
+metrics.umpyre_stats.docs_lines,38371
+metrics.umpyre_stats.function_lines,116983
+metrics.umpyre_stats.empty_lines_ratio,0.12901760019387476
+metrics.umpyre_stats.comment_lines_ratio,0.05566326376056466
+metrics.umpyre_stats.function_lines_ratio,0.4429697676532065
+metrics.umpyre_stats.mean_lines_per_function,16.57452536129215
+metrics.umpyre_stats.files_analyzed,586
 metrics.umpyre_stats.pypi_version,0.1.22
 metrics.workflow_status.last_run_status,success
-metrics.workflow_status.last_success_timestamp,2026-10-26T13:50:34Z
+metrics.workflow_status.last_success_timestamp,2026-10-26T13:56:43Z
 metrics.workflow_status.recent_failure_count,0
-metrics.workflow_status.run_url,https://github.com/i2mint/xdol/actions/runs/40333970796
+metrics.workflow_status.run_url,https://github.com/i2mint/xdol/actions/runs/40334915377
 metrics.workflow_status.total_runs_analyzed,10
 metrics.wily.cyclomatic_avg,0.0
 metrics.wily.maintainability_index,0.0
@@ -36,4 +36,4 @@ metrics.coverage.branch_coverage,0.0
 metrics.coverage.statements_covered,0
 metrics.coverage.statements_total,0
 metrics.coverage.error,No coverage file found
-collection_duration_seconds,3.9245121479034424
+collection_duration_seconds,4.069141387939453
