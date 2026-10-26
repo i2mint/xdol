@@ -1,0 +1,47 @@
+{
+  "collection_duration_seconds": 3.535639762878418,
+  "commit_message": "access: tombstones wipe older late events, unstamped events follow the baseline, compaction only under a held lock, tracker never raises on compaction (re-review of #23)",
+  "commit_sha": "4b6b0bf970ce204a6a34135cfb5993ebcd208670",
+  "metrics": {
+    "coverage": {
+      "branch_coverage": 0.0,
+      "error": "No coverage file found",
+      "line_coverage": 0.0,
+      "statements_covered": 0,
+      "statements_total": 0
+    },
+    "umpyre_stats": {
+      "comment_lines": 14713,
+      "comment_lines_ratio": 0.05553332830074734,
+      "docs_lines": 38614,
+      "empty_lines": 34211,
+      "empty_lines_ratio": 0.1291273495885861,
+      "files_analyzed": 587,
+      "function_lines": 117603,
+      "function_lines_ratio": 0.4438854080169095,
+      "mean_lines_per_function": 16.540506329113924,
+      "num_classes": 1684,
+      "num_functions": 7110,
+      "pypi_version": "0.1.30",
+      "total_lines": 264940
+    },
+    "wily": {
+      "cyclomatic_avg": 0.0,
+      "error": "wily build failed: \u001b[31mFailed to setup archiver: 'Dirty repository, make sure you commit/stash files first'\u001b[0m\n",
+      "files_analyzed": 0,
+      "maintainability_index": 0.0,
+      "total_loc": 0
+    },
+    "workflow_status": {
+      "last_run_status": "success",
+      "last_success_timestamp": "2026-10-26T20:07:17Z",
+      "recent_failure_count": 0,
+      "run_url": "https://github.com/i2mint/xdol/actions/runs/40392639574",
+      "total_runs_analyzed": 10
+    }
+  },
+  "python_version": "3.10",
+  "schema_version": "1.0",
+  "timestamp": "2026-10-26T20:15:59.999212Z",
+  "workflow_status": {}
+}
