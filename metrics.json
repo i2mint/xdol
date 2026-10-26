@@ -1,5 +1,5 @@
 {
-  "collection_duration_seconds": 2.7143867015838623,
+  "collection_duration_seconds": 4.0360376834869385,
   "commit_message": "Drop eager file-backed probe, keep legacy temp filter, tests for dol-backed paths (review of #34)",
   "commit_sha": "e3e36ac2b690d3797f6c8b17e632e16bd5f9e400",
   "metrics": {
@@ -11,19 +11,19 @@
       "statements_total": 0
     },
     "umpyre_stats": {
-      "comment_lines": 14812,
-      "comment_lines_ratio": 0.05558849799968475,
-      "docs_lines": 38504,
-      "empty_lines": 34433,
-      "empty_lines_ratio": 0.12922486845956963,
-      "files_analyzed": 597,
-      "function_lines": 118691,
-      "function_lines_ratio": 0.4454398066487026,
-      "mean_lines_per_function": 16.565387299371945,
-      "num_classes": 1694,
-      "num_functions": 7165,
+      "comment_lines": 14700,
+      "comment_lines_ratio": 0.05560304719828728,
+      "docs_lines": 38467,
+      "empty_lines": 34116,
+      "empty_lines_ratio": 0.1290444597426373,
+      "files_analyzed": 587,
+      "function_lines": 117176,
+      "function_lines_ratio": 0.44322058901404826,
+      "mean_lines_per_function": 16.566661953909232,
+      "num_classes": 1682,
+      "num_functions": 7073,
       "pypi_version": "0.1.25",
-      "total_lines": 266458
+      "total_lines": 264374
     },
     "wily": {
       "cyclomatic_avg": 0.0,
@@ -42,6 +42,6 @@
   },
   "python_version": "3.10",
   "schema_version": "1.0",
-  "timestamp": "2026-10-26T15:53:00.426037Z",
+  "timestamp": "2026-10-26T15:53:07.550174Z",
   "workflow_status": {}
 }
