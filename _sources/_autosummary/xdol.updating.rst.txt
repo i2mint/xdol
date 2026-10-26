@@ -4,6 +4,12 @@ xdol.updating
 .. automodule:: xdol.updating
 
    
+   .. rubric:: Module Attributes
+
+   .. autosummary::
+   
+      KeyInfoFor
+   
    .. rubric:: Functions
 
    .. autosummary::

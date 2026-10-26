@@ -36,24 +36,29 @@ Using convenience methods:
 {'a': 'hello!', 'b': 'world', 'c': 'python'}
 ```
 
+### Module Attributes
+
+| [`KeyInfoFor`](#xdol.updating.KeyInfoFor)   | the `key -> info` extractor for `store`.   |
+|---------------------------------------------------------------|--------------------------------------------|
+
 ### Functions
 
-| [`add_as_attribute_of`](#xdol.updating.add_as_attribute_of)(obj[, name])                | Decorator to add the function as an attribute of the object.                           |
-|--------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------|
-| [`backfill`](#xdol.updating.backfill)(copy, master, \*[, keys_to_consider])  | Push to `master` the items that only `copy` has.                                       |
-| [`content_hash_key_info`](#xdol.updating.content_hash_key_info)(store, key)               | Default `key_info` for [`verify()`](#xdol.updating.verify).      |
-| [`local_file_timestamp`](#xdol.updating.local_file_timestamp)(store, key)                | Get the modified timestamp of a file in a local file store.                            |
-| [`print_all_but_skips`](#xdol.updating.print_all_but_skips)(key, decision, \*[, ...])   | Print all decisions except SKIP.                                                       |
-| [`reconcile`](#xdol.updating.reconcile)(master, copy, \*[, policy, ...])      | Update `copy` from `master`: master wins unless `policy` forbids.                      |
-| [`union_iter`](#xdol.updating.union_iter)(\*iterables)                         | Generator yielding unique hashable items from an iterable of iterables.                |
-| [`update_all`](#xdol.updating.update_all)(target, source, \*[, ...])           | Update target with all source values, equivalent to dict.update().                     |
-| [`update_by_content_hash`](#xdol.updating.update_by_content_hash)(target, source, \*, ...) | Update target with source values only if their hash differs.                           |
-| [`update_files_by_timestamp`](#xdol.updating.update_files_by_timestamp)(target, source, \*)   | Update a target file store with files from a source store based on modification times. |
-| [`update_if_different`](#xdol.updating.update_if_different)(target, source, \*[, ...])  | Update target with source values only if they differ.                                  |
-| [`update_missing_only`](#xdol.updating.update_missing_only)(target, source, \*[, ...])  | Update target with source values only for keys not in target.                          |
-| [`update_newer`](#xdol.updating.update_newer)(target, source, \*, ...[, ...])    | Update target with source values only if source has a newer timestamp.                 |
-| [`update_with_policy`](#xdol.updating.update_with_policy)(target, source, \*[, ...])   | Update a target mapping with values from a source mapping using a customizable policy. |
-| [`verify`](#xdol.updating.verify)(copy, master, \*[, keys, key_info])      | Compare `copy` with `master` without writing anything.                                 |
+| [`add_as_attribute_of`](#xdol.updating.add_as_attribute_of)(obj[, name])                 | Decorator to add the function as an attribute of the object.                            |
+|---------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------|
+| [`backfill`](#xdol.updating.backfill)(\*, master, copy[, keys_to_consider])   | Push to `master` the items that only `copy` has.                                        |
+| [`content_hash_key_info`](#xdol.updating.content_hash_key_info)(store)                     | A `key_info_for`: `key -> content hash` for `store`.                                    |
+| [`local_file_timestamp`](#xdol.updating.local_file_timestamp)(store, key)                 | Get the modified timestamp of a file in a local file store.                             |
+| [`print_all_but_skips`](#xdol.updating.print_all_but_skips)(key, decision, \*[, ...])    | Print all decisions except SKIP.                                                        |
+| [`reconcile`](#xdol.updating.reconcile)(\*, master, copy[, key_info_for, ...]) | Update `copy` from `master`: what differs is rewritten, unless `policy` says otherwise. |
+| [`union_iter`](#xdol.updating.union_iter)(\*iterables)                          | Generator yielding unique hashable items from an iterable of iterables.                 |
+| [`update_all`](#xdol.updating.update_all)(target, source, \*[, ...])            | Update target with all source values, equivalent to dict.update().                      |
+| [`update_by_content_hash`](#xdol.updating.update_by_content_hash)(target, source, \*, ...)  | Update target with source values only if their hash differs.                            |
+| [`update_files_by_timestamp`](#xdol.updating.update_files_by_timestamp)(target, source, \*)    | Update a target file store with files from a source store based on modification times.  |
+| [`update_if_different`](#xdol.updating.update_if_different)(target, source, \*[, ...])   | Update target with source values only if they differ.                                   |
+| [`update_missing_only`](#xdol.updating.update_missing_only)(target, source, \*[, ...])   | Update target with source values only for keys not in target.                           |
+| [`update_newer`](#xdol.updating.update_newer)(target, source, \*, ...[, ...])     | Update target with source values only if source has a newer timestamp.                  |
+| [`update_with_policy`](#xdol.updating.update_with_policy)(target, source, \*[, ...])    | Update a target mapping with values from a source mapping using a customizable policy.  |
+| [`verify`](#xdol.updating.verify)(\*, master, copy[, key_info_for, ...])    | Compare `copy` with `master` without writing anything.                                  |
 
 ### Classes
 
@@ -84,6 +89,15 @@ Decisions for individual keys during update.
 Bases: [`Protocol`](https://docs.python.org/3/library/typing.html#typing.Protocol)
 
 Protocol for functions that extract comparison information from values.
+
+### xdol.updating.KeyInfoFor
+
+the `key -> info` extractor for `store`.
+
+* **Type:**
+  `key_info_for(store)`
+
+alias of [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[[`Mapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping)], [`KeyInfoExtractor`](#xdol.updating.KeyInfoExtractor)]
 
 ### *class* xdol.updating.NotRetrieved
 
@@ -146,16 +160,17 @@ Decorator to add the function as an attribute of the object.
 'qux'
 ```
 
-### xdol.updating.backfill(copy, master, \*, keys_to_consider=<function \_just_source_keys>)
+### xdol.updating.backfill(\*, master, copy, keys_to_consider=<function \_copy_keys>)
 
 Push to `master` the items that only `copy` has. Never overwrites.
 
 Decisions use key presence only: the one value read is `copy[k]` for each key
 actually pushed, so nothing is ever downloaded from a cold (e.g. S3) master.
+`keys_to_consider`: keys, or `(master, copy) -> keys` (default: copy’s keys).
 
 ```pycon
 >>> master, copy = {'a': 1}, {'a': 9, 'b': 2}
->>> backfill(copy, master).added
+>>> backfill(copy=copy, master=master).added
 1
 >>> master
 {'a': 1, 'b': 2}
@@ -164,16 +179,17 @@ actually pushed, so nothing is ever downloaded from a cold (e.g. S3) master.
 * **Return type:**
   [`UpdateStats`](#xdol.updating.UpdateStats)
 
-### xdol.updating.content_hash_key_info(store, key)
+### xdol.updating.content_hash_key_info(store)
 
-Default `key_info` for [`verify()`](#xdol.updating.verify).
+A `key_info_for`: `key -> content hash` for `store`.
 
 Text and bytes-like values give a sha256 of their content, tagged by kind so
-that `'a'` and `b'a'` differ. Any other value is returned as is, so
-[`verify()`](#xdol.updating.verify) compares it with `==` (`1 == 1.0`, dict order ignored).
+that `'a'` and `b'a'` differ. Any other value is returned as is. Hashes
+compare exactly as the values do with `==` (`1 == 1.0`, dict order ignored),
+so this is for when a hash, not the value, is what must be kept or sent.
 
 ```pycon
->>> h = lambda v: content_hash_key_info({'k': v}, 'k')
+>>> h = lambda v: content_hash_key_info({'k': v})('k')
 >>> h(b'a') == h(bytearray(b'a')), h(b'a') == h('a')
 (True, False)
 >>> h({'x': 1})
@@ -181,7 +197,7 @@ that `'a'` and `b'a'` differ. Any other value is returned as is, so
 ```
 
 * **Return type:**
-  [`Any`](https://docs.python.org/3/library/typing.html#typing.Any)
+  [`KeyInfoExtractor`](#xdol.updating.KeyInfoExtractor)
 
 ### xdol.updating.local_file_timestamp(store, key)
 
@@ -202,20 +218,30 @@ the full path before getting the timestamp.
 
 Print all decisions except SKIP.
 
-### xdol.updating.reconcile(master, copy, \*, policy=DefaultPolicy.PREFER_SOURCE, keys_to_consider=<function \_just_source_keys>)
+### xdol.updating.reconcile(\*, master, copy, key_info_for=None, policy=DefaultPolicy.UPDATE_IF_DIFFERENT, keys_to_consider=<function \_just_source_keys>)
 
-Update `copy` from `master`: master wins unless `policy` forbids.
+Update `copy` from `master`: what differs is rewritten, unless `policy`
+says otherwise.
 
-```pycon
->>> master, copy = {'a': 1, 'b': 2}, {'a': 9}
->>> reconcile(master, copy).updated
-1
->>> copy
-{'a': 1, 'b': 2}
-```
-
+* **Parameters:**
+  * **key_info_for** ([`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[[`Mapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping)], [`KeyInfoExtractor`](#xdol.updating.KeyInfoExtractor)] | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – `key_info_for(store)` gives the `key -> info` compared for
+    that store (e.g. sizes or ETags, to avoid reading values); default: the values
+    themselves, any pair that can’t be compared counting as different (and, for a
+    policy that looks at presence only, nothing is read to decide).
+    An info of `None` reads as “missing” (see i2mint/xdol#21), so an extractor
+    must not return `None` for a present key.
+  * **keys_to_consider** ([`Union`](https://docs.python.org/3/library/typing.html#typing.Union)[[`Iterable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterable)[`K`], [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[[`Mapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping), [`MutableMapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping)], [`Iterable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterable)[`K`]]]) – keys, or `(master, copy) -> keys` (default: master’s).
 * **Return type:**
   [`UpdateStats`](#xdol.updating.UpdateStats)
+
+```pycon
+>>> master, copy = {'a': 1, 'b': 2, 'c': 3}, {'a': 9, 'c': 3}
+>>> s = reconcile(master=master, copy=copy)
+>>> s.updated, s.added, s.unchanged
+(1, 1, 1)
+>>> copy
+{'a': 1, 'c': 3, 'b': 2}
+```
 
 ### xdol.updating.union_iter(\*iterables)
 
@@ -382,19 +408,21 @@ Update a target mapping with values from a source mapping using a customizable p
 {'a': 1, 'b': 2, 'c': 30}
 ```
 
-### xdol.updating.verify(copy, master, \*, keys=None, key_info=<function content_hash_key_info>)
+### xdol.updating.verify(\*, master, copy, key_info_for=None, keys_to_consider=<function union_iter>)
 
 Compare `copy` with `master` without writing anything.
 
 * **Parameters:**
-  * **keys** ([`Iterable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterable)[`K`] | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – restrict the comparison to these keys (default: all keys of both).
-  * **key_info** ([`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[[`Mapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping), `K`], [`Any`](https://docs.python.org/3/library/typing.html#typing.Any)]) – `key_info(store, key)` returns what to compare; pass a cheaper
-    one (size, ETag) to avoid reading values.
+  * **key_info_for** ([`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[[`Mapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping)], [`KeyInfoExtractor`](#xdol.updating.KeyInfoExtractor)] | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – `key_info_for(store)` gives the `key -> info` compared for
+    that store; pass a cheaper one (size, ETag) to avoid reading values. Default:
+    the values themselves, any pair that can’t be compared counting as different.
+  * **keys_to_consider** ([`Union`](https://docs.python.org/3/library/typing.html#typing.Union)[[`Iterable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterable)[`K`], [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[[`Mapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping), [`MutableMapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping)], [`Iterable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterable)[`K`]]]) – keys, or `(master, copy) -> keys` (default: the keys of
+    both, master’s first), each considered once.
 * **Return type:**
   [`VerifyReport`](#xdol.updating.VerifyReport)
 
 ```pycon
->>> r = verify({'a': 1, 'b': 2, 'c': 3}, {'a': 1, 'b': 20, 'd': 4})
+>>> r = verify(master={'a': 1, 'b': 20, 'd': 4}, copy={'a': 1, 'b': 2, 'c': 3})
 >>> r.only_in_copy, r.only_in_master, r.mismatched
 (['c'], ['d'], ['b'])
 ```
