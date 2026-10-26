@@ -1,21 +1,21 @@
 metric,value
 schema_version,1.0
-timestamp,2026-10-26T07:06:43.246324Z
+timestamp,2026-10-26T07:06:44.653719Z
 commit_sha,623287ccc6fe1b4f36939e79244afa614f0e75ee
 commit_message,"Add xdol.tiering: TieredStore, GdsfPolicy, sweep/pin/prefetch/local_paths (closes #16)"
 python_version,3.10
-metrics.umpyre_stats.num_functions,7126
-metrics.umpyre_stats.num_classes,1691
-metrics.umpyre_stats.total_lines,265579
-metrics.umpyre_stats.empty_lines,34322
-metrics.umpyre_stats.comment_lines,14731
-metrics.umpyre_stats.docs_lines,38333
-metrics.umpyre_stats.function_lines,118278
-metrics.umpyre_stats.empty_lines_ratio,0.12923461568874045
-metrics.umpyre_stats.comment_lines_ratio,0.05546748801674831
-metrics.umpyre_stats.function_lines_ratio,0.44535900805410067
-metrics.umpyre_stats.mean_lines_per_function,16.598091495930397
-metrics.umpyre_stats.files_analyzed,595
+metrics.umpyre_stats.num_functions,7034
+metrics.umpyre_stats.num_classes,1679
+metrics.umpyre_stats.total_lines,263495
+metrics.umpyre_stats.empty_lines,34005
+metrics.umpyre_stats.comment_lines,14619
+metrics.umpyre_stats.docs_lines,38296
+metrics.umpyre_stats.function_lines,116763
+metrics.umpyre_stats.empty_lines_ratio,0.12905368223305946
+metrics.umpyre_stats.comment_lines_ratio,0.05548112867416839
+metrics.umpyre_stats.function_lines_ratio,0.4431317482305167
+metrics.umpyre_stats.mean_lines_per_function,16.59980096673301
+metrics.umpyre_stats.files_analyzed,585
 metrics.umpyre_stats.pypi_version,0.1.19
 metrics.workflow_status.last_run_status,success
 metrics.workflow_status.last_success_timestamp,2026-10-26T06:41:47Z
@@ -33,4 +33,4 @@ metrics.coverage.branch_coverage,0.0
 metrics.coverage.statements_covered,0
 metrics.coverage.statements_total,0
 metrics.coverage.error,No coverage file found
-collection_duration_seconds,3.2415919303894043
+collection_duration_seconds,3.3560941219329834
