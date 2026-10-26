@@ -1,7 +1,7 @@
 {
-  "collection_duration_seconds": 4.08526349067688,
-  "commit_message": "util: shared atomic_write for memoize and access (#30)\n\n* util: shared atomic_write used by memoize and access (closes #26)\n\n* atomic_write: stream chunks, exclusive create, bytes only; tests (review of #26)",
-  "commit_sha": "baf5ef1e7d3f973858da8f01d0d4e71296689763",
+  "collection_duration_seconds": 3.8071935176849365,
+  "commit_message": "tiering: LruPolicy behind PlacementPolicy; local_paths path_of= and non-fetching contains (closes #25)",
+  "commit_sha": "062a45ccb78f6a8a41ec62ff774798779812fd9d",
   "metrics": {
     "coverage": {
       "branch_coverage": 0.0,
@@ -12,18 +12,18 @@
     },
     "umpyre_stats": {
       "comment_lines": 14700,
-      "comment_lines_ratio": 0.05565609831820144,
-      "docs_lines": 38388,
-      "empty_lines": 34077,
-      "empty_lines_ratio": 0.12901992261152043,
+      "comment_lines_ratio": 0.05564451106644409,
+      "docs_lines": 38398,
+      "empty_lines": 34088,
+      "empty_lines_ratio": 0.1290347002199283,
       "files_analyzed": 586,
-      "function_lines": 117012,
-      "function_lines_ratio": 0.44302254261288343,
-      "mean_lines_per_function": 16.576285592860177,
-      "num_classes": 1680,
-      "num_functions": 7059,
+      "function_lines": 117044,
+      "function_lines_ratio": 0.4430514389973389,
+      "mean_lines_per_function": 16.571428571428573,
+      "num_classes": 1682,
+      "num_functions": 7063,
       "pypi_version": "0.1.23",
-      "total_lines": 264122
+      "total_lines": 264177
     },
     "wily": {
       "cyclomatic_avg": 0.0,
@@ -34,14 +34,14 @@
     },
     "workflow_status": {
       "last_run_status": "success",
-      "last_success_timestamp": "2026-10-26T15:00:17Z",
+      "last_success_timestamp": "2026-10-26T15:04:03Z",
       "recent_failure_count": 0,
-      "run_url": "https://github.com/i2mint/xdol/actions/runs/40344786921",
+      "run_url": "https://github.com/i2mint/xdol/actions/runs/40345504725",
       "total_runs_analyzed": 10
     }
   },
   "python_version": "3.10",
   "schema_version": "1.0",
-  "timestamp": "2026-10-26T15:02:00.640712Z",
+  "timestamp": "2026-10-26T15:05:31.307672Z",
   "workflow_status": {}
 }
