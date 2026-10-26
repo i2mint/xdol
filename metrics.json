@@ -1,5 +1,5 @@
 {
-  "collection_duration_seconds": 3.957883596420288,
+  "collection_duration_seconds": 4.248922824859619,
   "commit_message": "Merge cc3691e7b9f5c1ce3827a250a6c6a0a73370a597 into ef2415f42d3faa9bf4ce26ac75c17d8c65f6976d",
   "commit_sha": "726433d6d9e0725fa3c0e2a09d410fd68fac5820",
   "metrics": {
@@ -11,19 +11,19 @@
       "statements_total": 0
     },
     "umpyre_stats": {
-      "comment_lines": 14699,
-      "comment_lines_ratio": 0.05566137405852037,
-      "docs_lines": 38370,
-      "empty_lines": 34070,
-      "empty_lines_ratio": 0.12901442371411584,
-      "files_analyzed": 586,
-      "function_lines": 116978,
-      "function_lines_ratio": 0.4429659306495405,
-      "mean_lines_per_function": 16.57616550942327,
-      "num_classes": 1680,
-      "num_functions": 7057,
+      "comment_lines": 14811,
+      "comment_lines_ratio": 0.055646352047429584,
+      "docs_lines": 38407,
+      "empty_lines": 34387,
+      "empty_lines_ratio": 0.12919526756160699,
+      "files_analyzed": 596,
+      "function_lines": 118493,
+      "function_lines_ratio": 0.44518960186051404,
+      "mean_lines_per_function": 16.574765701496712,
+      "num_classes": 1692,
+      "num_functions": 7149,
       "pypi_version": "0.1.22",
-      "total_lines": 264079
+      "total_lines": 266163
     },
     "wily": {
       "cyclomatic_avg": 0.0,
@@ -42,6 +42,6 @@
   },
   "python_version": "3.10",
   "schema_version": "1.0",
-  "timestamp": "2026-10-26T13:47:16.934314Z",
+  "timestamp": "2026-10-26T13:47:21.269855Z",
   "workflow_status": {}
 }
