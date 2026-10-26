@@ -302,7 +302,8 @@ class AccessLog(Mapping):
                 except OSError as e:  # a constructor never raises over compaction
                     self._warn_once(
                         "_warned_compact",
-                        f"AccessLog could not compact {self.path!r} ({e}); left as is.",
+                        f"AccessLog could not compact {self.path!r} ({e}); "
+                        "left as is.",
                     )
 
     # -- reading -----------------------------------------------------------
@@ -417,8 +418,10 @@ class AccessLog(Mapping):
 def merge_stats(*logs: Mapping) -> dict:
     """Merge several ``Mapping[key, AccessStats]`` (e.g. logs) into one dict.
 
-    Sums reads/writes, takes the ``size`` of the latest access, min ``first_seen``
-    (ignoring unknown zeros), max ``last_access``/``last_read``, OR of ``pinned``.
+    Sums reads/writes, takes the ``size`` and ``admitted_at`` of the log with the
+    latest ``last_access`` (the one that saw the key's current state), min
+    ``first_seen`` (ignoring unknown zeros), max ``last_access``/``last_read``, OR of
+    ``pinned``.
     """
     out: dict[Any, AccessStats] = {}
     for log in logs:
@@ -427,16 +430,17 @@ def merge_stats(*logs: Mapping) -> dict:
             if cur is None:
                 out[key] = st
                 continue
+            latest = st if st.last_access >= cur.last_access else cur
             out[key] = replace(
                 cur,
                 reads=cur.reads + st.reads,
                 writes=cur.writes + st.writes,
-                size=st.size if st.last_access >= cur.last_access else cur.size,
+                size=latest.size,
                 first_seen=_min_nonzero(cur.first_seen, st.first_seen),
                 last_access=max(cur.last_access, st.last_access),
                 last_read=max(cur.last_read, st.last_read),
                 pinned=cur.pinned or st.pinned,
-                admitted_at=max(cur.admitted_at, st.admitted_at),
+                admitted_at=latest.admitted_at,
             )
     return out
 

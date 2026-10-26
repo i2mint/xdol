@@ -1,5 +1,6 @@
 """Tests for xdol.tiering."""
 
+import json
 import os
 import warnings
 
@@ -535,17 +536,94 @@ def test_wrapped_hot_files_sized_at_startup(tmp_path):
     assert status(s)["hot_bytes"] == 5
 
 
+def _store(
+    budget, cold=None, *, clock=None, path=None, max_item_fraction=1.0, **policy
+):
+    clock = clock or Clock()
+    log = AccessLog(path, clock=clock, tag="t")
+    s = TieredStore(
+        {},
+        {} if cold is None else cold,
+        budget_bytes=budget,
+        policy=GdsfPolicy(**policy),
+        tracker=log,
+        max_item_fraction=max_item_fraction,
+    )
+    return s, clock, log
+
+
+def test_oversize_item_read_twice_stays_cold_with_defaults():
+    # the issue's scenario, default policy and store: a big item read twice must not
+    # be admitted only to be released at once, nor push out the small hot one
+    s = TieredStore(
+        {},
+        {"small": b"y" * 4, "big": b"x" * 100},
+        budget_bytes=10,
+        tracker=AccessLog(clock=Clock(), tag="t"),
+    )
+    s["small"], s["small"]
+    assert "small" in s.hot
+    assert s["big"] == b"x" * 100 and s["big"] == b"x" * 100
+    assert set(s.hot) == {"small"} and status(s)["hot_bytes"] == 4
+
+
 def test_max_item_fraction_refuses_admission_but_serves_from_cold():
-    s, _ = make(
+    s, _, _ = _store(
         10,
+        {"big": b"x" * 6, "small": b"y" * 4},
         admit_after_reads=1,
         max_item_fraction=0.5,
-        cold={"big": b"x" * 100, "small": b"y" * 4},
     )
-    assert s["big"] == b"x" * 100 and s["big"] == b"x" * 100
+    assert s["big"] == b"x" * 6 and s["big"] == b"x" * 6
     assert "big" not in s.hot
     s["small"]
     assert "small" in s.hot
+
+
+def test_max_item_fraction_write_goes_to_cold_only_and_drops_stale_hot():
+    s, _, log = _store(10, max_item_fraction=0.5)
+    s["a"] = b"x" * 4
+    assert s.hot == {"a": b"x" * 4} and log["a"].admitted_at
+    s["a"] = b"y" * 6  # 6 > 0.5 * 10
+    assert s.cold["a"] == b"y" * 6 and "a" not in s.hot
+    assert status(s)["hot_bytes"] == 0 and log["a"].admitted_at == 0.0
+    s["b"] = b"z" * 20
+    assert "b" not in s.hot and s.cold["b"] == b"z" * 20
+
+
+def test_max_item_fraction_exempts_prefetch():
+    s, _, _ = _store(100, {"a": b"x" * 60}, max_item_fraction=0.5)
+    prefetch(s, ["a"])
+    assert "a" in s.hot
+
+
+@pytest.mark.parametrize("bad", [0, -0.5, 1.5])
+def test_max_item_fraction_validated(bad):
+    with pytest.raises(ValueError, match="max_item_fraction"):
+        _store(10, max_item_fraction=bad)
+
+
+def test_max_item_fraction_property():
+    assert _store(10)[0].max_item_fraction == 1.0
+    assert _store(10, max_item_fraction=0.25)[0].max_item_fraction == 0.25
+
+
+def test_one_release_per_drop_and_delete_records_no_release(tmp_path):
+    path = tmp_path / "log.jsonl"
+    s, clock, log = _store(
+        10,
+        {"a": b"x" * 6, "b": b"y" * 6},
+        path=path,
+        admit_after_reads=1,
+        min_residency_s=0,
+    )
+    s["a"]
+    clock.t += 1
+    s["b"]  # releases a
+    del s["b"]  # hot b: a delete, not a release
+    ops = [json.loads(line)["op"] for line in path.read_text().splitlines()]
+    assert ops.count("release") == 1 and ops.count("admit") == 2
+    assert ops[-1] == "delete"
 
 
 def test_residency_counts_from_admission_not_last_touch():
@@ -570,10 +648,37 @@ def test_residency_counts_from_admission_not_last_touch():
 
 
 def test_admitted_at_survives_reopen(tmp_path):
-    clock = Clock()
     path = tmp_path / "log.jsonl"
-    log = AccessLog(path, clock=clock)
-    s = TieredStore({}, {"a": b"x"}, budget_bytes=None, tracker=log)
+    s, clock, log = _store(
+        10,
+        {"a": b"x" * 6, "b": b"y" * 6},
+        path=path,
+        admit_after_reads=1,
+        min_residency_s=100,
+    )
+    t0 = clock()
     s["a"]
+    clock.t += 90
+    s["a"]  # recent touch: last_access is t0 + 90, admission stays t0
     log.close()
-    assert AccessLog(path).stats("a").admitted_at == clock()
+    clock.t = t0 + 120
+    log2 = AccessLog(path, clock=clock, tag="t")
+    assert log2["a"].admitted_at == t0 and log2["a"].last_access == t0 + 90
+    policy = GdsfPolicy(admit_after_reads=1, min_residency_s=100)
+    assert policy.is_protected(log2["a"], now=t0 + 50)
+    assert not policy.is_protected(log2["a"], now=t0 + 120)
+    s2 = TieredStore(
+        {"a": b"x" * 6}, s.cold, budget_bytes=10, policy=policy, tracker=log2
+    )
+    s2["b"]  # a was admitted 120s ago: unprotected, though touched 30s ago
+    assert set(s2.hot) == {"b"}
+
+
+def test_admitted_at_survives_compact_and_reopen(tmp_path):
+    path = tmp_path / "log.jsonl"
+    s, clock, log = _store(None, {"a": b"x"}, path=path)
+    s["a"]
+    admitted = log["a"].admitted_at
+    assert admitted
+    log.compact()
+    assert AccessLog(path)["a"].admitted_at == admitted

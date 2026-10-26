@@ -442,9 +442,7 @@ def _random_log_lines(rng):
                 "size": rng.randint(0, 9),
                 "last_access": float(rng.randint(0, 20)),
             }
-            lines.append(
-                json.dumps({"k": rng.choice("abc"), "op": "snapshot", "stats": stats})
-            )
+            lines.append(json.dumps({"k": rng.choice("abc"), "op": "snapshot", "stats": stats}))
             continue
         ev = {
             "k": rng.choice("abc"),
@@ -495,11 +493,7 @@ def test_snapshot_after_events_still_applied_first(tmp_path):
     p = tmp_path / "cat.jsonl"
     lines = [
         {"k": "a", "op": "read", "n": 1, "ts": 10},
-        {
-            "k": "a",
-            "op": "snapshot",
-            "stats": {"reads": 4, "size": 1, "last_access": 5.0},
-        },
+        {"k": "a", "op": "snapshot", "stats": {"reads": 4, "size": 1, "last_access": 5.0}},
     ]
     p.write_text("".join(json.dumps(e) + "\n" for e in lines))
     assert AccessLog(p)["a"].reads == 5
@@ -554,3 +548,20 @@ def test_compact_above_failure_only_warns(tmp_path, monkeypatch):
 def test_compact_above_validated(tmp_path, bad):
     with pytest.raises(ValueError):
         AccessLog(tmp_path / "log.jsonl", compact_above=bad)
+
+
+def test_snapshot_without_admitted_at_loads(tmp_path):
+    p = tmp_path / "old.jsonl"
+    old = {"reads": 3, "size": 2, "last_access": 5.0, "pinned": True}
+    p.write_text(json.dumps({"k": "a", "op": "snapshot", "stats": old}) + "\n")
+    st = AccessLog(p)["a"]
+    assert st.reads == 3 and st.pinned and st.admitted_at == 0.0
+
+
+def test_merge_stats_admitted_at_from_latest_access():
+    early = {"a": AccessStats(last_access=10.0, admitted_at=8.0)}
+    late = {"a": AccessStats(last_access=20.0, admitted_at=0.0)}  # since released
+    assert merge_stats(early, late)["a"].admitted_at == 0.0
+    assert merge_stats(late, early)["a"].admitted_at == 0.0
+    late = {"a": AccessStats(last_access=20.0, admitted_at=15.0)}
+    assert merge_stats(late, early)["a"].admitted_at == 15.0
