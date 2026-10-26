@@ -1,26 +1,32 @@
 metric,value
 schema_version,1.0
-timestamp,2026-10-26T15:16:53.836907Z
-commit_sha,29895caba00536dc2c3108f9100a41107616f148
-commit_message,Merge 98441ee4f31f7854884790d6623209b3b197e5ee into c689202e16339c72ac949a92e18510ceb5c7323d
+timestamp,2026-10-26T15:18:46.861147Z
+commit_sha,ec42c3abe28a7b744112842ed5e7283591b92a25
+commit_message,"tiering: LruPolicy; local_paths path_of= and non-fetching contains (#31)
+
+* tiering: LruPolicy behind PlacementPolicy; local_paths path_of= and non-fetching contains (closes #25)
+
+* tiering: template-method release order, local_paths counts use + guards default path, real LRU tests (review of #25)
+
+* local_paths: abspath guard, refetch deleted hot files, check path before fetch; more tests (re-review of #25)"
 python_version,3.10
-metrics.umpyre_stats.num_functions,7068
-metrics.umpyre_stats.num_classes,1682
-metrics.umpyre_stats.total_lines,264204
-metrics.umpyre_stats.empty_lines,34094
-metrics.umpyre_stats.comment_lines,14700
-metrics.umpyre_stats.docs_lines,38401
-metrics.umpyre_stats.function_lines,117063
-metrics.umpyre_stats.empty_lines_ratio,0.12904422340312788
-metrics.umpyre_stats.comment_lines_ratio,0.05563882454467003
-metrics.umpyre_stats.function_lines_ratio,0.443078076032157
-metrics.umpyre_stats.mean_lines_per_function,16.56239388794567
-metrics.umpyre_stats.files_analyzed,586
+metrics.umpyre_stats.num_functions,7160
+metrics.umpyre_stats.num_classes,1694
+metrics.umpyre_stats.total_lines,266288
+metrics.umpyre_stats.empty_lines,34411
+metrics.umpyre_stats.comment_lines,14812
+metrics.umpyre_stats.docs_lines,38438
+metrics.umpyre_stats.function_lines,118578
+metrics.umpyre_stats.empty_lines_ratio,0.12922474914378418
+metrics.umpyre_stats.comment_lines_ratio,0.055623986060205494
+metrics.umpyre_stats.function_lines_ratio,0.44529982575256866
+metrics.umpyre_stats.mean_lines_per_function,16.561173184357543
+metrics.umpyre_stats.files_analyzed,596
 metrics.umpyre_stats.pypi_version,0.1.24
 metrics.workflow_status.last_run_status,success
-metrics.workflow_status.last_success_timestamp,2026-10-26T15:12:38Z
+metrics.workflow_status.last_success_timestamp,2026-10-26T15:17:01Z
 metrics.workflow_status.recent_failure_count,0
-metrics.workflow_status.run_url,https://github.com/i2mint/xdol/actions/runs/40346573667
+metrics.workflow_status.run_url,https://github.com/i2mint/xdol/actions/runs/40347614259
 metrics.workflow_status.total_runs_analyzed,10
 metrics.wily.cyclomatic_avg,0.0
 metrics.wily.maintainability_index,0.0
@@ -36,4 +42,4 @@ metrics.coverage.branch_coverage,0.0
 metrics.coverage.statements_covered,0
 metrics.coverage.statements_total,0
 metrics.coverage.error,No coverage file found
-collection_duration_seconds,3.023618698120117
+collection_duration_seconds,3.099471092224121
