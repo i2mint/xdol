@@ -1,0 +1,47 @@
+{
+  "collection_duration_seconds": 2.594640016555786,
+  "commit_message": "Use dol.atomic_write and dol.path_of; require dol>=0.3.98 (#35)\n\n* Use dol.atomic_write and dol.path_of; require dol>=0.3.98 (closes #34)\n\n* Drop eager file-backed probe, keep legacy temp filter, tests for dol-backed paths (review of #34)",
+  "commit_sha": "5fe5e4dbb4603b6dabe06c5a9ea064d1de28e6cc",
+  "metrics": {
+    "coverage": {
+      "branch_coverage": 0.0,
+      "error": "No coverage file found",
+      "line_coverage": 0.0,
+      "statements_covered": 0,
+      "statements_total": 0
+    },
+    "umpyre_stats": {
+      "comment_lines": 14812,
+      "comment_lines_ratio": 0.05558849799968475,
+      "docs_lines": 38504,
+      "empty_lines": 34433,
+      "empty_lines_ratio": 0.12922486845956963,
+      "files_analyzed": 597,
+      "function_lines": 118691,
+      "function_lines_ratio": 0.4454398066487026,
+      "mean_lines_per_function": 16.565387299371945,
+      "num_classes": 1694,
+      "num_functions": 7165,
+      "pypi_version": "0.1.26",
+      "total_lines": 266458
+    },
+    "wily": {
+      "cyclomatic_avg": 0.0,
+      "error": "wily report failed: Usage: wily report [OPTIONS] FILE [METRICS]...\nTry 'wily report --help' for help.\n\nError: Invalid value for '-f' / '--format': 'json' is not one of 'CONSOLE', 'HTML'.\n",
+      "files_analyzed": 0,
+      "maintainability_index": 0.0,
+      "total_loc": 0
+    },
+    "workflow_status": {
+      "last_run_status": "success",
+      "last_success_timestamp": "2026-10-26T15:53:25Z",
+      "recent_failure_count": 0,
+      "run_url": "https://github.com/i2mint/xdol/actions/runs/40353554208",
+      "total_runs_analyzed": 10
+    }
+  },
+  "python_version": "3.10",
+  "schema_version": "1.0",
+  "timestamp": "2026-10-26T15:54:43.941301Z",
+  "workflow_status": {}
+}
