@@ -1,19 +1,8 @@
 metric,value
 schema_version,1.0
-timestamp,2026-10-26T13:28:51.646529Z
-commit_sha,7aac220e9fcae207579a69398ce30af8cc4e609e
-commit_message,"Fix backfill reads/None-overwrite and content_hash_key_info (review of #19)
-
-- backfill decides on key presence only (PREFER_TARGET with a presence key
-  info): it reads no master value and each pushed copy value once, and a
-  None-valued master key is no longer overwritten.
-- content_hash_key_info hashes str/bytes-like values with a type tag (str via
-  surrogatepass) and returns any other value as is, so verify compares it
-  with == instead of a repr() digest.
-- Tests: None-valued master, read counter on backfill, key_info decides in
-  both directions (with .get blocked), reconcile stats, default content hash.
-- Rewrite the garbled module docstring; drop duplicate Iterable/Protocol
-  imports."
+timestamp,2026-10-26T13:30:02.166820Z
+commit_sha,2307f252ef5d594dcd92e281ec9df07ea8e03b52
+commit_message,Merge 7aac220e9fcae207579a69398ce30af8cc4e609e into 86a29c025eed54e8e2202989916617532bbd10a2
 python_version,3.10
 metrics.umpyre_stats.num_functions,7133
 metrics.umpyre_stats.num_classes,1692
@@ -29,9 +18,9 @@ metrics.umpyre_stats.mean_lines_per_function,16.59540165428291
 metrics.umpyre_stats.files_analyzed,596
 metrics.umpyre_stats.pypi_version,0.1.21
 metrics.workflow_status.last_run_status,success
-metrics.workflow_status.last_success_timestamp,2026-10-26T07:09:51Z
-metrics.workflow_status.recent_failure_count,2
-metrics.workflow_status.run_url,https://github.com/i2mint/xdol/actions/runs/40284055601
+metrics.workflow_status.last_success_timestamp,2026-10-26T13:28:57Z
+metrics.workflow_status.recent_failure_count,1
+metrics.workflow_status.run_url,https://github.com/i2mint/xdol/actions/runs/40330767964
 metrics.workflow_status.total_runs_analyzed,10
 metrics.wily.cyclomatic_avg,0.0
 metrics.wily.maintainability_index,0.0
@@ -47,4 +36,4 @@ metrics.coverage.branch_coverage,0.0
 metrics.coverage.statements_covered,0
 metrics.coverage.statements_total,0
 metrics.coverage.error,No coverage file found
-collection_duration_seconds,3.0109801292419434
+collection_duration_seconds,3.5217676162719727
