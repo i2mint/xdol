@@ -757,7 +757,7 @@ def test_tombstone_after_event_is_out_of_order():
         _fold_streaming(lines, {}, {})
     stats, stones = {}, {}
     _, nevents = _fold_buffered(lines, stats, stones)
-    assert nevents == 1 and stats["a"].writes == 1 and stones == {"a": 5.0}
+    assert nevents == 1 and "a" not in stats and stones == {"a": 5.0}  # wiped
 
 
 def test_merge_stats_own_tombstones_do_not_apply():
@@ -825,3 +825,94 @@ def test_read_only_lock_file_still_locks(tmp_path):
             fcntl.flock(other.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
     log.record("a", "read", 1)
     assert AccessLog(p)["a"].reads == 1
+
+
+def _fold_keys(lines):
+    stats, stones = {}, {}
+    _fold_buffered(lines, stats, stones)
+    return stats
+
+
+def test_compaction_does_not_change_the_fold_fuzz():
+    # compacting a prefix changes nothing when the events after it are stamped after
+    # it (a late event stamped before compacted ones folds approximately: #44)
+    from xdol.access import _compacted_lines
+
+    rng = random.Random(1)
+    for _ in range(3000):
+        stamps = rng.sample(range(1, 60), rng.randint(2, 25))  # distinct: no ties
+        events = [
+            {
+                "k": rng.choice("ab"),
+                "op": rng.choice(["read", "write", "delete", "pin", "unpin"]),
+                "n": rng.randint(0, 9),
+                "ts": float(t),
+            }
+            for t in stamps
+        ]
+        lines = [json.dumps(e).encode() for e in events]
+        cut = rng.randint(0, len(lines))
+        prefix_stats, prefix_stones = {}, {}
+        _fold_buffered(lines[:cut], prefix_stats, prefix_stones)
+        compacted = list(_compacted_lines(prefix_stats, prefix_stones))
+        raw, comp = _fold_keys(lines), _fold_keys(compacted + lines[cut:])
+        if cut and cut < len(events) and min(stamps[cut:]) < max(stamps[:cut]):
+            continue  # a late event: see #44
+        assert raw.keys() == comp.keys(), events
+        for k in raw:
+            assert (raw[k].reads, raw[k].writes, raw[k].pinned) == (
+                comp[k].reads,
+                comp[k].writes,
+                comp[k].pinned,
+            ), events
+
+
+def test_late_event_older_than_a_compacted_delete_stays_deleted(tmp_path):
+    p = tmp_path / "log.jsonl"
+    _write_lines(
+        p,
+        {"k": "k", "op": "write", "n": 1, "ts": 10.0},
+        {"k": "k", "op": "delete", "ts": 20.0},
+    )
+    AccessLog(p).compact()
+    with open(p, "a") as fh:  # a slow writer's event, stamped before the delete
+        fh.write(json.dumps({"k": "k", "op": "read", "n": 1, "ts": 15.0}) + "\n")
+    assert "k" not in AccessLog(p)
+
+
+def test_unstamped_delete_after_compaction_still_deletes(tmp_path):
+    p = tmp_path / "log.jsonl"
+    log = AccessLog(p, clock=Clock())
+    log.record("k", "write", 1)
+    log.compact()
+    with open(p, "a") as fh:  # a tracer that writes no timestamp
+        fh.write(json.dumps({"k": "k", "op": "delete"}) + "\n")
+    assert "k" not in AccessLog(p)
+
+
+def test_pathological_line_never_raises_into_reads(tmp_path):
+    p = tmp_path / "log.jsonl"
+    p.write_text("[" * 200_000 + "\n")
+    log = AccessLog(p, compact_above=0)
+    store = track_access({"a": b"x"}, tracker=log)
+    assert store["a"] == b"x" and log["a"].reads == 1
+
+
+def test_no_compaction_without_the_lock(tmp_path, monkeypatch):
+    import errno
+
+    import xdol.access
+
+    def unsupported(fh):
+        raise OSError(errno.ENOTSUP, "flock not supported")
+
+    monkeypatch.setattr(xdol.access, "_lock", unsupported)
+    p = tmp_path / "log.jsonl"
+    log = AccessLog(p, clock=Clock(), compact_above=2)
+    with pytest.warns(UserWarning, match="could not compact"):
+        for _ in range(4):
+            log.record("a", "read", 1)  # appended unlocked, never compacted
+    assert len(p.read_text().splitlines()) == 4
+    assert AccessLog(p, compact_above=None)["a"].reads == 4
+    with pytest.raises(OSError, match="not compacting"):
+        log.compact()

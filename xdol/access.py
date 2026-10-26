@@ -61,6 +61,7 @@ True
 
 from __future__ import annotations
 
+import errno
 import json
 import math
 import os
@@ -80,8 +81,13 @@ _CREATING_OPS = ("read", "write", "pin")  # other ops on an unknown key are no-o
 _BASELINE_OPS = ("snapshot", "tombstone")  # a compacted file's lines, not events
 DFLT_COMPACT_ABOVE = 100_000  # events (~10 MB): replaying that many takes well under 1s
 
+_LOCK_UNSUPPORTED = {  # e.g. Lustre without its flock option, some FUSE/SMB mounts
+    getattr(errno, name)
+    for name in ("ENOLCK", "ENOTSUP", "EOPNOTSUPP", "ENOSYS")
+    if hasattr(errno, name)
+}
+
 if os.name == "nt":
-    import errno
     import msvcrt
 
     _LOCK_RETRY_INTERVAL = 0.001  # seconds between attempts on a contended lock
@@ -204,7 +210,8 @@ def _parse_event(raw: bytes):
             return key, op, None, ts, None
         if op in OPS and all(x is None or _is_finite(x) for x in (ts, n)):
             return key, op, n, ts, None
-    except (ValueError, KeyError, TypeError, AttributeError, OverflowError):
+    except (ValueError, KeyError, TypeError, AttributeError, OverflowError,
+            RecursionError):  # e.g. a foreign line of 200k nested brackets
         pass
     return None
 
@@ -217,15 +224,20 @@ def _replay_lines(lines):
     """``(seq, key, op, n, ts, stats)`` for each usable line of ``lines``, in file order.
 
     Torn, undecodable and foreign lines are skipped. ``ts`` is ``None`` for a snapshot
-    line; an event without ``ts`` takes the running max of the event timestamps before
-    it (``0.0`` at the top), so it is ordered right after the lines before it.
+    line; an event without ``ts`` takes the running max of the timestamps before it
+    (baseline lines included, ``0.0`` at the top), so it is ordered right after the
+    lines before it.
     """
     running = 0.0
     for seq, raw in enumerate(lines):
         if (ev := _parse_event(raw)) is None:
             continue
         key, op, n, ts, stats = ev
-        if op not in _BASELINE_OPS:
+        if op == "snapshot":
+            running = max(running, _last_event(stats))
+        elif op == "tombstone":
+            running = max(running, ts)
+        else:
             ts = running if ts is None else ts
             running = max(running, ts)
         yield seq, key, op, n, ts, stats
@@ -353,8 +365,10 @@ class _LockedAppender:
 
     @contextmanager
     def locked(self):
-        """Hold the exclusive lock on ``<path>.lock`` (unlocked if it cannot be opened,
-        e.g. in a read-only folder, where no one can write the log either)."""
+        """Hold the exclusive lock on ``<path>.lock``; yields whether it is held.
+
+        Not held (the body still runs) when the lock file cannot be opened, e.g. in a
+        read-only folder, or the filesystem does not support locking."""
         # handles inherited over a fork share the parent's lock: reopen our own
         if self._pid != os.getpid():
             self.close()
@@ -362,11 +376,17 @@ class _LockedAppender:
         if self._lock_fh is None:
             self._lock_fh = _open_lock_file(self.path + ".lock")
         if self._lock_fh is None:
-            yield
+            yield False
             return
-        _lock(self._lock_fh)
         try:
-            yield
+            _lock(self._lock_fh)
+        except OSError as e:
+            if e.errno not in _LOCK_UNSUPPORTED:
+                raise
+            yield False
+            return
+        try:
+            yield True
         finally:
             _unlock(self._lock_fh)
 
@@ -428,6 +448,8 @@ def _apply(stats_by_key: dict, tombstones: dict, key, op, nbytes, ts) -> None:
         if st is None or ts >= _last_event(st):  # same stamp: the delete wins
             stats_by_key.pop(key, None)
         return
+    if ts < tombstones.get(key, ts):  # a later delete wiped it (from a compacted
+        return  # file: that delete is a tombstone, the key's snapshot is post-delete)
     if st is None:
         if op not in _CREATING_OPS:
             return
@@ -592,7 +614,7 @@ class AccessLog(Mapping):
             return
         try:
             self.compact()
-        except OSError as e:  # recording (or opening) never raises over compaction
+        except Exception as e:  # recording (or opening) never raises over compaction
             self._warn_once(
                 "_warned_compact",
                 f"AccessLog could not compact {self.path!r} ({e}); left as is.",
@@ -609,7 +631,9 @@ class AccessLog(Mapping):
         """
         if self.path is None:
             return
-        with self._appender.locked():
+        with self._appender.locked() as held:
+            if not held:  # unlocked, another writer's events could be lost
+                raise OSError(f"cannot lock {self.path}.lock: not compacting")
             if os.path.exists(self.path):
                 stats_by_key, tombstones, _, _ = _fold_path(self.path)
                 atomic_write(self.path, _compacted_lines(stats_by_key, tombstones))
