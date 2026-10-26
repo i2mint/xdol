@@ -1,7 +1,7 @@
 {
-  "collection_duration_seconds": 3.9034931659698486,
-  "commit_message": "Merge f0178590d162170b9b90b7d9c3a12e96edc6a9b9 into 86a29c025eed54e8e2202989916617532bbd10a2",
-  "commit_sha": "9b4066fdf0c128e01149f9c0c4ed32254432e34d",
+  "collection_duration_seconds": 4.119436502456665,
+  "commit_message": "CI: collect xdol/ (package tests + doctests); fix two pystores doctests that could never pass\n\ntestpaths only listed tests/, so xdol/tests/*.py and every module doctest\nwere skipped in CI (CI passes --doctest-modules but no paths).",
+  "commit_sha": "f0178590d162170b9b90b7d9c3a12e96edc6a9b9",
   "metrics": {
     "coverage": {
       "branch_coverage": 0.0,
@@ -42,6 +42,6 @@
   },
   "python_version": "3.10",
   "schema_version": "1.0",
-  "timestamp": "2026-10-26T13:33:48.256947Z",
+  "timestamp": "2026-10-26T13:33:52.749631Z",
   "workflow_status": {}
 }
