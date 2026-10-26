@@ -208,7 +208,8 @@ class GdsfPolicy(_ResidencyPolicy):
     def _seed_frequency(self, stats: AccessStats, *, now: float) -> float:
         """``F`` of a hot key this process has not seen accessed: decays with its age."""
         if self.seed_half_life_s is None:
-            return 1  # unknown recency (last_access 0) is the oldest: F near 0, as LRU
+            return 1
+        # unknown recency (last_access 0) is the oldest: F near 0, as LRU
         return 0.5 ** (max(now - stats.last_access, 0.0) / self.seed_half_life_s)
 
     def _h(self, key, stats: AccessStats, *, now: float) -> float:
