@@ -1,5 +1,5 @@
 {
-  "collection_duration_seconds": 2.2957892417907715,
+  "collection_duration_seconds": 3.057779550552368,
   "commit_message": "Add xdol.tiering: TieredStore, GdsfPolicy, sweep/pin/prefetch/local_paths (closes #16) (#20)",
   "commit_sha": "31d7b312ece16bf267adca029a1ae2e4bdf116f1",
   "metrics": {
@@ -11,19 +11,19 @@
       "statements_total": 0
     },
     "umpyre_stats": {
-      "comment_lines": 14731,
-      "comment_lines_ratio": 0.05546748801674831,
-      "docs_lines": 38333,
-      "empty_lines": 34322,
-      "empty_lines_ratio": 0.12923461568874045,
-      "files_analyzed": 595,
-      "function_lines": 118278,
-      "function_lines_ratio": 0.44535900805410067,
-      "mean_lines_per_function": 16.598091495930397,
-      "num_classes": 1691,
-      "num_functions": 7126,
+      "comment_lines": 14619,
+      "comment_lines_ratio": 0.05548112867416839,
+      "docs_lines": 38296,
+      "empty_lines": 34005,
+      "empty_lines_ratio": 0.12905368223305946,
+      "files_analyzed": 585,
+      "function_lines": 116763,
+      "function_lines_ratio": 0.4431317482305167,
+      "mean_lines_per_function": 16.59980096673301,
+      "num_classes": 1679,
+      "num_functions": 7034,
       "pypi_version": "0.1.20",
-      "total_lines": 265579
+      "total_lines": 263495
     },
     "wily": {
       "cyclomatic_avg": 0.0,
@@ -42,6 +42,6 @@
   },
   "python_version": "3.10",
   "schema_version": "1.0",
-  "timestamp": "2026-10-26T07:08:40.139414Z",
+  "timestamp": "2026-10-26T07:08:52.031695Z",
   "workflow_status": {}
 }
