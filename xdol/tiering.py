@@ -29,8 +29,10 @@ import os
 import warnings
 from collections.abc import Callable, Iterable, Iterator, Mapping, MutableMapping
 from dataclasses import dataclass, field, replace
+from functools import partial
 from typing import Any, Protocol
 
+from dol import path_of as dol_path_of
 from xdol.access import AccessLog, AccessStats, default_access_log_for, value_size
 
 
@@ -216,33 +218,21 @@ class SweepReport:
     bytes_after: int
 
 
-def _hot_path(hot, key) -> str:
-    if hasattr(hot, "_id_of_key"):
-        return hot._id_of_key(key)
-    return os.path.join(hot.rootdir, key)
-
-
-def _checked_hot_path(hot, key) -> str:
-    """``_hot_path`` as an absolute path, but only when it lies under ``hot.rootdir``."""
-    path = os.path.abspath(_hot_path(hot, key))
-    root = os.path.abspath(hot.rootdir)
+def _is_file_backed(store) -> bool:
     try:
-        under_root = os.path.commonpath([root, path]) == root
-    except ValueError:  # e.g. different drives on Windows
-        under_root = False
-    if not under_root:
-        raise TypeError(
-            f"Cannot locate {key!r} in the hot store (got {path!r}, not under "
-            f"{root!r}); pass local_paths(..., path_of=...)"
-        )
-    return path
+        dol_path_of(store, "")
+    except TypeError:
+        return False
+    except KeyError:
+        pass
+    return True
 
 
 def _file_size(hot, key) -> int | None:
     """Size of ``key``'s file when ``hot`` is file-backed, without reading it."""
     try:
-        return os.path.getsize(_hot_path(hot, key))
-    except (OSError, TypeError, AttributeError):
+        return os.path.getsize(dol_path_of(hot, key))
+    except (OSError, TypeError, KeyError, AttributeError):
         return None
 
 
@@ -528,15 +518,15 @@ def local_paths(
 ) -> Mapping:
     """Read-only ``{key: real file path}``; materialises each key into ``hot``.
 
-    ``path_of(key)`` gives the file path of ``key`` in ``hot``. The default duck-types
-    a ``dol.Files``-like hot store (``rootdir`` and ``_id_of_key``; ``TypeError`` if there
-    is no ``rootdir``, or the path is not an absolute one under it); pass ``path_of`` for any other layout, e.g. a ``wrap_kvs``-wrapped store.
-    ``FileNotFoundError`` is raised if the file is not there after materialisation.
+    ``path_of(key)`` gives the file path of ``key`` in ``hot``; the default is
+    :func:`dol.path_of` on the hot store, which follows wrapped layers (``TypeError`` if
+    ``hot`` is not file-backed). ``FileNotFoundError`` is raised if the file is not there after materialisation.
     ``key in paths`` checks the store without fetching.
     """
     if path_of is None:
-        hot = store._hot
-        if getattr(hot, "rootdir", None) is None:
-            raise TypeError("local_paths requires a hot store with a 'rootdir'")
-        path_of = lambda key: _checked_hot_path(hot, key)  # noqa: E731
+        path_of = partial(dol_path_of, store._hot)
+        if not _is_file_backed(store._hot):
+            raise TypeError(
+                "local_paths requires a file-backed hot store (or path_of=)"
+            )
     return _LocalPaths(store, path_of)

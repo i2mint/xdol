@@ -57,10 +57,9 @@ from collections.abc import Callable, Iterable, Iterator, MutableMapping
 from pathlib import Path
 from typing import Any, Literal
 
-from dol import Files
+from dol import Files, atomic_write
 
 from xdol.keys import make_key_func, robust_key
-from xdol.util import atomic_write
 from xdol.x_codecs import CodecDecodeError, get_codec, paired_store, with_codec
 
 Mode = Literal["replay", "record", "refresh", "off"]
@@ -134,8 +133,6 @@ class AtomicFiles(Files):
     iteration. Missing sub-directories of a key (``"a/b"``) are created.
     """
 
-    _TMP_SUFFIX = ".xdol-tmp"
-
     def __init__(self, *args, delete_func=os.remove, **kwargs):
         # Cached results are derived data: deleting one should not leave a copy in the trash.
         super().__init__(*args, delete_func=delete_func, **kwargs)
@@ -172,10 +169,7 @@ class AtomicFiles(Files):
     def __setitem__(self, key, value):
         path = Path(self._id_of_key(key))
         path.parent.mkdir(parents=True, exist_ok=True)
-        atomic_write(path, value, tmp_suffix=self._TMP_SUFFIX)
-
-    def __iter__(self) -> Iterator[str]:
-        return (k for k in super().__iter__() if not k.endswith(self._TMP_SUFFIX))
+        atomic_write(path, value)
 
 
 def file_cache_store(rootdir: str | os.PathLike, *, codec="json") -> MutableMapping:

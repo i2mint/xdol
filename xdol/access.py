@@ -55,7 +55,7 @@ from collections.abc import Callable, Iterator, Mapping, MutableMapping
 from dataclasses import asdict, dataclass, replace
 from typing import Any, get_type_hints
 
-from xdol.util import atomic_write
+from dol import atomic_write
 
 OPS = ("read", "write", "delete", "release", "pin", "unpin")
 _CREATING_OPS = ("read", "write", "pin")  # other ops on an unknown key are no-ops

@@ -527,3 +527,12 @@ def test_gdsf_after_restart_long_history_does_not_outrank_recent_hits(tmp_path):
     s["new"], s["new"]  # recent hits
     s["c"] = b"c" * 2  # crosses the high watermark: one or more keys must go
     assert "old" not in s.hot and "new" in s.hot
+
+
+def test_local_paths_default_follows_wrapped_files(tmp_path):
+    from dol import KeyCodecs
+
+    hot = KeyCodecs.suffixed(".bin")(Files(str(tmp_path) + os.sep))
+    s, _ = make(None, hot=hot, cold={"a": b"data"})
+    p = local_paths(s)["a"]
+    assert p == str(tmp_path / "a.bin") and open(p, "rb").read() == b"data"
