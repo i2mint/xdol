@@ -819,6 +819,26 @@ def test_numpy_values_are_compared_safely():
     assert verify(master=master, copy=copy).mismatched == ["a"]
     assert reconcile(master=master, copy=copy).updated == 1
     assert copy["a"] is master["a"]
+    master, copy = {"a": np.array([1, 2])}, {"a": np.array([1, 2])}  # equal
+    assert verify(master=master, copy=copy).ok
+    assert reconcile(master=master, copy=copy).unchanged == 1
+
+
+def test_copy_writes_what_getitem_returns():
+    # the value compared is the value written: a store decoding in __getitem__ only
+    # (dict.get bypasses it) must not have its raw value copied
+    from xdol.updating import reconcile, update_with_policy
+
+    class Decoding(dict):
+        def __getitem__(self, k):
+            return super().__getitem__(k).decode()
+
+    master, copy = Decoding(a=b"new", b=b"same"), {"a": "old", "b": "same"}
+    s = reconcile(master=master, copy=copy)
+    assert copy == {"a": "new", "b": "same"} and (s.updated, s.unchanged) == (1, 1)
+    target = {}
+    update_with_policy.all(target, Decoding(a=b"x"))
+    assert target == {"a": "x"}
 
 
 def test_reconcile_reads_each_master_value_at_most_once():

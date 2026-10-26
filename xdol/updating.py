@@ -186,8 +186,9 @@ VALUE_NOT_RETRIEVED = NotRetrieved()
 
 
 def _key_info_from_mapping(mapping: Mapping[K, V], key: K) -> Any:
-    """Default key info extractor that retrieves and returns the value from a mapping."""
-    return mapping.get(key)
+    """Default key info extractor: the value, read as ``mapping[key]`` (the read a copy
+    would make, so the compared value is also the one written)."""
+    return mapping[key]
 
 
 def _get_key_decisions(
@@ -230,10 +231,16 @@ def _get_key_decisions(
 
 
 def _differ(a, b) -> bool:
-    """``bool(a != b)``, or ``True`` ("different") when that raises (e.g. an array's
-    elementwise result has no truth value)."""
+    """Whether ``a != b``; ``True`` ("different") when they cannot be compared.
+
+    An elementwise result (an array) counts as different if any element differs.
+    """
     try:
-        return bool(a != b)
+        result = a != b
+        try:
+            return bool(result)
+        except (TypeError, ValueError):  # e.g. an array has no single truth value
+            return bool(result.any())
     except Exception:
         return True
 
