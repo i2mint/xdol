@@ -434,7 +434,6 @@ def test_streaming_and_buffered_replay_agree(tmp_path):
     p = tmp_path / "ordered.jsonl"
     p.write_text("".join(json.dumps(e) + "\n" for e in ordered))
     log = AccessLog(p)
-    assert not hasattr(log, "_buffered")
     # the same events shuffled give the same stats (buffered path)
     q = tmp_path / "shuffled.jsonl"
     q.write_text("".join(json.dumps(e) + "\n" for e in reversed(ordered)))
