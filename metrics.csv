@@ -1,6 +1,6 @@
 metric,value
 schema_version,1.0
-timestamp,2026-10-26T13:36:11.892634Z
+timestamp,2026-10-26T13:36:25.766412Z
 commit_sha,119794f3dcce355be82f9a9e8be50da0c52683fc
 commit_message,"updating: backfill decides on presence only; safe default content hash (review of #19) (#27)
 
@@ -22,18 +22,18 @@ commit_message,"updating: backfill decides on presence only; safe default conten
 testpaths only listed tests/, so xdol/tests/*.py and every module doctest
 were skipped in CI (CI passes --doctest-modules but no paths)."
 python_version,3.10
-metrics.umpyre_stats.num_functions,7041
-metrics.umpyre_stats.num_classes,1680
-metrics.umpyre_stats.total_lines,263914
-metrics.umpyre_stats.empty_lines,34040
-metrics.umpyre_stats.comment_lines,14696
-metrics.umpyre_stats.docs_lines,38340
-metrics.umpyre_stats.function_lines,116860
-metrics.umpyre_stats.empty_lines_ratio,0.12898141061103238
-metrics.umpyre_stats.comment_lines_ratio,0.05568480641421069
-metrics.umpyre_stats.function_lines_ratio,0.4427957592245959
-metrics.umpyre_stats.mean_lines_per_function,16.5970742792217
-metrics.umpyre_stats.files_analyzed,586
+metrics.umpyre_stats.num_functions,7133
+metrics.umpyre_stats.num_classes,1692
+metrics.umpyre_stats.total_lines,265998
+metrics.umpyre_stats.empty_lines,34357
+metrics.umpyre_stats.comment_lines,14808
+metrics.umpyre_stats.docs_lines,38377
+metrics.umpyre_stats.function_lines,118375
+metrics.umpyre_stats.empty_lines_ratio,0.12916262528289688
+metrics.umpyre_stats.comment_lines_ratio,0.055669591500687975
+metrics.umpyre_stats.function_lines_ratio,0.44502214302363174
+metrics.umpyre_stats.mean_lines_per_function,16.59540165428291
+metrics.umpyre_stats.files_analyzed,596
 metrics.umpyre_stats.pypi_version,0.1.21
 metrics.workflow_status.last_run_status,success
 metrics.workflow_status.last_success_timestamp,2026-10-26T13:34:03Z
@@ -54,4 +54,4 @@ metrics.coverage.branch_coverage,0.0
 metrics.coverage.statements_covered,0
 metrics.coverage.statements_total,0
 metrics.coverage.error,No coverage file found
-collection_duration_seconds,3.0044188499450684
+collection_duration_seconds,3.7994391918182373
