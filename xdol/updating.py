@@ -107,7 +107,7 @@ class DefaultPolicy(StringEnum):
     ALWAYS_UPDATE = "ALWAYS_UPDATE"  # Always update target with source values
     UPDATE_IF_DIFFERENT = "UPDATE_IF_DIFFERENT"  # Update only if values differ
     PREFER_TARGET = "PREFER_TARGET"  # Keep target values if they exist
-    PREFER_SOURCE = "PREFER_SOURCE"  # Always use source values when available
+    PREFER_SOURCE = "ALWAYS_UPDATE"  # Alias of ALWAYS_UPDATE (one decider, not two)
 
 
 class KeyDecision(StringEnum):
@@ -144,8 +144,10 @@ class UpdateDecider(Protocol):
 
         Args:
             key: The key being considered
-            target_info: Comparison info for target, None if key not in target
-            source_info: Comparison info for source, None if key not in source
+            target_info: Comparison info for target, ``missing`` if key not in target
+            source_info: Comparison info for source, ``missing`` if key not in source
+            (``missing`` is ``None`` unless ``update_with_policy(missing=MISSING)``;
+            see i2mint/xdol#21)
 
         Returns:
             KeyDecision indicating what to do with this key
@@ -185,6 +187,21 @@ class NotRetrieved:
 VALUE_NOT_RETRIEVED = NotRetrieved()
 
 
+class _Missing:
+    """Type of :data:`MISSING`."""
+
+    def __repr__(self):
+        return "MISSING"
+
+    def __bool__(self):
+        return False
+
+
+MISSING = _Missing()
+"""Info given to a decider for a key that is absent from a mapping. Unlike ``None``,
+it cannot be mistaken for a key whose value or info is ``None``."""
+
+
 def _key_info_from_mapping(mapping: Mapping[K, V], key: K) -> Any:
     """Default key info extractor: the value, read as ``mapping[key]`` (the read a copy
     would make, so the compared value is also the one written)."""
@@ -192,42 +209,45 @@ def _key_info_from_mapping(mapping: Mapping[K, V], key: K) -> Any:
 
 
 def _get_key_decisions(
-    keys: set[K],
+    keys: Iterable[K],
     target: Mapping,
     source: Mapping,
     decider: UpdateDecider,
     target_key_info: KeyInfoExtractor | None = None,
     source_key_info: KeyInfoExtractor | None = None,
+    *,
+    missing: Any = None,
 ) -> Iterator[tuple[K, KeyDecision, Any]]:
     """
     Get decisions for each key regarding update action.
 
+    Key info is fetched only for a key that is in that mapping; ``missing`` stands in
+    for the info of one that isn't.
+
     Args:
-        keys: Set of keys to consider
+        keys: Keys to consider
         target: Target mapping
         source: Source mapping
         decider: Function to decide what to do with each key
         target_key_info: Function to extract comparison info from target (optional)
         source_key_info: Function to extract comparison info from source (optional)
+        missing: What the decider gets as the info of an absent key
 
     Returns:
-        Iterator of (key, decision, source_info) triples
+        Iterator of (key, decision, source_info) triples; ``source_info`` is
+        :data:`MISSING` when the key is not in source.
     """
     # Use default extractors if none provided
-    target_info_func = target_key_info or (lambda k: _key_info_from_mapping(target, k))
-    source_info_func = source_key_info or (lambda k: _key_info_from_mapping(source, k))
+    target_info_func = target_key_info or partial(_key_info_from_mapping, target)
+    source_info_func = source_key_info or partial(_key_info_from_mapping, source)
 
     for key in keys:
-        target_in = key in target
+        target_info = target_info_func(key) if key in target else missing
         source_in = key in source
+        source_info = source_info_func(key) if source_in else missing
 
-        # Get info or None if key doesn't exist
-        target_info = None if not target_in else target_info_func(key)
-        source_info = None if not source_in else source_info_func(key)
-
-        # Get decision
         decision = decider(key, target_info, source_info)
-        yield key, decision, source_info
+        yield key, decision, (source_info if source_in else MISSING)
 
 
 def _differ(a, b) -> bool:
@@ -245,21 +265,17 @@ def _differ(a, b) -> bool:
         return True
 
 
-# Update the standard decider functions
+# The standard deciders always get MISSING for an absent key (update_with_policy
+# passes missing=MISSING to them), so a None value or info is just a value.
 def _update_if_different_decider(
     key: K,
     target_info: Any,
     source_info: Any,
 ) -> KeyDecision:
     """Default decision function that updates if values differ."""
-    # Handle case where key is missing from one mapping
-    if target_info is None and source_info is not None:
-        return KeyDecision.COPY
-    if target_info is not None and source_info is None:
+    if source_info is MISSING:
         return KeyDecision.SKIP
-
-    # Compare and decide
-    if _differ(target_info, source_info):
+    if target_info is MISSING or _differ(target_info, source_info):
         return KeyDecision.COPY
     return KeyDecision.SKIP
 
@@ -269,10 +285,8 @@ def _always_update_decider(
     target_info: Any,
     source_info: Any,
 ) -> KeyDecision:
-    """Decision function that always updates from source."""
-    if source_info is None:
-        return KeyDecision.SKIP
-    return KeyDecision.COPY
+    """Decision function that always updates from source (``PREFER_SOURCE`` too)."""
+    return KeyDecision.SKIP if source_info is MISSING else KeyDecision.COPY
 
 
 def _prefer_target_decider(
@@ -281,34 +295,24 @@ def _prefer_target_decider(
     source_info: Any,
 ) -> KeyDecision:
     """Decision function that keeps target values if they exist."""
-    if target_info is None and source_info is not None:
+    if target_info is MISSING and source_info is not MISSING:
         return KeyDecision.COPY
     return KeyDecision.SKIP
 
 
-def _prefer_source_decider(
-    key: K,
-    target_info: Any,
-    source_info: Any,
-) -> KeyDecision:
-    """Decision function that always uses source values when available."""
-    if source_info is None:
-        return KeyDecision.SKIP
-    return KeyDecision.COPY
+_STANDARD_DECIDERS = {
+    DefaultPolicy.ALWAYS_UPDATE: _always_update_decider,
+    DefaultPolicy.UPDATE_IF_DIFFERENT: _update_if_different_decider,
+    DefaultPolicy.PREFER_TARGET: _prefer_target_decider,
+}
 
 
 def _get_standard_decider(policy: DefaultPolicy) -> UpdateDecider:
     """Get a standard decision function for a given policy."""
-    if policy == DefaultPolicy.ALWAYS_UPDATE:
-        return _always_update_decider
-    elif policy == DefaultPolicy.UPDATE_IF_DIFFERENT:
-        return _update_if_different_decider
-    elif policy == DefaultPolicy.PREFER_TARGET:
-        return _prefer_target_decider
-    elif policy == DefaultPolicy.PREFER_SOURCE:
-        return _prefer_source_decider
-    else:
-        raise ValueError(f"Unknown policy: {policy}")
+    try:
+        return _STANDARD_DECIDERS[DefaultPolicy(policy)]
+    except (KeyError, ValueError):
+        raise ValueError(f"Unknown policy: {policy}") from None
 
 
 def union_iter(*iterables: Iterable[T]) -> Generator[T, None, None]:
@@ -351,6 +355,22 @@ def _just_source_keys(source: Mapping, target: Mapping):
     return source.keys()
 
 
+def _present(key: K) -> bool:
+    """Presence-only key info: never reads a value.
+
+    ``update_with_policy`` only asks for the info of keys a mapping contains, so a
+    constant non-``None`` answer means "present" (even when the value is ``None``).
+    """
+    return True
+
+
+# The standard policies that look at presence only, never at the infos' content
+_PRESENCE_ONLY_POLICIES = (
+    DefaultPolicy.ALWAYS_UPDATE,
+    DefaultPolicy.PREFER_TARGET,
+)  # (PREFER_SOURCE is an alias of ALWAYS_UPDATE)
+
+
 Target = MutableMapping
 Source = Mapping
 KeysToConsider = Union[Iterable[K], Callable[[Source, Target], Iterable[K]]]
@@ -365,6 +385,7 @@ def update_with_policy(
     source_key_info: KeyInfoExtractor | None = None,
     keys_to_consider: KeysToConsider = _just_source_keys,
     verbose: bool | Callable[[K, KeyDecision], Any] = False,
+    missing: Any = None,
 ) -> dict[str, int]:
     """
     Update a target mapping with values from a source mapping using a customizable policy.
@@ -379,6 +400,11 @@ def update_with_policy(
             this from source and target. The default will consider source keys only.
         verbose: If True, will print debug information, if callable, call with
             (key, decision) on each key that is looped over
+        missing: What a *custom* decider gets as the info of a key absent from a
+            mapping. ``None`` (the default, for now) can't be told from a present key
+            whose info is ``None``; pass :data:`MISSING` to tell them apart (i2mint/xdol#21).
+            The standard policies always use ``MISSING`` and, when they look at
+            presence only, read no value or info to decide.
 
     Returns:
         Dictionary with statistics about the update operation
@@ -409,6 +435,10 @@ def update_with_policy(
     # Determine the decision function
     if isinstance(policy, (DefaultPolicy, str)):
         decider = _get_standard_decider(policy)
+        missing = MISSING
+        if DefaultPolicy(policy) in _PRESENCE_ONLY_POLICIES:
+            target_key_info = target_key_info or _present
+            source_key_info = source_key_info or _present
     elif callable(policy):
         decider = policy
     else:
@@ -429,6 +459,7 @@ def update_with_policy(
         decider,
         target_key_info,
         source_key_info,
+        missing=missing,
     ):
         verbose(key, decision)
 
@@ -436,7 +467,7 @@ def update_with_policy(
 
         if decision == KeyDecision.COPY:
             # The default info is the value itself: don't download it twice
-            if source_key_info is None and source_info is not None:
+            if source_key_info is None and source_info is not MISSING:
                 value = source_info
             else:
                 value = source[key]
@@ -595,20 +626,15 @@ def update_by_content_hash(
         Dictionary with statistics about the update operation
     """
 
-    def get_target_hash(key: K) -> Any:
-        value = target.get(key)
-        return None if value is None else hash_function(value)
-
-    def get_source_hash(key: K) -> Any:
-        value = source.get(key)
-        return None if value is None else hash_function(value)
+    def hash_of(mapping: Mapping[K, V]) -> KeyInfoExtractor:
+        return lambda key: hash_function(mapping[key])
 
     return update_with_policy(
         target,
         source,
         policy=DefaultPolicy.UPDATE_IF_DIFFERENT,
-        target_key_info=get_target_hash,
-        source_key_info=get_source_hash,
+        target_key_info=hash_of(target),
+        source_key_info=hash_of(source),
         keys_to_consider=keys_to_consider,
         verbose=verbose,
     )
@@ -746,15 +772,6 @@ def _as_update_stats(stats: dict[str, int]) -> UpdateStats:
     return UpdateStats(**stats)
 
 
-def _present(key: K) -> bool:
-    """Presence-only key info: never reads a value.
-
-    ``update_with_policy`` only asks for the info of keys a mapping contains, so a
-    constant non-``None`` answer means "present" (even when the value is ``None``).
-    """
-    return True
-
-
 def _copy_keys(master: Mapping, copy: Mapping):
     return copy.keys()
 
@@ -784,19 +801,9 @@ def backfill(
             master,
             copy,
             policy=DefaultPolicy.PREFER_TARGET,
-            target_key_info=_present,
-            source_key_info=_present,
             keys_to_consider=keys_to_consider,
         )
     )
-
-
-# The standard policies that look at presence only, never at the infos' content
-_PRESENCE_ONLY_POLICIES = (
-    DefaultPolicy.ALWAYS_UPDATE,
-    DefaultPolicy.PREFER_TARGET,
-    DefaultPolicy.PREFER_SOURCE,
-)
 
 
 def reconcile(
@@ -814,8 +821,6 @@ def reconcile(
         that store (e.g. sizes or ETags, to avoid reading values); default: the values
         themselves, any pair that can't be compared counting as different (and, for a
         policy that looks at presence only, nothing is read to decide).
-        An info of ``None`` reads as "missing" (see i2mint/xdol#21), so an extractor
-        must not return ``None`` for a present key.
     :param keys_to_consider: keys, or ``(master, copy) -> keys`` (default: master's).
 
     >>> master, copy = {'a': 1, 'b': 2, 'c': 3}, {'a': 9, 'c': 3}
@@ -830,8 +835,6 @@ def reconcile(
         infos = dict(
             target_key_info=key_info_for(copy), source_key_info=key_info_for(master)
         )
-    elif policy in _PRESENCE_ONLY_POLICIES:
-        infos = dict(target_key_info=_present, source_key_info=_present)
     return _as_update_stats(
         update_with_policy(
             copy, master, policy=policy, keys_to_consider=keys_to_consider, **infos

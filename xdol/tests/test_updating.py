@@ -860,3 +860,73 @@ def test_reconcile_reads_each_master_value_at_most_once():
     master, copy = pair()
     reconcile(master=master, copy=copy, policy=DefaultPolicy.PREFER_TARGET)
     assert master.reads == ["new"] and copy.reads == []
+
+
+# ---------------------------------------------------------------------------
+# i2mint/xdol#21: a None value is not a missing key; info is fetched lazily
+
+
+class _Counting(dict):
+    def __init__(self, *a, **kw):
+        super().__init__(*a, **kw)
+        self.reads = []
+
+    def __getitem__(self, k):
+        self.reads.append(k)
+        return super().__getitem__(k)
+
+
+def test_none_values_are_values_for_standard_policies():
+    from xdol import MISSING  # noqa: F401
+
+    t, s = {"a": None}, {"a": 1, "b": None}
+    update_with_policy(t, s, policy=DefaultPolicy.PREFER_TARGET)
+    assert t == {"a": None, "b": None}  # present None kept; absent key copied
+    t = {"a": 1}
+    update_with_policy(t, {"a": None})  # UPDATE_IF_DIFFERENT
+    assert t == {"a": None}
+    t = {"a": None}
+    stats = update_with_policy(t, {"a": None})
+    assert stats["unchanged"] == 1
+    t = {"a": 1}
+    update_with_policy(t, {"a": None}, policy=DefaultPolicy.ALWAYS_UPDATE)
+    assert t == {"a": None}
+
+
+def test_missing_sentinel_for_custom_deciders():
+    from xdol import MISSING
+
+    seen = {}
+
+    def decider(key, t, s):
+        seen[key] = (t, s)
+        return KeyDecision.SKIP
+
+    update_with_policy(
+        {"a": None}, {"a": None, "b": 1}, policy=decider, missing=MISSING
+    )
+    assert seen == {"a": (None, None), "b": (MISSING, 1)}
+    seen.clear()
+    update_with_policy({"a": 1}, {"b": 1}, policy=decider)  # legacy: None
+    assert seen == {"b": (None, 1)}
+
+
+def test_presence_only_policies_read_no_value_to_decide():
+    t, s = _Counting(a=1), _Counting(a=2, b=3)
+    update_with_policy(t, s, policy=DefaultPolicy.PREFER_TARGET)
+    assert t.reads == [] and s.reads == ["b"]  # only the one copied is read
+
+
+def test_key_info_only_for_keys_present():
+    calls = []
+
+    def info(k):
+        calls.append(k)
+        return k
+
+    update_with_policy({}, {"a": 1}, source_key_info=info, target_key_info=info)
+    assert calls == ["a"]
+
+
+def test_prefer_source_is_an_alias_of_always_update():
+    assert DefaultPolicy.PREFER_SOURCE is DefaultPolicy.ALWAYS_UPDATE
