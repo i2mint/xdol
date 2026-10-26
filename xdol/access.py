@@ -210,8 +210,14 @@ def _parse_event(raw: bytes):
             return key, op, None, ts, None
         if op in OPS and all(x is None or _is_finite(x) for x in (ts, n)):
             return key, op, n, ts, None
-    except (ValueError, KeyError, TypeError, AttributeError, OverflowError,
-            RecursionError):  # e.g. a foreign line of 200k nested brackets
+    except (
+        ValueError,
+        KeyError,
+        TypeError,
+        AttributeError,
+        OverflowError,
+        RecursionError,
+    ):  # e.g. a foreign line of 200k nested brackets
         pass
     return None
 
