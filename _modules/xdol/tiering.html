@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../_static/documentation_options.js?v=34399df3"></script>
+    <script src="../../_static/documentation_options.js?v=904119ea"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -411,7 +411,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.28" />
+  <meta name="docsearch:version" content="0.1.29" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -882,26 +882,36 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">    not accessed for a while loses to newer ones however often it was read. A key</span>
 <span class="sd">    already hot when this process first sees it starts fresh, ``F = 1``, as if just</span>
 <span class="sd">    admitted: its logged history (often long, all of it older than ``L``'s reset)</span>
-<span class="sd">    would otherwise keep it favoured after every restart.</span>
+<span class="sd">    would otherwise keep it favoured after every restart. A key not accessed during</span>
+<span class="sd">    this process (a cron ``sweep``) is ranked on its recency instead: ``F`` is</span>
+<span class="sd">    ``0.5 ** (age / seed_half_life_s)``, ``age`` being the time since its</span>
+<span class="sd">    ``last_access``, so among such keys of equal size the least recently used goes first (a key seeded this way and then accessed continues from ``F + 1``).</span>
 <span class="sd">    """</span>
 
     <span class="n">cost_per_request</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span>
     <span class="n">cost_per_byte</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span>
+    <span class="n">seed_half_life_s</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="mi">30</span> <span class="o">*</span> <span class="mi">86400</span>  <span class="c1"># None: seed F = 1, ignoring recency</span>
     <span class="n">_aging</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">init</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="nb">repr</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">compare</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
     <span class="n">_entries</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span>
         <span class="n">default_factory</span><span class="o">=</span><span class="nb">dict</span><span class="p">,</span> <span class="n">init</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="nb">repr</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">compare</span><span class="o">=</span><span class="kc">False</span>
     <span class="p">)</span>  <span class="c1"># k: (F, H)</span>
 
+    <span class="k">def</span><span class="w"> </span><span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">seed_half_life_s</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">seed_half_life_s</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"seed_half_life_s must be None or positive, not </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">seed_half_life_s</span><span class="si">!r}</span><span class="s2">"</span>
+            <span class="p">)</span>
+
 <div class="viewcode-block" id="GdsfPolicy.priority">
 <a class="viewcode-back" href="../../_autosummary/xdol.tiering.html#xdol.tiering.GdsfPolicy.priority">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">priority</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">frequency</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">size</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">priority</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">frequency</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">size</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""H of a key accessed now with this frequency and size."""</span>
         <span class="n">size</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">size</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
         <span class="n">cost</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cost_per_request</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">cost_per_byte</span> <span class="o">*</span> <span class="n">size</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_aging</span> <span class="o">+</span> <span class="n">frequency</span> <span class="o">*</span> <span class="n">cost</span> <span class="o">/</span> <span class="n">size</span></div>
 
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">_set</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">frequency</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">size</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_set</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">frequency</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">size</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
         <span class="n">h</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">priority</span><span class="p">(</span><span class="n">frequency</span><span class="p">,</span> <span class="n">size</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_entries</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">frequency</span><span class="p">,</span> <span class="n">h</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">h</span>
@@ -918,9 +928,18 @@ window.runMermaid = runMermaid;</script>
     <span class="k">def</span><span class="w"> </span><span class="nf">on_hot_drop</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_entries</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">_h</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">stats</span><span class="p">:</span> <span class="n">AccessStats</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_seed_frequency</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">stats</span><span class="p">:</span> <span class="n">AccessStats</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">now</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""``F`` of a hot key this process has not seen accessed: decays with its age."""</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">seed_half_life_s</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="mi">1</span>
+        <span class="c1"># unknown recency (last_access 0) is the oldest: F near 0, as LRU</span>
+        <span class="k">return</span> <span class="mf">0.5</span> <span class="o">**</span> <span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="n">now</span> <span class="o">-</span> <span class="n">stats</span><span class="o">.</span><span class="n">last_access</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">seed_half_life_s</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_h</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">stats</span><span class="p">:</span> <span class="n">AccessStats</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">now</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
         <span class="n">entry</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_entries</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">entry</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="k">if</span> <span class="n">entry</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">_set</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">stats</span><span class="o">.</span><span class="n">size</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">entry</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">entry</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_set</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_seed_frequency</span><span class="p">(</span><span class="n">stats</span><span class="p">,</span> <span class="n">now</span><span class="o">=</span><span class="n">now</span><span class="p">),</span> <span class="n">stats</span><span class="o">.</span><span class="n">size</span><span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_forget_unknown</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">hot_keys</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_entries</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="o">-</span> <span class="n">hot_keys</span><span class="p">:</span>
@@ -928,7 +947,7 @@ window.runMermaid = runMermaid;</script>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_release_order</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">candidates</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">now</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">:</span>
         <span class="n">ranked</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span>
-            <span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">_h</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">st</span><span class="p">),</span> <span class="n">k</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">st</span> <span class="ow">in</span> <span class="n">candidates</span><span class="p">),</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">hk</span><span class="p">:</span> <span class="n">hk</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">_h</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">st</span><span class="p">,</span> <span class="n">now</span><span class="o">=</span><span class="n">now</span><span class="p">),</span> <span class="n">k</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">st</span> <span class="ow">in</span> <span class="n">candidates</span><span class="p">),</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">hk</span><span class="p">:</span> <span class="n">hk</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
         <span class="p">)</span>
         <span class="k">for</span> <span class="n">h</span><span class="p">,</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">ranked</span><span class="p">:</span>
             <span class="c1"># Lazy: the consumer stops pulling at the low watermark, so L reflects</span>
@@ -1111,8 +1130,10 @@ window.runMermaid = runMermaid;</script>
             <span class="k">try</span><span class="p">:</span>
                 <span class="n">v</span><span class="p">,</span> <span class="n">served_from</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_hot</span><span class="p">[</span><span class="n">k</span><span class="p">],</span> <span class="s2">"hot"</span>
             <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">_drop_hot</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+                <span class="k">pass</span>
         <span class="k">if</span> <span class="n">served_from</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_hot_sizes</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_drop_hot</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>  <span class="c1"># the hot copy vanished behind our back: forget it</span>
             <span class="n">v</span><span class="p">,</span> <span class="n">served_from</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cold</span><span class="p">[</span><span class="n">k</span><span class="p">],</span> <span class="s2">"cold"</span>
         <span class="n">size</span> <span class="o">=</span> <span class="n">value_size</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">served_from</span> <span class="o">==</span> <span class="s2">"hot"</span><span class="p">:</span>

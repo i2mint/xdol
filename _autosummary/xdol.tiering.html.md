@@ -51,7 +51,7 @@ as size 0. Single-threaded: there is no locking.
 |------------------------------------------------------------------|------------------------------------------------------------------|
 | [`TieringError`](#xdol.tiering.TieringError)    | Base class of tiering errors.                                    |
 
-### *class* xdol.tiering.GdsfPolicy(, high_watermark=0.85, low_watermark=0.75, min_residency_s=604800, admit_after_reads=2, admit_window_s=2592000, cost_per_request=1.0, cost_per_byte=0.0)
+### *class* xdol.tiering.GdsfPolicy(, high_watermark=0.85, low_watermark=0.75, min_residency_s=604800, admit_after_reads=2, admit_window_s=2592000, cost_per_request=1.0, cost_per_byte=0.0, seed_half_life_s=2592000)
 
 Bases: `_ResidencyPolicy`
 
@@ -65,7 +65,10 @@ cost_per_byte * size` and `L` the H of the last released key at that time
 not accessed for a while loses to newer ones however often it was read. A key
 already hot when this process first sees it starts fresh, `F = 1`, as if just
 admitted: its logged history (often long, all of it older than `L`’s reset)
-would otherwise keep it favoured after every restart.
+would otherwise keep it favoured after every restart. A key not accessed during
+this process (a cron `sweep`) is ranked on its recency instead: `F` is
+`0.5 ** (age / seed_half_life_s)`, `age` being the time since its
+`last_access`, so among such keys of equal size the least recently used goes first (a key seeded this way and then accessed continues from `F + 1`).
 
 #### priority(frequency, size)
 

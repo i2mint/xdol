@@ -1,32 +1,32 @@
 {
   "schema_version": 1,
-  "built_at": "2026-10-26T18:23:31Z",
+  "built_at": "2026-10-26T19:05:05Z",
   "package": {
     "name": "xdol",
-    "version": "0.1.28",
+    "version": "0.1.29",
     "display_name": "xdol",
     "source": "pyproject.toml"
   },
   "git": {
     "available": true,
-    "commit": "3375cd28c26fcb126ab515d399e98d63623bd7e0",
-    "short_commit": "3375cd2",
+    "commit": "722dc80d2c4b33dbd8364cfaaa66b33d63475800",
+    "short_commit": "722dc80",
     "branch": "master",
     "tags": [],
     "dirty": false,
     "remote_url": "https://github.com/i2mint/xdol",
-    "commit_url": "https://github.com/i2mint/xdol/commit/3375cd28c26fcb126ab515d399e98d63623bd7e0",
+    "commit_url": "https://github.com/i2mint/xdol/commit/722dc80d2c4b33dbd8364cfaaa66b33d63475800",
     "error": null
   },
   "ci": {
     "provider": "github",
     "repository": "i2mint/xdol",
-    "sha": "3375cd28c26fcb126ab515d399e98d63623bd7e0",
+    "sha": "722dc80d2c4b33dbd8364cfaaa66b33d63475800",
     "sha_in_history": true,
     "ref": "refs/heads/master",
     "ref_name": "master",
-    "run_id": "40377026979",
-    "run_url": "https://github.com/i2mint/xdol/actions/runs/40377026979",
+    "run_id": "40383311244",
+    "run_url": "https://github.com/i2mint/xdol/actions/runs/40383311244",
     "server_url": "https://github.com"
   },
   "tools": {
@@ -60,11 +60,11 @@
   },
   "pypi": {
     "checked": true,
-    "latest": "0.1.28",
+    "latest": "0.1.29",
     "relation": "same",
     "error": null
   },
-  "reproduce": "git clone https://github.com/i2mint/xdol && cd xdol\ngit checkout 3375cd28c26fcb126ab515d399e98d63623bd7e0\npip install \"epythet==0.2.22\"\nepythet quickstart . --ignore tests/ scrap/ examples/",
+  "reproduce": "git clone https://github.com/i2mint/xdol && cd xdol\ngit checkout 722dc80d2c4b33dbd8364cfaaa66b33d63475800\npip install \"epythet==0.2.22\"\nepythet quickstart . --ignore tests/ scrap/ examples/",
   "warnings": [],
   "alignment": {
     "aligned": true,

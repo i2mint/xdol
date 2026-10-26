@@ -1,4 +1,4 @@
-> built 2026-10-26 18:23 UTC from 3375cd2 (master) · xdol 0.1.28. Details: build_info.json
+> built 2026-10-26 19:05 UTC from 722dc80 (master) · xdol 0.1.29. Details: build_info.json
 
 # index.html.md
 
@@ -1242,7 +1242,7 @@ as size 0. Single-threaded: there is no locking.
 |------------------------------------------------------------------|------------------------------------------------------------------|
 | [`TieringError`](_autosummary/xdol.tiering.html.md#xdol.tiering.TieringError)    | Base class of tiering errors.                                    |
 
-### *class* xdol.tiering.GdsfPolicy(, high_watermark=0.85, low_watermark=0.75, min_residency_s=604800, admit_after_reads=2, admit_window_s=2592000, cost_per_request=1.0, cost_per_byte=0.0)
+### *class* xdol.tiering.GdsfPolicy(, high_watermark=0.85, low_watermark=0.75, min_residency_s=604800, admit_after_reads=2, admit_window_s=2592000, cost_per_request=1.0, cost_per_byte=0.0, seed_half_life_s=2592000)
 
 Bases: `_ResidencyPolicy`
 
@@ -1256,7 +1256,10 @@ cost_per_byte * size` and `L` the H of the last released key at that time
 not accessed for a while loses to newer ones however often it was read. A key
 already hot when this process first sees it starts fresh, `F = 1`, as if just
 admitted: its logged history (often long, all of it older than `L`’s reset)
-would otherwise keep it favoured after every restart.
+would otherwise keep it favoured after every restart. A key not accessed during
+this process (a cron `sweep`) is ranked on its recency instead: `F` is
+`0.5 ** (age / seed_half_life_s)`, `age` being the time since its
+`last_access`, so among such keys of equal size the least recently used goes first (a key seeded this way and then accessed continues from `F + 1`).
 
 #### priority(frequency, size)
 
@@ -2014,7 +2017,7 @@ A value that fails to decode raises [`CodecDecodeError`](_autosummary/xdol.x_cod
 
 # About this build
 
-This documentation was built on **2026-10-26 18:23 UTC** from commit <a href="https://github.com/i2mint/xdol/commit/3375cd28c26fcb126ab515d399e98d63623bd7e0"><code>3375cd2</code></a> on branch <code>master</code>, for **xdol 0.1.28** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-10-26 19:05 UTC** from commit <a href="https://github.com/i2mint/xdol/commit/722dc80d2c4b33dbd8364cfaaa66b33d63475800"><code>722dc80</code></a> on branch <code>master</code>, for **xdol 0.1.29** (from <code>pyproject.toml</code>).
 
 #### NOTE
 Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
@@ -2023,7 +2026,7 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 |                     |                                                                                                                                                    |
 |---------------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/i2mint/xdol/commit/3375cd28c26fcb126ab515d399e98d63623bd7e0"><code>3375cd28c26fcb126ab515d399e98d63623bd7e0</code></a> |
+| Commit              | <a href="https://github.com/i2mint/xdol/commit/722dc80d2c4b33dbd8364cfaaa66b33d63475800"><code>722dc80d2c4b33dbd8364cfaaa66b33d63475800</code></a> |
 | Branch              | <code>master</code>                                                                                                                                |
 | Tags at this commit | none                                                                                                                                               |
 | Working tree        | clean                                                                                                                                              |
@@ -2034,9 +2037,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>i2mint/xdol</code>                                                                   |
-| Run          | <a href="https://github.com/i2mint/xdol/actions/runs/40377026979">40377026979</a>          |
+| Run          | <a href="https://github.com/i2mint/xdol/actions/runs/40383311244">40383311244</a>          |
 | Ref          | <code>refs/heads/master</code>                                                             |
-| Event commit | <code>3375cd28c26fcb126ab515d399e98d63623bd7e0</code> (in the history of the built commit) |
+| Event commit | <code>722dc80d2c4b33dbd8364cfaaa66b33d63475800</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -2061,13 +2064,13 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/xdol/0.1.28/">0.1.28</a>, the same as the documented version.
+Latest release: <a href="https://pypi.org/project/xdol/0.1.29/">0.1.29</a>, the same as the documented version.
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/i2mint/xdol && cd xdol
-git checkout 3375cd28c26fcb126ab515d399e98d63623bd7e0
+git checkout 722dc80d2c4b33dbd8364cfaaa66b33d63475800
 pip install "epythet==0.2.22"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```

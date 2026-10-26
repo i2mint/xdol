@@ -2,7 +2,7 @@
 
 # About this build
 
-This documentation was built on **2026-10-26 18:23 UTC** from commit <a href="https://github.com/i2mint/xdol/commit/3375cd28c26fcb126ab515d399e98d63623bd7e0"><code>3375cd2</code></a> on branch <code>master</code>, for **xdol 0.1.28** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-10-26 19:05 UTC** from commit <a href="https://github.com/i2mint/xdol/commit/722dc80d2c4b33dbd8364cfaaa66b33d63475800"><code>722dc80</code></a> on branch <code>master</code>, for **xdol 0.1.29** (from <code>pyproject.toml</code>).
 
 #### NOTE
 Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
@@ -11,7 +11,7 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 |                     |                                                                                                                                                    |
 |---------------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/i2mint/xdol/commit/3375cd28c26fcb126ab515d399e98d63623bd7e0"><code>3375cd28c26fcb126ab515d399e98d63623bd7e0</code></a> |
+| Commit              | <a href="https://github.com/i2mint/xdol/commit/722dc80d2c4b33dbd8364cfaaa66b33d63475800"><code>722dc80d2c4b33dbd8364cfaaa66b33d63475800</code></a> |
 | Branch              | <code>master</code>                                                                                                                                |
 | Tags at this commit | none                                                                                                                                               |
 | Working tree        | clean                                                                                                                                              |
@@ -22,9 +22,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>i2mint/xdol</code>                                                                   |
-| Run          | <a href="https://github.com/i2mint/xdol/actions/runs/40377026979">40377026979</a>          |
+| Run          | <a href="https://github.com/i2mint/xdol/actions/runs/40383311244">40383311244</a>          |
 | Ref          | <code>refs/heads/master</code>                                                             |
-| Event commit | <code>3375cd28c26fcb126ab515d399e98d63623bd7e0</code> (in the history of the built commit) |
+| Event commit | <code>722dc80d2c4b33dbd8364cfaaa66b33d63475800</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -49,13 +49,13 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/xdol/0.1.28/">0.1.28</a>, the same as the documented version.
+Latest release: <a href="https://pypi.org/project/xdol/0.1.29/">0.1.29</a>, the same as the documented version.
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/i2mint/xdol && cd xdol
-git checkout 3375cd28c26fcb126ab515d399e98d63623bd7e0
+git checkout 722dc80d2c4b33dbd8364cfaaa66b33d63475800
 pip install "epythet==0.2.22"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```

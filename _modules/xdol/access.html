@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../_static/documentation_options.js?v=34399df3"></script>
+    <script src="../../_static/documentation_options.js?v=904119ea"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -411,7 +411,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.28" />
+  <meta name="docsearch:version" content="0.1.29" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -826,6 +826,9 @@ window.runMermaid = runMermaid;</script>
 <span class="k">def</span><span class="w"> </span><span class="nf">_stats_from_snapshot</span><span class="p">(</span><span class="n">data</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AccessStats</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""``AccessStats`` from a snapshot's dict; unknown fields dropped, bad types rejected."""</span>
     <span class="n">data</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">_FIELD_CHECKS</span><span class="p">}</span>
+    <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>  <span class="c1"># older versions wrote a float size</span>
+        <span class="k">if</span> <span class="n">_FIELD_CHECKS</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="ow">is</span> <span class="n">_TYPE_CHECKS</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="ow">and</span> <span class="nb">type</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">float</span><span class="p">:</span>
+            <span class="n">data</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">if</span> <span class="n">_is_finite</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="ow">and</span> <span class="n">v</span><span class="o">.</span><span class="n">is_integer</span><span class="p">()</span> <span class="k">else</span> <span class="n">v</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">(</span><span class="n">_FIELD_CHECKS</span><span class="p">[</span><span class="n">k</span><span class="p">](</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
         <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">"snapshot field with the wrong type"</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">AccessStats</span><span class="p">(</span><span class="o">**</span><span class="n">data</span><span class="p">)</span>
@@ -918,15 +921,20 @@ window.runMermaid = runMermaid;</script>
 
 <span class="sd">    ``nbytes=None`` leaves the size alone. Recency is a max, ``first_seen`` a min and</span>
 <span class="sd">    the size comes from the latest read or write; ``delete`` drops the entry (pin</span>
-<span class="sd">    included), so a later read or write recreates it unpinned. Replay sorts events by</span>
+<span class="sd">    included), so a later read or write recreates it unpinned, unless the key was</span>
+<span class="sd">    accessed after the delete's timestamp (then the delete is stale and ignored; live</span>
+<span class="sd">    recording never meets this: the log starts its clock after every snapshot stamp). Replay sorts events by</span>
 <span class="sd">    timestamp before folding them, so it gives what live recording gave.</span>
 <span class="sd">    """</span>
     <span class="k">if</span> <span class="n">op</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">OPS</span><span class="p">:</span>
         <span class="k">return</span>
-    <span class="k">if</span> <span class="n">op</span> <span class="o">==</span> <span class="s2">"delete"</span><span class="p">:</span>
-        <span class="n">stats_by_key</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
-        <span class="k">return</span>
     <span class="n">st</span> <span class="o">=</span> <span class="n">stats_by_key</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">op</span> <span class="o">==</span> <span class="s2">"delete"</span><span class="p">:</span>
+        <span class="c1"># a delete older than the key's last access (e.g. an old log line replayed over</span>
+        <span class="c1"># a snapshot) was followed by a re-creation: it must not wipe the key</span>
+        <span class="k">if</span> <span class="n">st</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">ts</span> <span class="o">&gt;=</span> <span class="n">st</span><span class="o">.</span><span class="n">last_access</span><span class="p">:</span>
+            <span class="n">stats_by_key</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">return</span>
     <span class="k">if</span> <span class="n">st</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">op</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">_CREATING_OPS</span><span class="p">:</span>
             <span class="k">return</span>
@@ -1027,6 +1035,11 @@ window.runMermaid = runMermaid;</script>
             <span class="bp">self</span><span class="o">.</span><span class="n">_stats</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
             <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">,</span> <span class="s2">"rb"</span><span class="p">)</span> <span class="k">as</span> <span class="n">fh</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_last_ts</span><span class="p">,</span> <span class="n">nevents</span> <span class="o">=</span> <span class="n">_fold_buffered</span><span class="p">(</span><span class="n">fh</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_stats</span><span class="p">)</span>
+        <span class="c1"># live events must not be stamped before what a snapshot already recorded</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_last_ts</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span>
+            <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_last_ts</span><span class="p">]</span>
+            <span class="o">+</span> <span class="p">[</span><span class="nb">max</span><span class="p">(</span><span class="n">st</span><span class="o">.</span><span class="n">last_access</span><span class="p">,</span> <span class="n">st</span><span class="o">.</span><span class="n">admitted_at</span><span class="p">)</span> <span class="k">for</span> <span class="n">st</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_stats</span><span class="o">.</span><span class="n">values</span><span class="p">()]</span>
+        <span class="p">)</span>
         <span class="k">return</span> <span class="n">nevents</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AccessStats</span><span class="p">:</span>
