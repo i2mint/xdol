@@ -294,7 +294,7 @@ def test_compact_leaves_no_temp_file(tmp_path):
     log = AccessLog(str(tmp_path / "log.jsonl"))
     log.record("a", "read")
     log.compact()
-    assert os.listdir(tmp_path) == ["log.jsonl"]
+    assert sorted(os.listdir(tmp_path)) == ["log.jsonl", "log.jsonl.lock"]
     assert json.loads((tmp_path / "log.jsonl").read_text().splitlines()[0])["k"] == "a"
 
 
@@ -463,15 +463,15 @@ def test_streaming_and_buffered_replay_agree_fuzz():
     streamed = 0
     for _ in range(3000):
         lines = _random_log_lines(rng)
-        buffered = {}
-        b_last, b_n = _fold_buffered(lines, buffered)
-        streaming = {}
+        buffered, b_tombs = {}, {}
+        b_last, b_n = _fold_buffered(lines, buffered, b_tombs)
+        streaming, s_tombs = {}, {}
         try:
-            s_last, s_n = _fold_streaming(lines, streaming)
+            s_last, s_n = _fold_streaming(lines, streaming, s_tombs)
         except _OutOfOrder:
             continue
         streamed += 1
-        assert streaming == buffered, lines
+        assert (streaming, s_tombs) == (buffered, b_tombs), lines
         assert (s_last, s_n) == (b_last, b_n), lines
     assert streamed > 100  # the fuzz does exercise the streaming path
 
@@ -599,3 +599,91 @@ def test_non_integral_float_size_snapshot_is_rejected(tmp_path):
     p = tmp_path / "old.jsonl"
     _write_lines(p, {"k": "a", "op": "snapshot", "stats": {"size": 7.5}})
     assert "a" not in AccessLog(p)
+
+
+def test_compact_keeps_other_writers_events(tmp_path):
+    # the #23 repro: A compacting must not drop B's events, nor B's later appends
+    p = tmp_path / "log.jsonl"
+    a = AccessLog(p, clock=Clock(), compact_above=None)
+    b = AccessLog(p, clock=Clock(), compact_above=None)
+    for _ in range(5):
+        b.record("k", "read", 1)
+    a.compact()
+    b.record("k", "read", 1)
+    a.record("k", "read", 1)
+    assert AccessLog(p)["k"].reads == 7
+    assert b["k"].reads == 6 and a["k"].reads == 1  # in-memory views are untouched
+
+
+def test_compact_without_file_does_nothing(tmp_path):
+    p = tmp_path / "log.jsonl"
+    AccessLog(p).compact()
+    assert not p.exists()
+
+
+def test_compaction_while_recording(tmp_path):
+    p = tmp_path / "log.jsonl"
+    log = AccessLog(p, clock=Clock(), compact_above=5)
+    for _ in range(12):
+        log.record("a", "read", 1)
+    assert len(p.read_text().splitlines()) <= 6
+    assert AccessLog(p)["a"].reads == 12 == log["a"].reads
+
+
+def test_compact_above_defaults_on(tmp_path):
+    from xdol.access import DFLT_COMPACT_ABOVE
+
+    assert AccessLog(tmp_path / "log.jsonl").compact_above == DFLT_COMPACT_ABOVE
+
+
+def test_tombstones_survive_compaction_and_reopen(tmp_path):
+    p = tmp_path / "log.jsonl"
+    log = AccessLog(p, clock=Clock())
+    log.record("a", "write", 1)
+    log.record("a", "delete")
+    log.record("b", "write", 1)
+    log.record("b", "delete")
+    log.record("b", "write", 2)  # re-created: its tombstone stays
+    stones = dict(log.tombstones)
+    assert set(stones) == {"a", "b"}
+    for again in (AccessLog(p), (log.compact(), AccessLog(p))[1]):
+        assert dict(again.tombstones) == stones
+        assert "a" not in again and again["b"].writes == 1
+
+
+def test_tombstones_are_read_only():
+    with pytest.raises(TypeError):
+        AccessLog().tombstones["a"] = 1.0
+
+
+def test_merge_stats_honours_tombstones():
+    deleter = AccessLog(clock=lambda: 10.0)
+    deleter.record("a", "delete")
+    before = {"a": AccessStats(reads=3, last_access=10.0)}  # same stamp: delete wins
+    after = {"a": AccessStats(reads=2, last_access=11.0)}
+    assert "a" not in merge_stats(before, deleter)
+    assert "a" not in merge_stats(deleter, before)
+    assert merge_stats(before, after, deleter)["a"].reads == 2
+
+
+def _append_reads(path, n, key):
+    log = AccessLog(path, compact_above=7)
+    for _ in range(n):
+        log.record(key, "read", 1)
+    log.close()
+
+
+def test_concurrent_processes_with_compaction_lose_nothing(tmp_path):
+    import multiprocessing
+
+    p = str(tmp_path / "log.jsonl")
+    ctx = multiprocessing.get_context("spawn")
+    procs = [ctx.Process(target=_append_reads, args=(p, 60, key)) for key in "aab"]
+    for proc in procs:
+        proc.start()
+    for proc in procs:
+        proc.join(60)
+        assert proc.exitcode == 0
+    log = AccessLog(p)
+    assert (log["a"].reads, log["b"].reads) == (120, 60)
+    assert len(open(p).read().splitlines()) < 180  # compaction did run

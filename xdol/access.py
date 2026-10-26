@@ -29,7 +29,14 @@ round trip (a tuple, a ``Path``...) is counted in memory but lost or changed on 
 and recording one warns once.
 
 A compacted file holds ``{"k": key, "op": "snapshot", "stats": {...}}`` lines, folded as
-initial state (the baseline the events after it build on).
+initial state (the baseline the events after it build on), then one ``delete`` line per
+deleted key (its tombstone, see :attr:`AccessLog.tombstones`).
+
+Several processes may share one file. Every append, every replay and every compaction
+holds an exclusive advisory lock on a sidecar ``<path>.lock`` file, and an appender
+checks, under that lock, that its handle is still on the file at ``path`` (reopening it
+if not), so compaction (which re-folds the file from disk, then replaces it) never
+drops another writer's events.
 
 >>> log = AccessLog()
 >>> store = track_access({'a': b'xyz'}, tracker=log)
@@ -52,13 +59,36 @@ import platform
 import time
 import warnings
 from collections.abc import Callable, Iterator, Mapping, MutableMapping
+from contextlib import contextmanager
 from dataclasses import asdict, dataclass, replace
+from types import MappingProxyType
 from typing import Any, get_type_hints
 
 from dol import atomic_write
 
 OPS = ("read", "write", "delete", "admit", "release", "pin", "unpin")
 _CREATING_OPS = ("read", "write", "pin")  # other ops on an unknown key are no-ops
+DFLT_COMPACT_ABOVE = 100_000  # events (~10 MB): replaying that many takes well under 1s
+
+if os.name == "nt":
+    import msvcrt
+
+    def _lock(fh) -> None:  # retries for ~10s, then raises OSError
+        fh.seek(0)
+        msvcrt.locking(fh.fileno(), msvcrt.LK_LOCK, 1)
+
+    def _unlock(fh) -> None:
+        fh.seek(0)
+        msvcrt.locking(fh.fileno(), msvcrt.LK_UNLCK, 1)
+
+else:
+    import fcntl
+
+    def _lock(fh) -> None:  # flock: two descriptors exclude each other, even in-process
+        fcntl.flock(fh.fileno(), fcntl.LOCK_EX)
+
+    def _unlock(fh) -> None:
+        fcntl.flock(fh.fileno(), fcntl.LOCK_UN)
 
 
 @dataclass(frozen=True)
@@ -171,7 +201,7 @@ def _replay_lines(lines):
         yield seq, key, op, n, ts, stats
 
 
-def _fold_streaming(lines, stats_by_key: dict) -> tuple[float, int]:
+def _fold_streaming(lines, stats_by_key: dict, tombstones: dict) -> tuple[float, int]:
     """Fold ``lines`` already in replay order into ``stats_by_key``, in constant memory.
 
     Returns ``(last_ts, number_of_events)``. Raises :class:`_OutOfOrder` (leaving
@@ -188,11 +218,11 @@ def _fold_streaming(lines, stats_by_key: dict) -> tuple[float, int]:
         if ts < last_ts:
             raise _OutOfOrder
         last_ts, nevents = ts, nevents + 1
-        _apply(stats_by_key, key, op, n, ts)
+        _apply(stats_by_key, tombstones, key, op, n, ts)
     return last_ts, nevents
 
 
-def _fold_buffered(lines, stats_by_key: dict) -> tuple[float, int]:
+def _fold_buffered(lines, stats_by_key: dict, tombstones: dict) -> tuple[float, int]:
     """Fold ``lines`` in any order: snapshots first, then events by ``(ts, line)``.
 
     Returns ``(last_ts, number_of_events)``.
@@ -205,12 +235,70 @@ def _fold_buffered(lines, stats_by_key: dict) -> tuple[float, int]:
             events.append((ts, seq, key, op, n))
     events.sort(key=lambda e: e[:2])
     for ts, _, key, op, n in events:
-        _apply(stats_by_key, key, op, n, ts)
+        _apply(stats_by_key, tombstones, key, op, n, ts)
     # the running max starts at 0.0, as in streaming (and live recording)
     return max([0.0, *(e[0] for e in events)]), len(events)
 
 
-def _apply(stats_by_key: dict, key, op, nbytes, ts) -> None:
+def _fold_path(path: str) -> tuple[dict, dict, float, int]:
+    """``(stats_by_key, tombstones, last_ts, number_of_events)`` replayed from ``path``.
+
+    Streams (constant memory) while the file is already in replay order; the first
+    line breaking that order restarts with the buffered fold, which sorts. A missing
+    file is an empty log.
+    """
+    stats_by_key, tombstones = {}, {}
+    try:
+        with open(path, "rb") as fh:
+            last_ts, nevents = _fold_streaming(fh, stats_by_key, tombstones)
+    except FileNotFoundError:
+        return stats_by_key, tombstones, 0.0, 0
+    except _OutOfOrder:
+        stats_by_key.clear()
+        tombstones.clear()
+        with open(path, "rb") as fh:
+            last_ts, nevents = _fold_buffered(fh, stats_by_key, tombstones)
+    return stats_by_key, tombstones, last_ts, nevents
+
+
+def _compacted_lines(stats_by_key: Mapping, tombstones: Mapping) -> Iterator[bytes]:
+    """The lines of a compacted file: snapshots, then tombstones in timestamp order."""
+    for key, st in stats_by_key.items():
+        yield _jsonl({"k": key, "op": "snapshot", "stats": asdict(st)})
+    for key, ts in sorted(tombstones.items(), key=lambda kv: kv[1]):
+        yield _jsonl({"k": key, "op": "delete", "ts": ts})
+
+
+def _jsonl(obj) -> bytes:
+    return (json.dumps(obj, default=str) + "\n").encode("utf-8")
+
+
+# POSIX: an appender keeps its handle, and reopens it when compaction replaced the file.
+# Windows cannot replace a file another handle holds open: there, open per append.
+_KEEP_APPEND_HANDLE = os.name != "nt"
+
+
+def _is_open_on(fh, path: str) -> bool:
+    """Whether ``fh`` is open on the file now at ``path`` (not a replaced one)."""
+    try:
+        st = os.stat(path)
+    except FileNotFoundError:
+        return False
+    fst = os.fstat(fh.fileno())
+    return (st.st_ino, st.st_dev) == (fst.st_ino, fst.st_dev)
+
+
+def _open_for_append(path: str):
+    fh = open(path, "ab")
+    if fh.tell():  # a torn last line (crash mid-write) must not eat our event
+        with open(path, "rb") as r:
+            r.seek(-1, os.SEEK_END)
+            if r.read(1) != b"\n":
+                fh.write(b"\n")
+    return fh
+
+
+def _apply(stats_by_key: dict, tombstones: dict, key, op, nbytes, ts) -> None:
     """Fold one event into ``stats_by_key`` (shared by live recording and replay).
 
     ``nbytes=None`` leaves the size alone. Recency is a max, ``first_seen`` a min and
@@ -218,12 +306,15 @@ def _apply(stats_by_key: dict, key, op, nbytes, ts) -> None:
     included), so a later read or write recreates it unpinned, unless the key was
     accessed after the delete's timestamp (then the delete is stale and ignored; live
     recording never meets this: the log starts its clock after every snapshot stamp). Replay sorts events by
-    timestamp before folding them, so it gives what live recording gave.
+    timestamp before folding them, so it gives what live recording gave. Every
+    ``delete``, stale or not, raises the key's tombstone (``tombstones[key]``, the
+    latest delete's timestamp), which :func:`merge_stats` honours.
     """
     if op not in OPS:
         return
     st = stats_by_key.get(key)
     if op == "delete":
+        tombstones[key] = max(ts, tombstones.get(key, ts))
         # a delete older than the key's last access (e.g. an old log line replayed over
         # a snapshot) was followed by a re-creation: it must not wipe the key
         if st is None or ts >= st.last_access:
@@ -260,17 +351,21 @@ class AccessLog(Mapping):
     :param path: log file; ``None`` keeps everything in memory (tests).
     :param clock: callable returning unix seconds.
     :param tag: label stamped on each event; defaults to ``platform.node()``.
-    :param compact_above: when opening finds more than this many events (lines other
-        than snapshots) in the file, :meth:`compact` it (``None``: never; the file then grows with every access).
-        Same caveat as :meth:`compact`: only for a log with a single writer.
+    :param compact_above: once the file holds more than this many events (lines other
+        than snapshots), :meth:`compact` it: checked on open and as this log records
+        (counting its own appends since then). ``None``: never; the file then grows with
+        every access.
 
     Opening replays the file in timestamp order (see the module docstring), so the
     stats equal what recording those events live would give. Replay streams in constant
     memory when the file is already in that order (the normal case for one writer) and
     buffers it only when timestamps go back: a log several writers append to is out of
-    order, so opening it still costs memory proportional to its length. A tracker never raises
-    into a store's read path: if the file cannot be written,
-    a warning is issued once and counting continues in memory. Not thread-safe.
+    order, so opening it still costs memory proportional to its length (compaction
+    bounds that). Other writers' events are seen on reopen, not live.
+
+    A tracker never raises into a store's read path: if the file cannot be written,
+    a warning is issued once and counting continues in memory. Safe across processes
+    (see the module docstring); not thread-safe.
     """
 
     # a log is a resource, not a value: keep identity semantics (Mapping drops them)
@@ -283,13 +378,8 @@ class AccessLog(Mapping):
         *,
         clock: Callable[[], float] = time.time,
         tag: str | None = None,
-        compact_above: int | None = None,
+        compact_above: int | None = DFLT_COMPACT_ABOVE,
     ):
-        self.path = None if path is None else os.fspath(path)
-        self.clock = clock
-        self.tag = platform.node() if tag is None else tag
-        self._stats: dict[Any, AccessStats] = {}
-        self._fh = None
         if compact_above is not None and (
             isinstance(compact_above, bool)
             or not isinstance(compact_above, int)
@@ -298,42 +388,32 @@ class AccessLog(Mapping):
             raise ValueError(
                 f"compact_above must be None or a non-negative int, not {compact_above!r}"
             )
+        self.path = None if path is None else os.fspath(path)
+        self.clock = clock
+        self.tag = platform.node() if tag is None else tag
+        self.compact_above = compact_above
+        self._stats: dict[Any, AccessStats] = {}
+        self._tombstones: dict[Any, float] = {}
+        self._fh = None
+        self._lock_fh = None
         self._warned_io = False
         self._warned_key = False
         self._warned_compact = False
         self._last_ts = 0.0  # the clock may step back: events never go back in time
+        self._nevents = 0  # events in the file, as far as this log knows
         if self.path is not None and os.path.exists(self.path):
-            nevents = self._fold_file()
-            if compact_above is not None and nevents > compact_above:
-                try:
-                    self.compact()
-                except OSError as e:  # a constructor never raises over compaction
-                    self._warn_once(
-                        "_warned_compact",
-                        f"AccessLog could not compact {self.path!r} ({e}); left as is.",
-                    )
+            with self._locked():
+                self._stats, self._tombstones, self._last_ts, self._nevents = (
+                    _fold_path(self.path)
+                )
+            # live events must not be stamped before what a snapshot already recorded
+            self._last_ts = max(
+                [self._last_ts]
+                + [max(st.last_access, st.admitted_at) for st in self._stats.values()]
+            )
+            self._maybe_compact()
 
     # -- reading -----------------------------------------------------------
-    def _fold_file(self) -> int:
-        """Replay the file (see the module docstring); return its number of events.
-
-        Streams (constant memory) while the file is already in replay order; the first
-        line breaking that order restarts with the buffered fold, which sorts.
-        """
-        try:
-            with open(self.path, "rb") as fh:
-                self._last_ts, nevents = _fold_streaming(fh, self._stats)
-        except _OutOfOrder:
-            self._stats.clear()
-            with open(self.path, "rb") as fh:
-                self._last_ts, nevents = _fold_buffered(fh, self._stats)
-        # live events must not be stamped before what a snapshot already recorded
-        self._last_ts = max(
-            [self._last_ts]
-            + [max(st.last_access, st.admitted_at) for st in self._stats.values()]
-        )
-        return nevents
-
     def __getitem__(self, key) -> AccessStats:
         return self._stats[key]
 
@@ -350,27 +430,62 @@ class AccessLog(Mapping):
         """Alias of ``self.get(key)``."""
         return self._stats.get(key)
 
+    @property
+    def tombstones(self) -> Mapping:
+        """Read-only ``{key: timestamp of its latest delete}``, for :func:`merge_stats`.
+
+        Kept (and compacted) for every key ever deleted, re-created or not.
+        """
+        return MappingProxyType(self._tombstones)
+
     # -- writing -----------------------------------------------------------
     def _warn_once(self, flag: str, message: str) -> None:
         if not getattr(self, flag):
             setattr(self, flag, True)
             warnings.warn(message)
 
-    def _open_for_append(self):
-        fh = open(self.path, "ab")
-        if fh.tell():  # a torn last line (crash mid-write) must not eat our event
-            with open(self.path, "rb") as r:
-                r.seek(-1, os.SEEK_END)
-                if r.read(1) != b"\n":
-                    fh.write(b"\n")
-        return fh
+    @contextmanager
+    def _locked(self):
+        """Hold the exclusive lock on ``<path>.lock`` (unlocked if it cannot be opened,
+        e.g. in a read-only folder, where no one can write the log either)."""
+        if self._lock_fh is None:
+            try:
+                self._lock_fh = open(self.path + ".lock", "a+b")
+            except OSError:
+                yield
+                return
+        _lock(self._lock_fh)
+        try:
+            yield
+        finally:
+            _unlock(self._lock_fh)
+
+    def _append(self, line: bytes) -> None:
+        """Append ``line`` under the lock, to the file now at ``path``."""
+        with self._locked():
+            if self._fh is not None and not _is_open_on(self._fh, self.path):
+                self._close_fh()  # compaction replaced the file
+            if self._fh is None:
+                self._fh = _open_for_append(self.path)
+            try:
+                self._fh.write(line)
+                self._fh.flush()
+            finally:
+                if not _KEEP_APPEND_HANDLE:
+                    self._close_fh()
+        self._nevents += 1
+
+    def _close_fh(self) -> None:
+        if self._fh is not None:
+            self._fh.close()
+            self._fh = None
 
     def record(self, key, op: str, nbytes: int = 0, *, served_from=None) -> None:
         if op not in OPS:
             raise ValueError(f"Unknown op {op!r}; expected one of {OPS}")
         ts = self._last_ts = max(self.clock(), self._last_ts)
         nbytes = int(nbytes) if _is_finite(nbytes) else 0  # a tracker never raises
-        _apply(self._stats, key, op, nbytes, ts)
+        _apply(self._stats, self._tombstones, key, op, nbytes, ts)
         if self.path is None:
             return
         if not _survives_json(key):
@@ -388,43 +503,52 @@ class AccessLog(Mapping):
             "tag": self.tag,
         }
         try:
-            if self._fh is None:
-                self._fh = self._open_for_append()
-            self._fh.write((json.dumps(event, default=str) + "\n").encode("utf-8"))
-            self._fh.flush()
+            self._append(_jsonl(event))
         except OSError as e:
             self._warn_once(
                 "_warned_io",
                 f"AccessLog cannot write to {self.path!r} ({e}); "
                 "counting in memory only.",
             )
+            return
+        self._maybe_compact()
+
+    def _maybe_compact(self) -> None:
+        """:meth:`compact` past ``compact_above`` events; a failure only warns."""
+        if self.compact_above is None or self._nevents <= self.compact_above:
+            return
+        try:
+            self.compact()
+        except OSError as e:  # recording (or opening) never raises over compaction
+            self._warn_once(
+                "_warned_compact",
+                f"AccessLog could not compact {self.path!r} ({e}); left as is.",
+            )
+        self._nevents = 0  # on failure, retry only after as many events again
 
     def compact(self) -> None:
-        """Rewrite the file as one snapshot line per key, atomically.
+        """Rewrite the file as its folded state: snapshot lines, then tombstones.
 
-        Safe only when no other writer has the file open: another process appending
-        to it keeps writing to the replaced file, and those events are lost.
+        Under the lock, so it re-folds the file from disk (keeping every writer's
+        events, not only this log's) and replaces it atomically; writers holding the
+        old file reopen the new one at their next append. This log's in-memory view
+        is left as it was.
         """
         if self.path is None:
             return
-        self.close()
-        atomic_write(
-            self.path,
-            (
-                (
-                    json.dumps(
-                        {"k": key, "op": "snapshot", "stats": asdict(st)}, default=str
-                    )
-                    + "\n"
-                ).encode("utf-8")
-                for key, st in self._stats.items()
-            ),
-        )
+        with self._locked():
+            if not os.path.exists(self.path):
+                return
+            stats_by_key, tombstones, _, _ = _fold_path(self.path)
+            atomic_write(self.path, _compacted_lines(stats_by_key, tombstones))
+        self._nevents = 0
 
     def close(self) -> None:
-        if self._fh is not None:
-            self._fh.close()
-            self._fh = None
+        """Close the log's files (it stays usable: it reopens them when needed)."""
+        self._close_fh()
+        if self._lock_fh is not None:
+            self._lock_fh.close()
+            self._lock_fh = None
 
 
 def merge_stats(*logs: Mapping) -> dict:
@@ -434,10 +558,27 @@ def merge_stats(*logs: Mapping) -> dict:
     latest ``last_access`` (the one that saw the key's current state), min
     ``first_seen`` (ignoring unknown zeros), max ``last_access``/``last_read``, OR of
     ``pinned``.
+
+    Deletes are honoured by timestamp: a log's stats of a key whose ``last_access`` is
+    not after the latest delete of that key in any log (its ``tombstones``, when it has
+    them) are left out, as replaying all the logs as one would drop them. Stats that
+    span a delete and a later re-creation count whole.
+
+    >>> old = {'a': AccessStats(reads=3, last_access=5.0)}
+    >>> log = AccessLog(clock=lambda: 10.0)
+    >>> log.record('a', 'delete')
+    >>> 'a' in merge_stats(old, log)
+    False
     """
+    tombstones: dict[Any, float] = {}
+    for log in logs:
+        for key, ts in getattr(log, "tombstones", {}).items():
+            tombstones[key] = max(ts, tombstones.get(key, ts))
     out: dict[Any, AccessStats] = {}
     for log in logs:
         for key, st in log.items():
+            if key in tombstones and st.last_access <= tombstones[key]:
+                continue
             cur = out.get(key)
             if cur is None:
                 out[key] = st
