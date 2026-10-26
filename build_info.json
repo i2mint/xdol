@@ -1,32 +1,32 @@
 {
   "schema_version": 1,
-  "built_at": "2026-10-26T15:02:29Z",
+  "built_at": "2026-10-26T15:19:17Z",
   "package": {
     "name": "xdol",
-    "version": "0.1.23",
+    "version": "0.1.24",
     "display_name": "xdol",
     "source": "pyproject.toml"
   },
   "git": {
     "available": true,
-    "commit": "baf5ef1e7d3f973858da8f01d0d4e71296689763",
-    "short_commit": "baf5ef1",
+    "commit": "ec42c3abe28a7b744112842ed5e7283591b92a25",
+    "short_commit": "ec42c3a",
     "branch": "master",
     "tags": [],
     "dirty": false,
     "remote_url": "https://github.com/i2mint/xdol",
-    "commit_url": "https://github.com/i2mint/xdol/commit/baf5ef1e7d3f973858da8f01d0d4e71296689763",
+    "commit_url": "https://github.com/i2mint/xdol/commit/ec42c3abe28a7b744112842ed5e7283591b92a25",
     "error": null
   },
   "ci": {
     "provider": "github",
     "repository": "i2mint/xdol",
-    "sha": "baf5ef1e7d3f973858da8f01d0d4e71296689763",
+    "sha": "ec42c3abe28a7b744112842ed5e7283591b92a25",
     "sha_in_history": true,
     "ref": "refs/heads/master",
     "ref_name": "master",
-    "run_id": "40345145092",
-    "run_url": "https://github.com/i2mint/xdol/actions/runs/40345145092",
+    "run_id": "40347936637",
+    "run_url": "https://github.com/i2mint/xdol/actions/runs/40347936637",
     "server_url": "https://github.com"
   },
   "tools": {
@@ -56,18 +56,20 @@
   },
   "site": {
     "modules_documented": 11,
-    "objects_documented": 109
+    "objects_documented": 110
   },
   "pypi": {
     "checked": true,
-    "latest": "0.1.23",
-    "relation": "same",
+    "latest": "0.1.25",
+    "relation": "behind",
     "error": null
   },
-  "reproduce": "git clone https://github.com/i2mint/xdol && cd xdol\ngit checkout baf5ef1e7d3f973858da8f01d0d4e71296689763\npip install \"epythet==0.2.22\"\nepythet quickstart . --ignore tests/ scrap/ examples/",
+  "reproduce": "git clone https://github.com/i2mint/xdol && cd xdol\ngit checkout ec42c3abe28a7b744112842ed5e7283591b92a25\npip install \"epythet==0.2.22\"\nepythet quickstart . --ignore tests/ scrap/ examples/",
   "warnings": [],
   "alignment": {
-    "aligned": true,
-    "notes": []
+    "aligned": false,
+    "notes": [
+      "The documented version (0.1.24) is behind the latest release on PyPI (0.1.25): `pip install xdol` gives newer code than these docs describe."
+    ]
   }
 }

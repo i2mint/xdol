@@ -1,4 +1,4 @@
-> built 2026-10-26 15:02 UTC from baf5ef1 (master) · xdol 0.1.23. Details: build_info.json
+> built 2026-10-26 15:19 UTC from ec42c3a (master) · xdol 0.1.24. Details: build_info.json
 
 # index.html.md
 
@@ -1203,21 +1203,22 @@ as size 0. Single-threaded: there is no locking.
 
 ### Functions
 
-| [`local_paths`](_autosummary/xdol.tiering.html.md#xdol.tiering.local_paths)(store)          | Read-only `{key: real file path}`; materialises each key into `hot`.   |
-|------------------------------------------------------------------------------|------------------------------------------------------------------------|
-| [`pin`](_autosummary/xdol.tiering.html.md#xdol.tiering.pin)(store, key)             | Protect `key`'s hot copy from release (persisted in the tracker).      |
-| [`prefetch`](_autosummary/xdol.tiering.html.md#xdol.tiering.prefetch)(store, keys)       | Admit `keys` to hot regardless of policy, as reads served from cold.   |
-| `status`(store)                                                              |                                                                        |
-| [`sweep`](_autosummary/xdol.tiering.html.md#xdol.tiering.sweep)(store, \*[, exclude]) | Release hot copies, lowest priority first, down to the low watermark.  |
-| `unpin`(store, key)                                                          |                                                                        |
+| [`local_paths`](_autosummary/xdol.tiering.html.md#xdol.tiering.local_paths)(store, \*[, path_of])   | Read-only `{key: real file path}`; materialises each key into `hot`.   |
+|--------------------------------------------------------------------------------------|------------------------------------------------------------------------|
+| [`pin`](_autosummary/xdol.tiering.html.md#xdol.tiering.pin)(store, key)                     | Protect `key`'s hot copy from release (persisted in the tracker).      |
+| [`prefetch`](_autosummary/xdol.tiering.html.md#xdol.tiering.prefetch)(store, keys)               | Admit `keys` to hot regardless of policy, as reads served from cold.   |
+| `status`(store)                                                                      |                                                                        |
+| [`sweep`](_autosummary/xdol.tiering.html.md#xdol.tiering.sweep)(store, \*[, exclude])         | Release hot copies, lowest priority first, down to the low watermark.  |
+| `unpin`(store, key)                                                                  |                                                                        |
 
 ### Classes
 
-| [`GdsfPolicy`](_autosummary/xdol.tiering.html.md#xdol.tiering.GdsfPolicy)(\*[, high_watermark, ...])           | Greedy-Dual-Size-Frequency with aging, plus pins, minimum residency and second-hit admission.   |
-|--------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------|
-| [`PlacementPolicy`](_autosummary/xdol.tiering.html.md#xdol.tiering.PlacementPolicy)(\*args, \*\*kwargs)             | Decides what enters and leaves the hot tier.                                                    |
-| [`SweepReport`](_autosummary/xdol.tiering.html.md#xdol.tiering.SweepReport)(keys_released, bytes_before, ...)   |                                                                                                 |
-| [`TieredStore`](_autosummary/xdol.tiering.html.md#xdol.tiering.TieredStore)(hot, cold, \*, budget_bytes[, ...]) | Bounded hot store over a cold source of truth.                                                  |
+| [`GdsfPolicy`](_autosummary/xdol.tiering.html.md#xdol.tiering.GdsfPolicy)(\*[, high_watermark, ...])           | Greedy-Dual-Size-Frequency with aging, plus pins, minimum residency and second-hit admission.                       |
+|--------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------|
+| [`LruPolicy`](_autosummary/xdol.tiering.html.md#xdol.tiering.LruPolicy)(\*[, high_watermark, ...])            | Least-recently-used release: the simple alternative to [`GdsfPolicy`](_autosummary/xdol.tiering.html.md#xdol.tiering.GdsfPolicy). |
+| [`PlacementPolicy`](_autosummary/xdol.tiering.html.md#xdol.tiering.PlacementPolicy)(\*args, \*\*kwargs)             | Decides what enters and leaves the hot tier.                                                                        |
+| [`SweepReport`](_autosummary/xdol.tiering.html.md#xdol.tiering.SweepReport)(keys_released, bytes_before, ...)   |                                                                                                                     |
+| [`TieredStore`](_autosummary/xdol.tiering.html.md#xdol.tiering.TieredStore)(hot, cold, \*, budget_bytes[, ...]) | Bounded hot store over a cold source of truth.                                                                      |
 
 ### Exceptions
 
@@ -1227,7 +1228,7 @@ as size 0. Single-threaded: there is no locking.
 
 ### *class* xdol.tiering.GdsfPolicy(, high_watermark=0.85, low_watermark=0.75, min_residency_s=604800, admit_after_reads=2, admit_window_s=2592000, cost_per_request=1.0, cost_per_byte=0.0)
 
-Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
+Bases: `_ResidencyPolicy`
 
 Greedy-Dual-Size-Frequency with aging, plus pins, minimum residency and
 second-hit admission.
@@ -1253,6 +1254,15 @@ Bases: [`TieringError`](_autosummary/xdol.tiering.html.md#xdol.tiering.TieringEr
 The hot write failed after the cold store accepted the record.
 
 The record is safe in cold; do not retry the cold write.
+
+### *class* xdol.tiering.LruPolicy(, high_watermark=0.85, low_watermark=0.75, min_residency_s=604800, admit_after_reads=2, admit_window_s=2592000)
+
+Bases: `_ResidencyPolicy`
+
+Least-recently-used release: the simple alternative to [`GdsfPolicy`](_autosummary/xdol.tiering.html.md#xdol.tiering.GdsfPolicy).
+
+Once hot bytes pass the high watermark, unprotected hot keys are released
+oldest-`last_access` first (the consumer stops at the low watermark).
 
 ### *class* xdol.tiering.PlacementPolicy(\*args, \*\*kwargs)
 
@@ -1301,12 +1311,15 @@ Bases: [`Exception`](https://docs.python.org/3/builtins/exceptions.html#Exceptio
 
 Base class of tiering errors.
 
-### xdol.tiering.local_paths(store)
+### xdol.tiering.local_paths(store, , path_of=None)
 
 Read-only `{key: real file path}`; materialises each key into `hot`.
 
-Requires `hot` to expose `rootdir` (raises `TypeError` otherwise); raises
-`FileNotFoundError` if the file is not there after materialisation.
+`path_of(key)` gives the file path of `key` in `hot`. The default duck-types
+a `dol.Files`-like hot store (`rootdir` and `_id_of_key`; `TypeError` if there
+is no `rootdir`, or the path is not an absolute one under it); pass `path_of` for any other layout, e.g. a `wrap_kvs`-wrapped store.
+`FileNotFoundError` is raised if the file is not there after materialisation.
+`key in paths` checks the store without fetching.
 
 * **Return type:**
   [`Mapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping)
@@ -1992,16 +2005,18 @@ A value that fails to decode raises [`CodecDecodeError`](_autosummary/xdol.x_cod
 
 # About this build
 
-This documentation was built on **2026-10-26 15:02 UTC** from commit <a href="https://github.com/i2mint/xdol/commit/baf5ef1e7d3f973858da8f01d0d4e71296689763"><code>baf5ef1</code></a> on branch <code>master</code>, for **xdol 0.1.23** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-10-26 15:19 UTC** from commit <a href="https://github.com/i2mint/xdol/commit/ec42c3abe28a7b744112842ed5e7283591b92a25"><code>ec42c3a</code></a> on branch <code>master</code>, for **xdol 0.1.24** (from <code>pyproject.toml</code>).
 
-#### NOTE
-Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
+#### WARNING
+The documentation and the package may be misaligned:
+
+- The documented version (0.1.24) is behind the latest release on PyPI (0.1.25): `pip install xdol` gives newer code than these docs describe.
 
 ## Source
 
 |                     |                                                                                                                                                    |
 |---------------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/i2mint/xdol/commit/baf5ef1e7d3f973858da8f01d0d4e71296689763"><code>baf5ef1e7d3f973858da8f01d0d4e71296689763</code></a> |
+| Commit              | <a href="https://github.com/i2mint/xdol/commit/ec42c3abe28a7b744112842ed5e7283591b92a25"><code>ec42c3abe28a7b744112842ed5e7283591b92a25</code></a> |
 | Branch              | <code>master</code>                                                                                                                                |
 | Tags at this commit | none                                                                                                                                               |
 | Working tree        | clean                                                                                                                                              |
@@ -2012,9 +2027,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>i2mint/xdol</code>                                                                   |
-| Run          | <a href="https://github.com/i2mint/xdol/actions/runs/40345145092">40345145092</a>          |
+| Run          | <a href="https://github.com/i2mint/xdol/actions/runs/40347936637">40347936637</a>          |
 | Ref          | <code>refs/heads/master</code>                                                             |
-| Event commit | <code>baf5ef1e7d3f973858da8f01d0d4e71296689763</code> (in the history of the built commit) |
+| Event commit | <code>ec42c3abe28a7b744112842ed5e7283591b92a25</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -2039,13 +2054,13 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/xdol/0.1.23/">0.1.23</a>, the same as the documented version.
+Latest release: <a href="https://pypi.org/project/xdol/0.1.25/">0.1.25</a>, newer than the documented version (0.1.24).
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/i2mint/xdol && cd xdol
-git checkout baf5ef1e7d3f973858da8f01d0d4e71296689763
+git checkout ec42c3abe28a7b744112842ed5e7283591b92a25
 pip install "epythet==0.2.22"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```

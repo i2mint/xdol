@@ -28,21 +28,22 @@ as size 0. Single-threaded: there is no locking.
 
 ### Functions
 
-| [`local_paths`](#xdol.tiering.local_paths)(store)          | Read-only `{key: real file path}`; materialises each key into `hot`.   |
-|------------------------------------------------------------------------------|------------------------------------------------------------------------|
-| [`pin`](#xdol.tiering.pin)(store, key)             | Protect `key`'s hot copy from release (persisted in the tracker).      |
-| [`prefetch`](#xdol.tiering.prefetch)(store, keys)       | Admit `keys` to hot regardless of policy, as reads served from cold.   |
-| `status`(store)                                                              |                                                                        |
-| [`sweep`](#xdol.tiering.sweep)(store, \*[, exclude]) | Release hot copies, lowest priority first, down to the low watermark.  |
-| `unpin`(store, key)                                                          |                                                                        |
+| [`local_paths`](#xdol.tiering.local_paths)(store, \*[, path_of])   | Read-only `{key: real file path}`; materialises each key into `hot`.   |
+|--------------------------------------------------------------------------------------|------------------------------------------------------------------------|
+| [`pin`](#xdol.tiering.pin)(store, key)                     | Protect `key`'s hot copy from release (persisted in the tracker).      |
+| [`prefetch`](#xdol.tiering.prefetch)(store, keys)               | Admit `keys` to hot regardless of policy, as reads served from cold.   |
+| `status`(store)                                                                      |                                                                        |
+| [`sweep`](#xdol.tiering.sweep)(store, \*[, exclude])         | Release hot copies, lowest priority first, down to the low watermark.  |
+| `unpin`(store, key)                                                                  |                                                                        |
 
 ### Classes
 
-| [`GdsfPolicy`](#xdol.tiering.GdsfPolicy)(\*[, high_watermark, ...])           | Greedy-Dual-Size-Frequency with aging, plus pins, minimum residency and second-hit admission.   |
-|--------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------|
-| [`PlacementPolicy`](#xdol.tiering.PlacementPolicy)(\*args, \*\*kwargs)             | Decides what enters and leaves the hot tier.                                                    |
-| [`SweepReport`](#xdol.tiering.SweepReport)(keys_released, bytes_before, ...)   |                                                                                                 |
-| [`TieredStore`](#xdol.tiering.TieredStore)(hot, cold, \*, budget_bytes[, ...]) | Bounded hot store over a cold source of truth.                                                  |
+| [`GdsfPolicy`](#xdol.tiering.GdsfPolicy)(\*[, high_watermark, ...])           | Greedy-Dual-Size-Frequency with aging, plus pins, minimum residency and second-hit admission.                       |
+|--------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------|
+| [`LruPolicy`](#xdol.tiering.LruPolicy)(\*[, high_watermark, ...])            | Least-recently-used release: the simple alternative to [`GdsfPolicy`](#xdol.tiering.GdsfPolicy). |
+| [`PlacementPolicy`](#xdol.tiering.PlacementPolicy)(\*args, \*\*kwargs)             | Decides what enters and leaves the hot tier.                                                                        |
+| [`SweepReport`](#xdol.tiering.SweepReport)(keys_released, bytes_before, ...)   |                                                                                                                     |
+| [`TieredStore`](#xdol.tiering.TieredStore)(hot, cold, \*, budget_bytes[, ...]) | Bounded hot store over a cold source of truth.                                                                      |
 
 ### Exceptions
 
@@ -52,7 +53,7 @@ as size 0. Single-threaded: there is no locking.
 
 ### *class* xdol.tiering.GdsfPolicy(, high_watermark=0.85, low_watermark=0.75, min_residency_s=604800, admit_after_reads=2, admit_window_s=2592000, cost_per_request=1.0, cost_per_byte=0.0)
 
-Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
+Bases: `_ResidencyPolicy`
 
 Greedy-Dual-Size-Frequency with aging, plus pins, minimum residency and
 second-hit admission.
@@ -78,6 +79,15 @@ Bases: [`TieringError`](#xdol.tiering.TieringError)
 The hot write failed after the cold store accepted the record.
 
 The record is safe in cold; do not retry the cold write.
+
+### *class* xdol.tiering.LruPolicy(, high_watermark=0.85, low_watermark=0.75, min_residency_s=604800, admit_after_reads=2, admit_window_s=2592000)
+
+Bases: `_ResidencyPolicy`
+
+Least-recently-used release: the simple alternative to [`GdsfPolicy`](#xdol.tiering.GdsfPolicy).
+
+Once hot bytes pass the high watermark, unprotected hot keys are released
+oldest-`last_access` first (the consumer stops at the low watermark).
 
 ### *class* xdol.tiering.PlacementPolicy(\*args, \*\*kwargs)
 
@@ -126,12 +136,15 @@ Bases: [`Exception`](https://docs.python.org/3/builtins/exceptions.html#Exceptio
 
 Base class of tiering errors.
 
-### xdol.tiering.local_paths(store)
+### xdol.tiering.local_paths(store, , path_of=None)
 
 Read-only `{key: real file path}`; materialises each key into `hot`.
 
-Requires `hot` to expose `rootdir` (raises `TypeError` otherwise); raises
-`FileNotFoundError` if the file is not there after materialisation.
+`path_of(key)` gives the file path of `key` in `hot`. The default duck-types
+a `dol.Files`-like hot store (`rootdir` and `_id_of_key`; `TypeError` if there
+is no `rootdir`, or the path is not an absolute one under it); pass `path_of` for any other layout, e.g. a `wrap_kvs`-wrapped store.
+`FileNotFoundError` is raised if the file is not there after materialisation.
+`key in paths` checks the store without fetching.
 
 * **Return type:**
   [`Mapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping)
