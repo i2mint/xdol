@@ -451,6 +451,7 @@ def _random_log_lines(rng):
         }
         if rng.random() < 0.8:
             t += rng.choice([0, 0, 1, 2]) if rng.random() < 0.85 else -rng.randint(1, 3)
+            # (t may go below 0: negative timestamps exercise the 0.0 running-max floor)
             ev["ts"] = t
         lines.append(json.dumps(ev))
     tail = "\n" if rng.random() < 0.7 else ""

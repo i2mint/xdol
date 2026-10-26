@@ -202,7 +202,8 @@ def _fold_buffered(lines, stats_by_key: dict) -> tuple[float, int]:
     events.sort(key=lambda e: e[:2])
     for ts, _, key, op, n in events:
         _apply(stats_by_key, key, op, n, ts)
-    return max((e[0] for e in events), default=0.0), len(events)
+    # the running max starts at 0.0, as in streaming (and live recording)
+    return max([0.0, *(e[0] for e in events)]), len(events)
 
 
 def _apply(stats_by_key: dict, key, op, nbytes, ts) -> None:
