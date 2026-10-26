@@ -27,7 +27,7 @@ from __future__ import annotations
 
 import os
 import warnings
-from collections.abc import Iterable, Iterator, Mapping, MutableMapping
+from collections.abc import Callable, Iterable, Iterator, Mapping, MutableMapping
 from dataclasses import dataclass, field, replace
 from typing import Any, Protocol
 
@@ -77,7 +77,66 @@ class PlacementPolicy(Protocol):
 
 
 @dataclass(kw_only=True)
-class GdsfPolicy:
+class _ResidencyPolicy:
+    """What GDSF and LRU share: watermarks, second-hit admission, pins and minimum residency.
+
+    Subclasses decide the *order* of release in ``to_release``.
+    """
+
+    high_watermark: float = 0.85
+    low_watermark: float = 0.75
+    min_residency_s: float = 7 * 86400
+    admit_after_reads: int = 2
+    admit_window_s: float = 30 * 86400
+
+    def admit(self, key, stats: AccessStats | None, *, now: float) -> bool:
+        if self.admit_after_reads <= 1:
+            return True
+        return (
+            stats is not None
+            and stats.reads >= self.admit_after_reads - 1
+            and now - stats.last_read <= self.admit_window_s
+        )
+
+    def on_hot_access(self, key, stats: AccessStats, *, admitted: bool) -> None:
+        pass
+
+    def on_hot_drop(self, key) -> None:
+        pass
+
+    def is_protected(self, stats: AccessStats, *, now: float) -> bool:
+        return stats.pinned or now - stats.last_access < self.min_residency_s
+
+
+@dataclass(kw_only=True)
+class LruPolicy(_ResidencyPolicy):
+    """Least-recently-used release: the simple alternative to :class:`GdsfPolicy`.
+
+    Once hot bytes pass the high watermark, unprotected hot keys are released
+    oldest-``last_access`` first (the consumer stops at the low watermark).
+    """
+
+    def to_release(
+        self,
+        hot_stats: Mapping[Any, AccessStats],
+        *,
+        hot_bytes: int,
+        budget_bytes: int,
+        now: float,
+    ) -> Iterator:
+        if not _exceeds_watermark(hot_bytes, budget_bytes, self.high_watermark):
+            return
+        unprotected = (
+            (st.last_access, k)
+            for k, st in hot_stats.items()
+            if not self.is_protected(st, now=now)
+        )
+        for _, k in sorted(unprotected, key=lambda t: t[0]):
+            yield k
+
+
+@dataclass(kw_only=True)
+class GdsfPolicy(_ResidencyPolicy):
     """Greedy-Dual-Size-Frequency with aging, plus pins, minimum residency and
     second-hit admission.
 
@@ -89,24 +148,10 @@ class GdsfPolicy:
     already hot when this process first sees it is seeded with its logged frequency.
     """
 
-    high_watermark: float = 0.85
-    low_watermark: float = 0.75
-    min_residency_s: float = 7 * 86400
-    admit_after_reads: int = 2
-    admit_window_s: float = 30 * 86400
     cost_per_request: float = 1.0
     cost_per_byte: float = 0.0
     _aging: float = field(default=0.0, init=False, repr=False)
     _entries: dict = field(default_factory=dict, init=False, repr=False)  # k: (F, H)
-
-    def admit(self, key, stats: AccessStats | None, *, now: float) -> bool:
-        if self.admit_after_reads <= 1:
-            return True
-        return (
-            stats is not None
-            and stats.reads >= self.admit_after_reads - 1
-            and now - stats.last_read <= self.admit_window_s
-        )
 
     def priority(self, frequency: int, size: int) -> float:
         """H of a key accessed now with this frequency and size."""
@@ -134,9 +179,6 @@ class GdsfPolicy:
     def _h(self, key, stats: AccessStats) -> float:
         entry = self._entries.get(key)
         return entry[1] if entry else self._set(key, stats.frequency, stats.size)
-
-    def is_protected(self, stats: AccessStats, *, now: float) -> bool:
-        return stats.pinned or now - stats.last_access < self.min_residency_s
 
     def to_release(
         self,
@@ -419,12 +461,16 @@ def status(store: TieredStore) -> dict:
 
 
 class _LocalPaths(Mapping):
-    def __init__(self, store: TieredStore):
+    def __init__(self, store: TieredStore, path_of: Callable[[Any], str]):
         self._store = store
+        self._path_of = path_of
+
+    def __contains__(self, key) -> bool:
+        return key in self._store  # checks hot/cold; never fetches
 
     def __getitem__(self, key) -> str:
         prefetch(self._store, [key])
-        path = _hot_path(self._store._hot, key)
+        path = self._path_of(key)
         if not os.path.exists(path):
             raise FileNotFoundError(f"{key!r} was not materialised at {path!r}")
         return path
@@ -436,12 +482,20 @@ class _LocalPaths(Mapping):
         return len(self._store)
 
 
-def local_paths(store: TieredStore) -> Mapping:
+def local_paths(
+    store: TieredStore, *, path_of: Callable[[Any], str] | None = None
+) -> Mapping:
     """Read-only ``{key: real file path}``; materialises each key into ``hot``.
 
-    Requires ``hot`` to expose ``rootdir`` (raises ``TypeError`` otherwise); raises
-    ``FileNotFoundError`` if the file is not there after materialisation.
+    ``path_of(key)`` gives the file path of ``key`` in ``hot``. The default duck-types
+    a ``dol.Files``-like hot store (its ``_id_of_key`` or ``rootdir``; ``TypeError`` if it
+    has neither); pass ``path_of`` for any other layout, e.g. a ``wrap_kvs``-wrapped store.
+    ``FileNotFoundError`` is raised if the file is not there after materialisation.
+    ``key in paths`` checks the store without fetching.
     """
-    if getattr(store._hot, "rootdir", None) is None:
-        raise TypeError("local_paths requires a hot store with a 'rootdir'")
-    return _LocalPaths(store)
+    if path_of is None:
+        hot = store._hot
+        if getattr(hot, "rootdir", None) is None:
+            raise TypeError("local_paths requires a hot store with a 'rootdir'")
+        path_of = lambda key: _hot_path(hot, key)  # noqa: E731
+    return _LocalPaths(store, path_of)

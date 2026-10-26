@@ -7,7 +7,14 @@ import pytest
 from dol import Files
 from dol.trash import permanent_delete
 
-from xdol import AccessLog, AccessStats, GdsfPolicy, HotWriteError, TieredStore
+from xdol import (
+    AccessLog,
+    AccessStats,
+    GdsfPolicy,
+    HotWriteError,
+    LruPolicy,
+    TieredStore,
+)
 from xdol.tiering import local_paths, pin, prefetch, status, sweep, unpin
 
 DAY = 86400
@@ -324,3 +331,52 @@ def test_release_does_not_read_the_hot_value(tmp_path):
     s["a"] = b"x"
     s._drop_hot("a")
     assert list(hot) == []
+
+
+def test_lru_releases_oldest_access_first():
+    clock = Clock()
+    s = TieredStore(
+        {},
+        {},
+        budget_bytes=20,
+        policy=LruPolicy(min_residency_s=0, admit_after_reads=1),
+        tracker=AccessLog(clock=clock),
+    )
+    for k in "abc":
+        clock.t += 1
+        s[k] = b"x" * 6
+    clock.t += 1
+    s["a"]  # a is now the most recent; b is the oldest
+    clock.t += 1
+    s["d"] = b"x" * 6  # 24 > 17: release oldest until under the low watermark
+    assert "b" not in s.hot and "a" in s.hot and "d" in s.hot
+    assert set(s.cold) == set("abcd")
+
+
+def test_lru_respects_pins_and_residency():
+    s = TieredStore(
+        {}, {}, budget_bytes=10, policy=LruPolicy(), tracker=AccessLog(clock=Clock())
+    )
+    s["a"] = b"x" * 6
+    with pytest.warns(UserWarning, match="protected"):
+        s["b"] = b"y" * 6  # default residency protects both
+    assert len(s.hot) == 2
+
+
+def test_local_paths_path_of_and_contains(tmp_path):
+    s, _ = make(None, hot=_files(tmp_path), cold={"a": b"data"})
+    seen = []
+
+    def path_of(key):
+        seen.append(key)
+        return os.path.join(s.hot.rootdir, key)
+
+    paths = local_paths(s, path_of=path_of)
+    assert "a" in paths and "zz" not in paths
+    assert "a" not in s.hot  # `in` did not fetch
+    assert open(paths["a"], "rb").read() == b"data" and seen == ["a"]
+    # a hot store without rootdir works when path_of is given
+    s2, _ = make(None, cold={"a": b"d"})
+    p = tmp_path / "elsewhere"
+    p.write_bytes(b"d")
+    assert local_paths(s2, path_of=lambda k: str(p))["a"] == str(p)
