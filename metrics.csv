@@ -1,28 +1,28 @@
 metric,value
 schema_version,1.0
-timestamp,2026-10-27T00:06:10.186120Z
-commit_sha,303bdf938219174ee8f021c4842cff205a452a0e
-commit_message,"access: document that late events fold approximately across a compaction (#44)
+timestamp,2026-10-27T00:07:32.771890Z
+commit_sha,f59b12526593e04b2468c47f8f7b3dd37ef42091
+commit_message,"access: sharpen the late-event note after review (#44)
 
 Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>"
 python_version,3.10
-metrics.umpyre_stats.num_functions,7221
-metrics.umpyre_stats.num_classes,1698
-metrics.umpyre_stats.total_lines,267344
-metrics.umpyre_stats.empty_lines,34580
-metrics.umpyre_stats.comment_lines,14827
-metrics.umpyre_stats.docs_lines,38730
-metrics.umpyre_stats.function_lines,119309
-metrics.umpyre_stats.empty_lines_ratio,0.12934645999162128
-metrics.umpyre_stats.comment_lines_ratio,0.05546038063319169
-metrics.umpyre_stats.function_lines_ratio,0.44627521096415107
-metrics.umpyre_stats.mean_lines_per_function,16.522503808336797
-metrics.umpyre_stats.files_analyzed,597
+metrics.umpyre_stats.num_functions,7129
+metrics.umpyre_stats.num_classes,1686
+metrics.umpyre_stats.total_lines,265263
+metrics.umpyre_stats.empty_lines,34263
+metrics.umpyre_stats.comment_lines,14715
+metrics.umpyre_stats.docs_lines,38693
+metrics.umpyre_stats.function_lines,117794
+metrics.umpyre_stats.empty_lines_ratio,0.12916614831318352
+metrics.umpyre_stats.comment_lines_ratio,0.05547324730550435
+metrics.umpyre_stats.function_lines_ratio,0.4440649468640557
+metrics.umpyre_stats.mean_lines_per_function,16.523215037172115
+metrics.umpyre_stats.files_analyzed,587
 metrics.umpyre_stats.pypi_version,0.1.32
 metrics.workflow_status.last_run_status,success
-metrics.workflow_status.last_success_timestamp,2026-10-27T00:06:01Z
+metrics.workflow_status.last_success_timestamp,2026-10-27T00:06:45Z
 metrics.workflow_status.recent_failure_count,0
-metrics.workflow_status.run_url,https://github.com/i2mint/xdol/actions/runs/40423950176
+metrics.workflow_status.run_url,https://github.com/i2mint/xdol/actions/runs/40424173503
 metrics.workflow_status.total_runs_analyzed,10
 metrics.wily.cyclomatic_avg,0.0
 metrics.wily.maintainability_index,0.0
@@ -38,4 +38,4 @@ metrics.coverage.branch_coverage,0.0
 metrics.coverage.statements_covered,0
 metrics.coverage.statements_total,0
 metrics.coverage.error,No coverage file found
-collection_duration_seconds,4.280704021453857
+collection_duration_seconds,4.03983736038208
