@@ -1,28 +1,28 @@
 metric,value
 schema_version,1.0
-timestamp,2026-10-27T00:01:01.144635Z
-commit_sha,9e48964183c1883dad2cd693cb5f510fb2daa969
-commit_message,"updating: MISSING sentinel, presence-only policies read no values, PREFER_SOURCE aliases ALWAYS_UPDATE (#21)
+timestamp,2026-10-27T00:03:12.897432Z
+commit_sha,d3d763d79ef829e801c654e2f8df86f7377d68fe
+commit_message,"updating: review fixes (PREFER_SOURCE string, lazy update_newer, MISSING pickle/bool, tests)
 
 Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>"
 python_version,3.10
-metrics.umpyre_stats.num_functions,7126
+metrics.umpyre_stats.num_functions,7129
 metrics.umpyre_stats.num_classes,1686
-metrics.umpyre_stats.total_lines,265242
+metrics.umpyre_stats.total_lines,265252
 metrics.umpyre_stats.empty_lines,34262
-metrics.umpyre_stats.comment_lines,14717
-metrics.umpyre_stats.docs_lines,38691
-metrics.umpyre_stats.function_lines,117784
-metrics.umpyre_stats.empty_lines_ratio,0.12917260464029076
-metrics.umpyre_stats.comment_lines_ratio,0.05548517957186268
-metrics.umpyre_stats.function_lines_ratio,0.44406240339011166
-metrics.umpyre_stats.mean_lines_per_function,16.528767892225652
+metrics.umpyre_stats.comment_lines,14715
+metrics.umpyre_stats.docs_lines,38693
+metrics.umpyre_stats.function_lines,117794
+metrics.umpyre_stats.empty_lines_ratio,0.1291677348332906
+metrics.umpyre_stats.comment_lines_ratio,0.05547554778097809
+metrics.umpyre_stats.function_lines_ratio,0.4440833622366655
+metrics.umpyre_stats.mean_lines_per_function,16.523215037172115
 metrics.umpyre_stats.files_analyzed,587
 metrics.umpyre_stats.pypi_version,0.1.32
 metrics.workflow_status.last_run_status,success
-metrics.workflow_status.last_success_timestamp,2026-10-26T20:35:47Z
+metrics.workflow_status.last_success_timestamp,2026-10-27T00:01:06Z
 metrics.workflow_status.recent_failure_count,0
-metrics.workflow_status.run_url,https://github.com/i2mint/xdol/actions/runs/40396986374
+metrics.workflow_status.run_url,https://github.com/i2mint/xdol/actions/runs/40423490922
 metrics.workflow_status.total_runs_analyzed,10
 metrics.wily.cyclomatic_avg,0.0
 metrics.wily.maintainability_index,0.0
@@ -38,4 +38,4 @@ metrics.coverage.branch_coverage,0.0
 metrics.coverage.statements_covered,0
 metrics.coverage.statements_total,0
 metrics.coverage.error,No coverage file found
-collection_duration_seconds,4.275444984436035
+collection_duration_seconds,2.6259613037109375
