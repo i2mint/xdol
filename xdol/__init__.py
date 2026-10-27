@@ -9,8 +9,6 @@ from xdol.updating import (
     reconcile,
     verify,
     VerifyReport,
-    contains_by_lookup,
-    contains_by_listing,
 )
 from xdol.x_codecs import resolve_values_to_bytes, Codec, get_codec, paired_store
 from xdol.keys import robust_key, make_key_func, UnstableKeyError

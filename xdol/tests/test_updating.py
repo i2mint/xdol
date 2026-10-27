@@ -8,6 +8,7 @@ import tempfile
 import shutil
 import time
 from functools import partial
+from collections.abc import KeysView
 from typing import Dict, Any
 from datetime import datetime
 import hashlib
@@ -1073,8 +1074,8 @@ class _CountingMembership(dict):
         self.listings += 1
         return super().__iter__()
 
-    def keys(self):  # dict.keys() bypasses __iter__
-        return list(iter(self))
+    def keys(self):  # dict.keys() bypasses __iter__; a Mapping's (e.g. S3's) doesn't
+        return KeysView(self)
 
 
 def _sync_pair(n=20):
@@ -1090,41 +1091,51 @@ def test_copy_reuses_the_membership_it_decided_on():
     assert copy.lookups == 20  # one per key, not a second one to count the write
 
 
-@pytest.mark.parametrize("sync", ["reconcile", "backfill", "verify"])
-def test_contains_by_listing_lists_each_store_once(sync):
+def test_delete_skips_a_key_gone_since_the_decision():
+    from xdol import MISSING
+
+    target = {"a": 1, "b": 2}
+
+    def delete(key, target_info, source_info):
+        del target[key]  # another writer, between the decision and the delete
+        return KeyDecision.DELETE
+
+    stats = update_with_policy(
+        target, {}, policy=delete, keys_to_consider=["a"], missing=MISSING
+    )
+    assert stats == {
+        "examined": 1,
+        "updated": 0,
+        "added": 0,
+        "unchanged": 0,
+        "deleted": 0,
+    }
+    assert target == {"b": 2}
+
+
+@pytest.mark.parametrize("sync", ["reconcile", "backfill"])
+def test_cached_keys_stores_are_listed_once_and_never_looked_up(sync):
     import xdol
-    from xdol import contains_by_listing
+    from dol.trans import cached_keys
 
     master, copy = _sync_pair()
     expected = getattr(xdol, sync)(master=master, copy=copy)
     master, copy = _sync_pair()
     got = getattr(xdol, sync)(
-        master=master, copy=copy, contains_for=contains_by_listing
+        master=cached_keys(master, keys_cache=set),
+        copy=cached_keys(copy, keys_cache=set),
     )
     assert got == expected
-    assert master.lookups == copy.lookups == 0
-    # one listing per store for membership, plus any the default keys make
-    assert master.listings <= 2 and copy.listings <= 2
+    assert (master.lookups, master.listings) == (copy.lookups, copy.listings) == (0, 1)
 
 
-def test_contains_by_listing_is_lazy():
-    from xdol import contains_by_listing
+def test_verify_lists_each_store_once_by_default():
+    from xdol import verify
 
-    store = _CountingMembership(a=1)
-    contains = contains_by_listing(store)
-    assert store.listings == 0
-    assert contains("a") and not contains("b")
-    assert store.listings == 1
-
-
-def test_contains_for_is_given_each_store():
-    seen = []
-
-    def contains_for(store):
-        seen.append(store)
-        return lambda k: k in store
-
-    t, s = {"a": 1}, {"a": 2, "b": 3}
-    update_with_policy(t, s, contains_for=contains_for)
-    assert t == {"a": 2, "b": 3}
-    assert seen[0] is t and seen[1] is s
+    master, copy = _sync_pair()
+    copy["k0"] = "changed"
+    copy["extra"] = 0
+    r = verify(master=master, copy=copy)
+    assert (r.mismatched, r.only_in_copy) == (["k0"], ["extra"])
+    assert r.only_in_master == [f"k{i}" for i in range(1, 20, 2)]
+    assert (master.lookups, master.listings) == (copy.lookups, copy.listings) == (0, 1)
