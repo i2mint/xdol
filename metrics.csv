@@ -1,23 +1,23 @@
 metric,value
 schema_version,1.0
-timestamp,2026-10-27T00:00:54.412547Z
+timestamp,2026-10-27T00:01:01.144635Z
 commit_sha,9e48964183c1883dad2cd693cb5f510fb2daa969
 commit_message,"updating: MISSING sentinel, presence-only policies read no values, PREFER_SOURCE aliases ALWAYS_UPDATE (#21)
 
 Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>"
 python_version,3.10
-metrics.umpyre_stats.num_functions,7218
-metrics.umpyre_stats.num_classes,1698
-metrics.umpyre_stats.total_lines,267326
-metrics.umpyre_stats.empty_lines,34579
-metrics.umpyre_stats.comment_lines,14829
-metrics.umpyre_stats.docs_lines,38728
-metrics.umpyre_stats.function_lines,119299
-metrics.umpyre_stats.empty_lines_ratio,0.1293514285928043
-metrics.umpyre_stats.comment_lines_ratio,0.055471596477708864
-metrics.umpyre_stats.function_lines_ratio,0.4462678527341149
-metrics.umpyre_stats.mean_lines_per_function,16.527985591576613
-metrics.umpyre_stats.files_analyzed,597
+metrics.umpyre_stats.num_functions,7126
+metrics.umpyre_stats.num_classes,1686
+metrics.umpyre_stats.total_lines,265242
+metrics.umpyre_stats.empty_lines,34262
+metrics.umpyre_stats.comment_lines,14717
+metrics.umpyre_stats.docs_lines,38691
+metrics.umpyre_stats.function_lines,117784
+metrics.umpyre_stats.empty_lines_ratio,0.12917260464029076
+metrics.umpyre_stats.comment_lines_ratio,0.05548517957186268
+metrics.umpyre_stats.function_lines_ratio,0.44406240339011166
+metrics.umpyre_stats.mean_lines_per_function,16.528767892225652
+metrics.umpyre_stats.files_analyzed,587
 metrics.umpyre_stats.pypi_version,0.1.32
 metrics.workflow_status.last_run_status,success
 metrics.workflow_status.last_success_timestamp,2026-10-26T20:35:47Z
@@ -38,4 +38,4 @@ metrics.coverage.branch_coverage,0.0
 metrics.coverage.statements_covered,0
 metrics.coverage.statements_total,0
 metrics.coverage.error,No coverage file found
-collection_duration_seconds,3.5983543395996094
+collection_duration_seconds,4.275444984436035

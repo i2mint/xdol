@@ -1,5 +1,5 @@
 {
-  "collection_duration_seconds": 3.5983543395996094,
+  "collection_duration_seconds": 4.275444984436035,
   "commit_message": "updating: MISSING sentinel, presence-only policies read no values, PREFER_SOURCE aliases ALWAYS_UPDATE (#21)\n\nCo-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>",
   "commit_sha": "9e48964183c1883dad2cd693cb5f510fb2daa969",
   "metrics": {
@@ -11,19 +11,19 @@
       "statements_total": 0
     },
     "umpyre_stats": {
-      "comment_lines": 14829,
-      "comment_lines_ratio": 0.055471596477708864,
-      "docs_lines": 38728,
-      "empty_lines": 34579,
-      "empty_lines_ratio": 0.1293514285928043,
-      "files_analyzed": 597,
-      "function_lines": 119299,
-      "function_lines_ratio": 0.4462678527341149,
-      "mean_lines_per_function": 16.527985591576613,
-      "num_classes": 1698,
-      "num_functions": 7218,
+      "comment_lines": 14717,
+      "comment_lines_ratio": 0.05548517957186268,
+      "docs_lines": 38691,
+      "empty_lines": 34262,
+      "empty_lines_ratio": 0.12917260464029076,
+      "files_analyzed": 587,
+      "function_lines": 117784,
+      "function_lines_ratio": 0.44406240339011166,
+      "mean_lines_per_function": 16.528767892225652,
+      "num_classes": 1686,
+      "num_functions": 7126,
       "pypi_version": "0.1.32",
-      "total_lines": 267326
+      "total_lines": 265242
     },
     "wily": {
       "cyclomatic_avg": 0.0,
@@ -42,6 +42,6 @@
   },
   "python_version": "3.10",
   "schema_version": "1.0",
-  "timestamp": "2026-10-27T00:00:54.412547Z",
+  "timestamp": "2026-10-27T00:01:01.144635Z",
   "workflow_status": {}
 }
