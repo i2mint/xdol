@@ -224,7 +224,7 @@ def _get_key_decisions(
     target_key_info: KeyInfoExtractor | None = None,
     source_key_info: KeyInfoExtractor | None = None,
     *,
-    missing: Any = None,
+    missing: Any,
 ) -> Iterator[tuple[K, KeyDecision, Any]]:
     """
     Get decisions for each key regarding update action.
@@ -323,11 +323,15 @@ class _StandardPolicy(NamedTuple):
 
 
 _STANDARD_POLICIES = {  # (PREFER_SOURCE is an alias of ALWAYS_UPDATE)
-    DefaultPolicy.ALWAYS_UPDATE: _StandardPolicy(_always_update_decider, True),
-    DefaultPolicy.UPDATE_IF_DIFFERENT: _StandardPolicy(
-        _update_if_different_decider, False
+    DefaultPolicy.ALWAYS_UPDATE: _StandardPolicy(
+        _always_update_decider, presence_only=True
     ),
-    DefaultPolicy.PREFER_TARGET: _StandardPolicy(_prefer_target_decider, True),
+    DefaultPolicy.UPDATE_IF_DIFFERENT: _StandardPolicy(
+        _update_if_different_decider, presence_only=False
+    ),
+    DefaultPolicy.PREFER_TARGET: _StandardPolicy(
+        _prefer_target_decider, presence_only=True
+    ),
 }
 
 
@@ -343,7 +347,10 @@ class _MissingNotGiven:
     for custom deciders (i2mint/xdol#47)."""
 
     def __repr__(self):
-        return "None"
+        return "<None, with a FutureWarning>"
+
+    def __reduce__(self):  # stays the one sentinel through pickle and deepcopy
+        return "_MISSING_NOT_GIVEN"
 
 
 _MISSING_NOT_GIVEN = _MissingNotGiven()

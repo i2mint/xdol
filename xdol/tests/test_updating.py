@@ -933,6 +933,13 @@ def test_custom_decider_warns_only_when_missing_is_not_chosen():
     assert record[0].filename == __file__  # points at the caller
 
 
+def test_missing_not_given_survives_pickle():
+    import pickle
+    from xdol.updating import _MISSING_NOT_GIVEN
+
+    assert pickle.loads(pickle.dumps(_MISSING_NOT_GIVEN)) is _MISSING_NOT_GIVEN
+
+
 def test_reconcile_gives_custom_deciders_missing():
     import warnings
     from xdol import MISSING, reconcile

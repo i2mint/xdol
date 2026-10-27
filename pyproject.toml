@@ -87,6 +87,9 @@ doctest_optionflags = [
     "NORMALIZE_WHITESPACE",
     "ELLIPSIS",
 ]
+filterwarnings = [
+    "error::FutureWarning",  # xdol must not trip its own deprecations
+]
 
 [tool.wads.ci]
 project_name = ""
