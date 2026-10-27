@@ -442,10 +442,16 @@ def _random_log_lines(rng):
                 "size": rng.randint(0, 9),
                 "last_access": float(rng.randint(0, 20)),
             }
-            lines.append(json.dumps({"k": rng.choice("abc"), "op": "snapshot", "stats": stats}))
+            lines.append(
+                json.dumps({"k": rng.choice("abc"), "op": "snapshot", "stats": stats})
+            )
             continue
         if r < 0.2:
-            stone = {"k": rng.choice("abc"), "op": "tombstone", "ts": rng.randint(0, 20)}
+            stone = {
+                "k": rng.choice("abc"),
+                "op": "tombstone",
+                "ts": rng.randint(0, 20),
+            }
             lines.append(json.dumps(stone))
             continue
         ev = {
@@ -497,7 +503,11 @@ def test_snapshot_after_events_still_applied_first(tmp_path):
     p = tmp_path / "cat.jsonl"
     lines = [
         {"k": "a", "op": "read", "n": 1, "ts": 10},
-        {"k": "a", "op": "snapshot", "stats": {"reads": 4, "size": 1, "last_access": 5.0}},
+        {
+            "k": "a",
+            "op": "snapshot",
+            "stats": {"reads": 4, "size": 1, "last_access": 5.0},
+        },
     ]
     p.write_text("".join(json.dumps(e) + "\n" for e in lines))
     assert AccessLog(p)["a"].reads == 5
@@ -575,7 +585,11 @@ def test_old_delete_does_not_wipe_a_newer_snapshot(tmp_path):
     p = tmp_path / "log.jsonl"
     _write_lines(
         p,
-        {"k": "a", "op": "snapshot", "stats": {"reads": 4, "size": 1, "last_access": 50.0}},
+        {
+            "k": "a",
+            "op": "snapshot",
+            "stats": {"reads": 4, "size": 1, "last_access": 50.0},
+        },
         {"k": "a", "op": "delete", "ts": 10.0},
         {"k": "b", "op": "snapshot", "stats": {"reads": 1, "last_access": 5.0}},
         {"k": "b", "op": "delete", "ts": 5.0},  # same stamp: the delete wins
@@ -593,7 +607,9 @@ def test_snapshot_with_float_size_loads(tmp_path):
 
 def test_delete_after_reopen_with_clock_behind_snapshot_still_deletes(tmp_path):
     p = tmp_path / "log.jsonl"
-    _write_lines(p, {"k": "a", "op": "snapshot", "stats": {"pinned": True, "last_access": 100.0}})
+    _write_lines(
+        p, {"k": "a", "op": "snapshot", "stats": {"pinned": True, "last_access": 100.0}}
+    )
     log = AccessLog(p, clock=lambda: 90.0)
     log.record("a", "delete")
     assert "a" not in log and "a" not in AccessLog(p)
@@ -916,3 +932,87 @@ def test_no_compaction_without_the_lock(tmp_path, monkeypatch):
     assert AccessLog(p, compact_above=None)["a"].reads == 4
     with pytest.raises(OSError, match="not compacting"):
         log.compact()
+
+
+def test_keep_tombstones_for_drops_old_tombstones_at_compaction(tmp_path):
+    p = tmp_path / "log.jsonl"
+    now = [100.0]
+    log = AccessLog(p, clock=lambda: now[0], keep_tombstones_for=50, compact_above=None)
+    log.record("old", "write", 1)
+    log.record("old", "delete")  # ts 100
+    now[0] = 140.0
+    log.record("new", "write", 1)
+    log.record("new", "delete")  # ts 140
+    now[0] = 160.0  # horizon 110: "old" expires, "new" stays
+    log.compact()
+    assert dict(log.tombstones) == {"new": 140.0}
+    assert dict(AccessLog(p).tombstones) == {"new": 140.0}
+
+
+def test_tombstones_kept_forever_by_default(tmp_path):
+    p = tmp_path / "log.jsonl"
+    now = [1.0]
+    log = AccessLog(p, clock=lambda: now[0], compact_above=None)
+    log.record("a", "write", 1)
+    log.record("a", "delete")
+    now[0] = 1e12
+    log.compact()
+    assert dict(AccessLog(p).tombstones) == {"a": 1.0}
+
+
+def test_expired_tombstone_no_longer_hides_an_older_log(tmp_path):
+    now = [100.0]
+    log = AccessLog(clock=lambda: now[0], keep_tombstones_for=10)
+    log.record("a", "delete")
+    stale = {"a": AccessStats(reads=1, last_access=50.0)}
+    assert "a" not in merge_stats(stale, log)  # tombstone held
+    now[0] = 200.0
+    log.compact()  # in-memory log: tombstones pruned too
+    assert dict(log.tombstones) == {}
+    assert "a" in merge_stats(stale, log)  # the expired delete no longer applies
+
+
+@pytest.mark.parametrize("bad", [-1, float("nan"), "5", True])
+def test_keep_tombstones_for_validated(bad):
+    with pytest.raises(ValueError):
+        AccessLog(keep_tombstones_for=bad)
+
+
+def test_expired_tombstone_lets_a_late_event_revive_the_key(tmp_path):
+    # the documented cost of a short retention
+    p = tmp_path / "log.jsonl"
+    _write_lines(
+        p,
+        {"k": "a", "op": "write", "n": 1, "ts": 10.0},
+        {"k": "a", "op": "delete", "ts": 20.0},
+    )
+    AccessLog(p, clock=lambda: 30.0, keep_tombstones_for=0).compact()
+    with open(p, "a") as fh:
+        fh.write(json.dumps({"k": "a", "op": "read", "n": 1, "ts": 15.0}) + "\n")
+    assert "a" in AccessLog(p)
+    p2 = tmp_path / "kept.jsonl"
+    _write_lines(
+        p2,
+        {"k": "a", "op": "write", "n": 1, "ts": 10.0},
+        {"k": "a", "op": "delete", "ts": 20.0},
+    )
+    AccessLog(p2, clock=lambda: 30.0).compact()
+    with open(p2, "a") as fh:
+        fh.write(json.dumps({"k": "a", "op": "read", "n": 1, "ts": 15.0}) + "\n")
+    assert "a" not in AccessLog(p2)
+
+
+def test_tombstone_at_the_horizon_is_kept_and_compacts_on_open(tmp_path):
+    p = tmp_path / "log.jsonl"
+    _write_lines(
+        p,
+        {"k": "a", "op": "delete", "ts": 100.0},
+        *[{"k": "b", "op": "read", "n": 1, "ts": 101.0 + i} for i in range(3)],
+    )
+    log = AccessLog(
+        p, clock=lambda: 150.0, keep_tombstones_for=50, compact_above=2
+    )  # compacts on open; horizon 100: the tombstone at 100 stays
+    assert dict(log.tombstones) == {"a": 100.0}
+    log = AccessLog(p, clock=lambda: 151.0, keep_tombstones_for=50)
+    log.compact()
+    assert dict(log.tombstones) == {}
