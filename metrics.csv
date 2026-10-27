@@ -1,23 +1,23 @@
 metric,value
 schema_version,1.0
-timestamp,2026-10-27T00:03:12.897432Z
+timestamp,2026-10-27T00:03:18.344708Z
 commit_sha,d3d763d79ef829e801c654e2f8df86f7377d68fe
 commit_message,"updating: review fixes (PREFER_SOURCE string, lazy update_newer, MISSING pickle/bool, tests)
 
 Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>"
 python_version,3.10
-metrics.umpyre_stats.num_functions,7129
-metrics.umpyre_stats.num_classes,1686
-metrics.umpyre_stats.total_lines,265252
-metrics.umpyre_stats.empty_lines,34262
-metrics.umpyre_stats.comment_lines,14715
-metrics.umpyre_stats.docs_lines,38693
-metrics.umpyre_stats.function_lines,117794
-metrics.umpyre_stats.empty_lines_ratio,0.1291677348332906
-metrics.umpyre_stats.comment_lines_ratio,0.05547554778097809
-metrics.umpyre_stats.function_lines_ratio,0.4440833622366655
-metrics.umpyre_stats.mean_lines_per_function,16.523215037172115
-metrics.umpyre_stats.files_analyzed,587
+metrics.umpyre_stats.num_functions,7221
+metrics.umpyre_stats.num_classes,1698
+metrics.umpyre_stats.total_lines,267336
+metrics.umpyre_stats.empty_lines,34579
+metrics.umpyre_stats.comment_lines,14827
+metrics.umpyre_stats.docs_lines,38730
+metrics.umpyre_stats.function_lines,119309
+metrics.umpyre_stats.empty_lines_ratio,0.12934659005895202
+metrics.umpyre_stats.comment_lines_ratio,0.05546204027889996
+metrics.umpyre_stats.function_lines_ratio,0.4462885657000928
+metrics.umpyre_stats.mean_lines_per_function,16.522503808336797
+metrics.umpyre_stats.files_analyzed,597
 metrics.umpyre_stats.pypi_version,0.1.32
 metrics.workflow_status.last_run_status,success
 metrics.workflow_status.last_success_timestamp,2026-10-27T00:01:06Z
@@ -38,4 +38,4 @@ metrics.coverage.branch_coverage,0.0
 metrics.coverage.statements_covered,0
 metrics.coverage.statements_total,0
 metrics.coverage.error,No coverage file found
-collection_duration_seconds,2.6259613037109375
+collection_duration_seconds,3.5718138217926025
