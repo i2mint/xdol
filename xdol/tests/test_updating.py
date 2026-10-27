@@ -8,6 +8,7 @@ import tempfile
 import shutil
 import time
 from functools import partial
+from collections.abc import KeysView
 from typing import Dict, Any
 from datetime import datetime
 import hashlib
@@ -1056,3 +1057,121 @@ def test_verify_accepts_read_only_stores():
         master=MappingProxyType({"a": 1, "b": 2}), copy=MappingProxyType({"a": 3})
     )
     assert (r.mismatched, r.only_in_master) == (["a"], ["b"])
+
+
+class _CountingMembership(dict):
+    """A dict counting membership tests and listings, as an S3 store's HEADs and LISTs."""
+
+    def __init__(self, *a, **kw):
+        super().__init__(*a, **kw)
+        self.lookups = self.listings = 0
+
+    def __contains__(self, k):
+        self.lookups += 1
+        return super().__contains__(k)
+
+    def __iter__(self):
+        self.listings += 1
+        return super().__iter__()
+
+    def keys(self):  # dict.keys() bypasses __iter__; a Mapping's (e.g. S3's) doesn't
+        return KeysView(self)
+
+
+def _sync_pair(n=20):
+    master = _CountingMembership({f"k{i}": i for i in range(n)})
+    copy = _CountingMembership({f"k{i}": i for i in range(0, n, 2)})
+    return master, copy
+
+
+def test_copy_reuses_the_membership_it_decided_on():
+    master, copy = _sync_pair()
+    stats = update_with_policy(copy, master, policy=DefaultPolicy.ALWAYS_UPDATE)
+    assert (stats["updated"], stats["added"]) == (10, 10)
+    assert copy.lookups == 20  # one per key, not a second one to count the write
+
+
+def test_delete_skips_a_key_gone_since_the_decision():
+    from xdol import MISSING
+
+    target = {"a": 1, "b": 2}
+
+    def delete(key, target_info, source_info):
+        del target[key]  # another writer, between the decision and the delete
+        return KeyDecision.DELETE
+
+    stats = update_with_policy(
+        target, {}, policy=delete, keys_to_consider=["a"], missing=MISSING
+    )
+    assert stats == {
+        "examined": 1,
+        "updated": 0,
+        "added": 0,
+        "unchanged": 0,
+        "deleted": 0,
+    }
+    assert target == {"b": 2}
+
+
+def test_delete_reraises_a_key_error_of_a_present_key():
+    from xdol import MISSING
+
+    class Locked(dict):
+        def __delitem__(self, k):
+            raise KeyError("locked")
+
+    target = Locked(a=1)
+    with pytest.raises(KeyError, match="locked"):
+        update_with_policy(
+            target,
+            {},
+            policy=lambda k, t, s: KeyDecision.DELETE,
+            keys_to_consider=["a"],
+            missing=MISSING,
+        )
+
+
+@pytest.mark.parametrize("sync", ["reconcile", "backfill"])
+def test_cached_keys_stores_are_listed_once_and_never_looked_up(sync):
+    import xdol
+    from dol.trans import cached_keys
+
+    def pair():  # each has keys the other lacks, so both syncs write
+        master, copy = _sync_pair()
+        copy.update(extra=0)
+        return master, copy
+
+    expected = getattr(xdol, sync)(master=pair()[0], copy=pair()[1])
+    master, copy = pair()
+    cached_master = cached_keys(master, keys_cache=set)
+    cached_copy = cached_keys(copy, keys_cache=set)
+    got = getattr(xdol, sync)(master=cached_master, copy=cached_copy)
+    assert got == expected and got.added > 0
+    assert (master.lookups, master.listings) == (copy.lookups, copy.listings) == (0, 1)
+    # the caches were kept current through the writes
+    assert set(cached_master._keys_cache) == set(dict.keys(master))
+    assert set(cached_copy._keys_cache) == set(dict.keys(copy))
+
+
+def test_verify_lists_each_store_once_by_default():
+    from xdol import verify
+
+    master, copy = _sync_pair()
+    copy["k0"] = "changed"
+    copy["extra"] = 0
+    r = verify(master=master, copy=copy)
+    assert (r.mismatched, r.only_in_copy) == (["k0"], ["extra"])
+    assert r.only_in_master == [f"k{i}" for i in range(1, 20, 2)]
+    assert (master.lookups, master.listings) == (copy.lookups, copy.listings) == (0, 1)
+
+
+def test_verify_reports_a_listed_key_that_cannot_be_read():
+    from xdol import verify
+
+    class Ghost(dict):  # lists 'g' (e.g. a folder marker) but can't read it
+        def __iter__(self):
+            yield from super().__iter__()
+            yield "g"
+
+    r = verify(master={"a": 1, "g": 2}, copy=Ghost(a=1))
+    assert (r.only_in_master, r.only_in_copy, r.mismatched) == (["g"], [], [])

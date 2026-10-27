@@ -225,7 +225,7 @@ def _get_key_decisions(
     source_key_info: KeyInfoExtractor | None = None,
     *,
     missing: Any,
-) -> Iterator[tuple[K, KeyDecision, Any]]:
+) -> Iterator[tuple[K, KeyDecision, Any, bool]]:
     """
     Get decisions for each key regarding update action.
 
@@ -242,20 +242,20 @@ def _get_key_decisions(
         missing: What the decider gets as the info of an absent key
 
     Returns:
-        Iterator of (key, decision, source_info) triples; ``source_info`` is
-        :data:`MISSING` when the key is not in source.
+        Iterator of (key, decision, source_info, in_target) tuples; ``source_info``
+        is :data:`MISSING` when the key is not in source.
     """
     # Use default extractors if none provided
     target_info_func = target_key_info or partial(_key_info_from_mapping, target)
     source_info_func = source_key_info or partial(_key_info_from_mapping, source)
 
     for key in keys:
-        target_info = target_info_func(key) if key in target else missing
-        source_in = key in source
+        target_in, source_in = key in target, key in source
+        target_info = target_info_func(key) if target_in else missing
         source_info = source_info_func(key) if source_in else missing
 
         decision = decider(key, target_info, source_info)
-        yield key, decision, (source_info if source_in else MISSING)
+        yield key, decision, (source_info if source_in else MISSING), target_in
 
 
 def _differ(a, b) -> bool:
@@ -421,6 +421,9 @@ def update_with_policy(
     """
     Update a target mapping with values from a source mapping using a customizable policy.
 
+    Each key is tested once with ``in`` on each mapping; where that is a request
+    (e.g. S3), wrap the mapping as ``dol.trans.cached_keys(store, keys_cache=set)``.
+
     Args:
         target: The mapping to be updated (modified in-place)
         source: The mapping containing items to potentially copy to target
@@ -487,7 +490,7 @@ def update_with_policy(
     stats = UpdateStats()
 
     # Process each key according to the decided action
-    for key, decision, source_info in _get_key_decisions(
+    for key, decision, source_info, in_target in _get_key_decisions(
         keys_to_consider,
         target,
         source,
@@ -506,16 +509,20 @@ def update_with_policy(
                 value = source_info
             else:
                 value = source[key]
-            if key in target:
-                target[key] = value
+            target[key] = value
+            if in_target:
                 stats.updated += 1
             else:
-                target[key] = value
                 stats.added += 1
         elif decision == KeyDecision.DELETE:
-            if key in target:
-                del target[key]
-                stats.deleted += 1
+            if in_target:
+                try:
+                    del target[key]
+                except KeyError:
+                    if key in target:  # a real error, not a key gone since the decision
+                        raise
+                else:
+                    stats.deleted += 1
         else:  # SKIP
             stats.unchanged += 1
 
@@ -825,6 +832,10 @@ def backfill(
     Decisions use key presence only: the one value read is ``copy[k]`` for each key
     actually pushed, so nothing is ever downloaded from a cold (e.g. S3) master.
     ``keys_to_consider``: keys, or ``(master, copy) -> keys`` (default: copy's keys).
+    Each key is tested with ``in`` on both stores: where that is a request (e.g. S3),
+    wrap the store as ``dol.trans.cached_keys(store, keys_cache=set)`` to list it once
+    and test membership against that listing, kept current on writes (it must be
+    ``set``: a ``list`` cache re-lists the store on every write).
 
     >>> master, copy = {'a': 1}, {'a': 9, 'b': 2}
     >>> backfill(copy=copy, master=master).added
@@ -862,6 +873,11 @@ def reconcile(
     :param policy: a :class:`DefaultPolicy`, or a custom decider, which gets
         :data:`MISSING` as the info of a key absent from a store.
     :param keys_to_consider: keys, or ``(master, copy) -> keys`` (default: master's).
+
+    Each key is tested with ``in`` on both stores: where that is a request (e.g. S3),
+    wrap the store as ``dol.trans.cached_keys(store, keys_cache=set)`` to list it once
+    and test membership against that listing, kept current on writes (it must be
+    ``set``: a ``list`` cache re-lists the store on every write).
 
     >>> master, copy = {'a': 1, 'b': 2, 'c': 3}, {'a': 9, 'c': 3}
     >>> s = reconcile(master=master, copy=copy)
@@ -941,49 +957,75 @@ def verify(
     master: Mapping[K, V],
     copy: Mapping[K, V],
     key_info_for: KeyInfoFor | None = None,
-    keys_to_consider: KeysToConsider = union_iter,
+    keys_to_consider: KeysToConsider | None = None,
 ) -> VerifyReport:
     """Compare ``copy`` with ``master`` without writing anything.
 
     :param key_info_for: ``key_info_for(store)`` gives the ``key -> info`` compared for
         that store; pass a cheaper one (size, ETag) to avoid reading values. Default:
         the values themselves, any pair that can't be compared counting as different.
-    :param keys_to_consider: keys, or ``(master, copy) -> keys`` (default: the keys of
-        both, master's first), each considered once.
+    :param keys_to_consider: keys, or ``(master, copy) -> keys``, each considered once,
+        tested with ``in`` on both stores. Default (``None``): the keys of both,
+        master's first, each store listed once and membership answered from those
+        listings (no per-key lookup, e.g. no ``HeadObject`` per key on S3).
 
     >>> r = verify(master={'a': 1, 'b': 20, 'd': 4}, copy={'a': 1, 'b': 2, 'c': 3})
     >>> r.only_in_copy, r.only_in_master, r.mismatched
     (['c'], ['d'], ['b'])
     """
-    if callable(keys_to_consider):
-        keys_to_consider = keys_to_consider(master, copy)
+    # Membership is tested on these; key infos are still read from master and copy
+    in_master, in_copy = master, copy
+    if keys_to_consider is None:
+        # One listing each; dicts, not sets, so the report keeps master-first order
+        in_master, in_copy = dict.fromkeys(master), dict.fromkeys(copy)
+        keys_to_consider = union_iter(in_master, in_copy)
+    else:
+        if callable(keys_to_consider):
+            keys_to_consider = keys_to_consider(master, copy)
+        keys_to_consider = union_iter(keys_to_consider)
     if key_info_for is None:
         key_info_for = partial(partial, _key_info_from_mapping)
 
     def deferred(store: Mapping) -> Callable[[K], Callable[[], Any]]:
-        """Info as a thunk: read only for a key both stores have."""
+        """Info as a thunk: read only for a key both stores have. It gives
+        :data:`MISSING` for a key that is listed but can't be read (a folder marker,
+        a broken link, a key deleted since the listing)."""
         info = key_info_for(store)
-        return lambda key: lambda: info(key)
+
+        def thunk(key: K) -> Callable[[], Any]:
+            def read():
+                try:
+                    return info(key)
+                except KeyError:
+                    return MISSING
+
+            return read
+
+        return thunk
 
     report = VerifyReport()
 
     def record(key: K, copy_info: Any, master_info: Any) -> KeyDecision:
+        if copy_info is not MISSING and master_info is not MISSING:
+            copy_info, master_info = copy_info(), master_info()  # (may be MISSING)
+            if copy_info is not MISSING and master_info is not MISSING:
+                if _differ(copy_info, master_info):
+                    report.mismatched.append(key)
+                return KeyDecision.SKIP
         if master_info is MISSING:
             if copy_info is not MISSING:  # (a requested key may be in neither)
                 report.only_in_copy.append(key)
         elif copy_info is MISSING:
             report.only_in_master.append(key)
-        elif _differ(copy_info(), master_info()):
-            report.mismatched.append(key)
         return KeyDecision.SKIP  # verify never writes
 
-    # ``record`` always SKIPs, so update_with_policy never writes: ``copy`` can be a
-    # read-only Mapping.
+    # ``record`` always SKIPs, so update_with_policy never writes and, given both key
+    # infos, only tests membership on these: ``in_copy`` can be read-only.
     update_with_policy(
-        copy,  # type: ignore[arg-type]
-        master,
+        in_copy,  # type: ignore[arg-type]
+        in_master,
         policy=record,
-        keys_to_consider=union_iter(keys_to_consider),
+        keys_to_consider=keys_to_consider,
         target_key_info=deferred(copy),
         source_key_info=deferred(master),
         missing=MISSING,
