@@ -33,6 +33,7 @@ Using convenience methods:
 
 from typing import (
     Any,
+    NamedTuple,
     Optional,
     Dict,
     Union,
@@ -153,8 +154,8 @@ class UpdateDecider(Protocol):
             key: The key being considered
             target_info: Comparison info for target, ``missing`` if key not in target
             source_info: Comparison info for source, ``missing`` if key not in source
-            (``missing`` is ``None`` unless ``update_with_policy(missing=MISSING)``;
-            see i2mint/xdol#21)
+            (``missing`` is :data:`MISSING` if ``update_with_policy(missing=MISSING)``,
+            the future default, and ``None`` for now otherwise; see i2mint/xdol#47)
 
         Returns:
             KeyDecision indicating what to do with this key
@@ -307,19 +308,51 @@ def _prefer_target_decider(
     return KeyDecision.SKIP
 
 
-_STANDARD_DECIDERS = {
-    DefaultPolicy.ALWAYS_UPDATE: _always_update_decider,
-    DefaultPolicy.UPDATE_IF_DIFFERENT: _update_if_different_decider,
-    DefaultPolicy.PREFER_TARGET: _prefer_target_decider,
+def _present(key: K) -> bool:
+    """Presence-only key info: never reads a value.
+
+    ``update_with_policy`` only asks for the info of keys a mapping contains, so a
+    constant non-``None`` answer means "present" (even when the value is ``None``).
+    """
+    return True
+
+
+class _StandardPolicy(NamedTuple):
+    decider: UpdateDecider
+    presence_only: bool  # decides from key presence alone, so reads no info
+
+
+_STANDARD_POLICIES = {  # (PREFER_SOURCE is an alias of ALWAYS_UPDATE)
+    DefaultPolicy.ALWAYS_UPDATE: _StandardPolicy(_always_update_decider, True),
+    DefaultPolicy.UPDATE_IF_DIFFERENT: _StandardPolicy(
+        _update_if_different_decider, False
+    ),
+    DefaultPolicy.PREFER_TARGET: _StandardPolicy(_prefer_target_decider, True),
 }
 
 
-def _get_standard_decider(policy: DefaultPolicy) -> UpdateDecider:
-    """Get a standard decision function for a given policy."""
+def _get_standard_policy(policy: DefaultPolicy | str) -> _StandardPolicy:
     try:
-        return _STANDARD_DECIDERS[DefaultPolicy(policy)]
+        return _STANDARD_POLICIES[DefaultPolicy(policy)]
     except (KeyError, ValueError):
         raise ValueError(f"Unknown policy: {policy}") from None
+
+
+class _MissingNotGiven:
+    """Default of ``update_with_policy(missing=)``: ``None``, with a FutureWarning
+    for custom deciders (i2mint/xdol#47)."""
+
+    def __repr__(self):
+        return "None"
+
+
+_MISSING_NOT_GIVEN = _MissingNotGiven()
+_LEGACY_MISSING_WARNING = (
+    "A custom decider given to update_with_policy gets None as the info of an absent "
+    "key, which it cannot tell from a present key whose info is None. A future xdol "
+    "will give it MISSING instead. Pass missing=MISSING (recommended) or missing=None "
+    "to choose now and silence this warning (i2mint/xdol#47)."
+)
 
 
 def union_iter(*iterables: Iterable[T]) -> Generator[T, None, None]:
@@ -362,22 +395,6 @@ def _just_source_keys(source: Mapping, target: Mapping):
     return source.keys()
 
 
-def _present(key: K) -> bool:
-    """Presence-only key info: never reads a value.
-
-    ``update_with_policy`` only asks for the info of keys a mapping contains, so a
-    constant non-``None`` answer means "present" (even when the value is ``None``).
-    """
-    return True
-
-
-# The standard policies that look at presence only, never at the infos' content
-_PRESENCE_ONLY_POLICIES = (
-    DefaultPolicy.ALWAYS_UPDATE,
-    DefaultPolicy.PREFER_TARGET,
-)  # (PREFER_SOURCE is an alias of ALWAYS_UPDATE)
-
-
 Target = MutableMapping
 Source = Mapping
 KeysToConsider = Union[Iterable[K], Callable[[Source, Target], Iterable[K]]]
@@ -392,7 +409,7 @@ def update_with_policy(
     source_key_info: KeyInfoExtractor | None = None,
     keys_to_consider: KeysToConsider = _just_source_keys,
     verbose: bool | Callable[[K, KeyDecision], Any] = False,
-    missing: Any = None,
+    missing: Any = _MISSING_NOT_GIVEN,
 ) -> dict[str, int]:
     """
     Update a target mapping with values from a source mapping using a customizable policy.
@@ -408,10 +425,12 @@ def update_with_policy(
         verbose: If True, will print debug information, if callable, call with
             (key, decision) on each key that is looped over
         missing: What a *custom* decider gets as the info of a key absent from a
-            mapping. ``None`` (the default, for now) can't be told from a present key
-            whose info is ``None``; pass :data:`MISSING` to tell them apart (i2mint/xdol#21).
-            The standard policies always use ``MISSING`` and, when they look at
-            presence only, read no value or info to decide.
+            mapping. ``None`` (the default, for now, with a ``FutureWarning``) can't be
+            told from a present key whose info is ``None``; pass :data:`MISSING` to
+            tell them apart, as a future version will by default (i2mint/xdol#21,
+            #47). The standard policies always use ``MISSING`` and, when they look at
+            presence only, read no value or info to decide (any key infos given are
+            not called).
 
     Returns:
         Dictionary with statistics about the update operation
@@ -441,13 +460,15 @@ def update_with_policy(
 
     # Determine the decision function
     if isinstance(policy, (DefaultPolicy, str)):
-        decider = _get_standard_decider(policy)
+        decider, presence_only = _get_standard_policy(policy)
         missing = MISSING
-        if DefaultPolicy(policy) in _PRESENCE_ONLY_POLICIES:
-            target_key_info = target_key_info or _present
-            source_key_info = source_key_info or _present
+        if presence_only:
+            target_key_info = source_key_info = _present
     elif callable(policy):
         decider = policy
+        if missing is _MISSING_NOT_GIVEN:
+            warnings.warn(_LEGACY_MISSING_WARNING, FutureWarning, stacklevel=2)
+            missing = None
     else:
         raise ValueError(f"Unknown policy: {policy}")
 
@@ -831,6 +852,8 @@ def reconcile(
         that store (e.g. sizes or ETags, to avoid reading values); default: the values
         themselves, any pair that can't be compared counting as different (and, for a
         policy that looks at presence only, nothing is read to decide).
+    :param policy: a :class:`DefaultPolicy`, or a custom decider, which gets
+        :data:`MISSING` as the info of a key absent from a store.
     :param keys_to_consider: keys, or ``(master, copy) -> keys`` (default: master's).
 
     >>> master, copy = {'a': 1, 'b': 2, 'c': 3}, {'a': 9, 'c': 3}
@@ -847,7 +870,12 @@ def reconcile(
         )
     return _as_update_stats(
         update_with_policy(
-            copy, master, policy=policy, keys_to_consider=keys_to_consider, **infos
+            copy,
+            master,
+            policy=policy,
+            keys_to_consider=keys_to_consider,
+            missing=MISSING,
+            **infos,
         )
     )
 
