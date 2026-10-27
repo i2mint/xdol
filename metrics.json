@@ -1,5 +1,5 @@
 {
-  "collection_duration_seconds": 3.028153896331787,
+  "collection_duration_seconds": 3.6786298751831055,
   "commit_message": "updating: drop contains_for; cached_keys for one listing per store (#45)\n\nReview of #54: dol.trans.cached_keys(store, keys_cache=set) already lists a\nstore once and answers `in` from that listing, kept current on writes, so the\ncontains_for seam (a stale snapshot that listed twice) is removed.\n\n- update_with_policy still reuses the decision-time membership on COPY/DELETE;\n  a DELETE whose key vanished since the decision is skipped, as before.\n- verify's default keys (None) list each store once and answer membership\n  from those listings: no per-key lookup.\n- reconcile/backfill/update_with_policy docs point to cached_keys for S3.\n\nCo-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>",
   "commit_sha": "5b34e8d75f48a219260bd284db1a37c720576a4f",
   "metrics": {
@@ -11,19 +11,19 @@
       "statements_total": 0
     },
     "umpyre_stats": {
-      "comment_lines": 14830,
-      "comment_lines_ratio": 0.05544775087022684,
-      "docs_lines": 38762,
-      "empty_lines": 34596,
-      "empty_lines_ratio": 0.12935066683117785,
-      "files_analyzed": 597,
-      "function_lines": 119396,
-      "function_lines_ratio": 0.44640860842222546,
-      "mean_lines_per_function": 16.520824685208247,
-      "num_classes": 1700,
-      "num_functions": 7227,
+      "comment_lines": 14718,
+      "comment_lines_ratio": 0.05546113989637306,
+      "docs_lines": 38725,
+      "empty_lines": 34279,
+      "empty_lines_ratio": 0.12917192651907677,
+      "files_analyzed": 587,
+      "function_lines": 117881,
+      "function_lines_ratio": 0.4442053697597739,
+      "mean_lines_per_function": 16.521513665031534,
+      "num_classes": 1688,
+      "num_functions": 7135,
       "pypi_version": "0.1.36",
-      "total_lines": 267459
+      "total_lines": 265375
     },
     "wily": {
       "cyclomatic_avg": 0.0,
@@ -42,6 +42,6 @@
   },
   "python_version": "3.10",
   "schema_version": "1.0",
-  "timestamp": "2026-10-27T14:53:10.737244Z",
+  "timestamp": "2026-10-27T14:53:14.284564Z",
   "workflow_status": {}
 }
