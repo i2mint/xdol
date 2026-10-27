@@ -49,6 +49,9 @@ delete, see [`AccessLog.tombstones`](#xdol.access.AccessLog.tombstones)). Both a
 event and not counted as events; a tombstone only records the delete (it never removes
 the key: the snapshot is already post-delete). Older readers skip tombstone lines.
 
+A log built with `keep_tombstones_for=seconds` drops tombstones older than that at
+compaction (default: keep them forever).
+
 Compaction runs by default once the file holds more than `DFLT_COMPACT_ABOVE` events
 (earlier versions never compacted on their own): it folds away the per-event history
 (`tag`, `from`, each timestamp). Pass `compact_above=None` to keep the raw log.
@@ -85,11 +88,11 @@ True
 
 ### Classes
 
-| [`AccessLog`](#xdol.access.AccessLog)([path, clock, tag, compact_above])   | Append-only JSONL access log, readable as a `Mapping` of key -> AccessStats.   |
-|-------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------|
-| [`AccessStats`](#xdol.access.AccessStats)([size, reads, writes, ...])        | Access statistics of one key (immutable: update with `dataclasses.replace`).   |
+| [`AccessLog`](#xdol.access.AccessLog)([path, clock, tag, compact_above, ...])   | Append-only JSONL access log, readable as a `Mapping` of key -> AccessStats.   |
+|------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------|
+| [`AccessStats`](#xdol.access.AccessStats)([size, reads, writes, ...])             | Access statistics of one key (immutable: update with `dataclasses.replace`).   |
 
-### *class* xdol.access.AccessLog(path=None, \*, clock=<built-in function time>, tag=None, compact_above=100000)
+### *class* xdol.access.AccessLog(path=None, \*, clock=<built-in function time>, tag=None, compact_above=100000, keep_tombstones_for=None)
 
 Bases: [`Mapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping)
 
@@ -103,6 +106,19 @@ Append-only JSONL access log, readable as a `Mapping` of key -> AccessStats.
     than snapshots), [`compact()`](#xdol.access.AccessLog.compact) it: checked on open and as this log records
     (counting its own appends since then). `None`: never; the file then grows with
     every access.
+  * **keep_tombstones_for** ([`float`](https://docs.python.org/3/builtins/functions.html#float) | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – 
+
+    seconds a delete’s tombstone is kept: [`compact()`](#xdol.access.AccessLog.compact)
+    drops those older than `clock() - keep_tombstones_for`, from the file and
+    from this log’s memory. `None` (default): keep them forever, so a churning
+    store’s tombstones grow without bound. A tombstone stops two things from
+    resurrecting a deleted key: stats of another log merged by [`merge_stats()`](#xdol.access.merge_stats),
+    and a late event of this file (see the module docstring) stamped before the
+    delete. Keep them longer than any merged log can lag and any writer can be
+    late; `0` drops them all at every compaction. Pruning happens only when
+    [`compact()`](#xdol.access.AccessLog.compact) runs (automatically only for a file log with `compact_above`
+    > set). Retention is per file: whichever log compacts applies its own setting to
+    > every writer’s tombstones, so let all logs sharing a file use the same one.
 
 Opening replays the file in timestamp order (see the module docstring), so the
 stats equal what recording those events live would give. Replay streams in constant
@@ -129,8 +145,9 @@ Rewrite the file as its folded state: snapshot lines, then tombstone lines.
 
 Under the lock, so it re-folds the file from disk (keeping every writer’s
 events, not only this log’s) and replaces it atomically; writers holding the
-old file reopen the new one at their next append. This log’s in-memory view
-is left as it was.
+old file reopen the new one at their next append. This log’s in-memory stats
+are left as they were; its tombstones older than `keep_tombstones_for` are
+dropped, as from the file.
 
 * **Return type:**
   [`None`](https://docs.python.org/3/builtins/constants.html#None)

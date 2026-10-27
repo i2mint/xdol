@@ -1,4 +1,4 @@
-> built 2026-10-27 00:09 UTC from 9c56d9c (master) · xdol 0.1.33. Details: build_info.json
+> built 2026-10-27 00:14 UTC from 20a14f6 (master) · xdol 0.1.34. Details: build_info.json
 
 # index.html.md
 
@@ -85,6 +85,9 @@ delete, see [`AccessLog.tombstones`](_autosummary/xdol.access.html.md#xdol.acces
 event and not counted as events; a tombstone only records the delete (it never removes
 the key: the snapshot is already post-delete). Older readers skip tombstone lines.
 
+A log built with `keep_tombstones_for=seconds` drops tombstones older than that at
+compaction (default: keep them forever).
+
 Compaction runs by default once the file holds more than `DFLT_COMPACT_ABOVE` events
 (earlier versions never compacted on their own): it folds away the per-event history
 (`tag`, `from`, each timestamp). Pass `compact_above=None` to keep the raw log.
@@ -121,11 +124,11 @@ True
 
 ### Classes
 
-| [`AccessLog`](_autosummary/xdol.access.html.md#xdol.access.AccessLog)([path, clock, tag, compact_above])   | Append-only JSONL access log, readable as a `Mapping` of key -> AccessStats.   |
-|-------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------|
-| [`AccessStats`](_autosummary/xdol.access.html.md#xdol.access.AccessStats)([size, reads, writes, ...])        | Access statistics of one key (immutable: update with `dataclasses.replace`).   |
+| [`AccessLog`](_autosummary/xdol.access.html.md#xdol.access.AccessLog)([path, clock, tag, compact_above, ...])   | Append-only JSONL access log, readable as a `Mapping` of key -> AccessStats.   |
+|------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------|
+| [`AccessStats`](_autosummary/xdol.access.html.md#xdol.access.AccessStats)([size, reads, writes, ...])             | Access statistics of one key (immutable: update with `dataclasses.replace`).   |
 
-### *class* xdol.access.AccessLog(path=None, \*, clock=<built-in function time>, tag=None, compact_above=100000)
+### *class* xdol.access.AccessLog(path=None, \*, clock=<built-in function time>, tag=None, compact_above=100000, keep_tombstones_for=None)
 
 Bases: [`Mapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping)
 
@@ -139,6 +142,19 @@ Append-only JSONL access log, readable as a `Mapping` of key -> AccessStats.
     than snapshots), [`compact()`](_autosummary/xdol.access.html.md#xdol.access.AccessLog.compact) it: checked on open and as this log records
     (counting its own appends since then). `None`: never; the file then grows with
     every access.
+  * **keep_tombstones_for** ([`float`](https://docs.python.org/3/builtins/functions.html#float) | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – 
+
+    seconds a delete’s tombstone is kept: [`compact()`](_autosummary/xdol.access.html.md#xdol.access.AccessLog.compact)
+    drops those older than `clock() - keep_tombstones_for`, from the file and
+    from this log’s memory. `None` (default): keep them forever, so a churning
+    store’s tombstones grow without bound. A tombstone stops two things from
+    resurrecting a deleted key: stats of another log merged by [`merge_stats()`](_autosummary/xdol.access.html.md#xdol.access.merge_stats),
+    and a late event of this file (see the module docstring) stamped before the
+    delete. Keep them longer than any merged log can lag and any writer can be
+    late; `0` drops them all at every compaction. Pruning happens only when
+    [`compact()`](_autosummary/xdol.access.html.md#xdol.access.AccessLog.compact) runs (automatically only for a file log with `compact_above`
+    > set). Retention is per file: whichever log compacts applies its own setting to
+    > every writer’s tombstones, so let all logs sharing a file use the same one.
 
 Opening replays the file in timestamp order (see the module docstring), so the
 stats equal what recording those events live would give. Replay streams in constant
@@ -165,8 +181,9 @@ Rewrite the file as its folded state: snapshot lines, then tombstone lines.
 
 Under the lock, so it re-folds the file from disk (keeping every writer’s
 events, not only this log’s) and replaces it atomically; writers holding the
-old file reopen the new one at their next append. This log’s in-memory view
-is left as it was.
+old file reopen the new one at their next append. This log’s in-memory stats
+are left as they were; its tombstones older than `keep_tombstones_for` are
+dropped, as from the file.
 
 * **Return type:**
   [`None`](https://docs.python.org/3/builtins/constants.html#None)
@@ -2118,16 +2135,18 @@ A value that fails to decode raises [`CodecDecodeError`](_autosummary/xdol.x_cod
 
 # About this build
 
-This documentation was built on **2026-10-27 00:09 UTC** from commit <a href="https://github.com/i2mint/xdol/commit/9c56d9c2f8d5d9071a3c8649dbd45a8bcee1a215"><code>9c56d9c</code></a> on branch <code>master</code>, for **xdol 0.1.33** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-10-27 00:14 UTC** from commit <a href="https://github.com/i2mint/xdol/commit/20a14f62ae88a11fa5a3e876fb5e2d3d65a0645a"><code>20a14f6</code></a> on branch <code>master</code>, for **xdol 0.1.34** (from <code>pyproject.toml</code>).
 
-#### NOTE
-Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
+#### WARNING
+The documentation and the package may be misaligned:
+
+- The documented version (0.1.34) is behind the latest release on PyPI (0.1.35): `pip install xdol` gives newer code than these docs describe.
 
 ## Source
 
 |                     |                                                                                                                                                    |
 |---------------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/i2mint/xdol/commit/9c56d9c2f8d5d9071a3c8649dbd45a8bcee1a215"><code>9c56d9c2f8d5d9071a3c8649dbd45a8bcee1a215</code></a> |
+| Commit              | <a href="https://github.com/i2mint/xdol/commit/20a14f62ae88a11fa5a3e876fb5e2d3d65a0645a"><code>20a14f62ae88a11fa5a3e876fb5e2d3d65a0645a</code></a> |
 | Branch              | <code>master</code>                                                                                                                                |
 | Tags at this commit | none                                                                                                                                               |
 | Working tree        | clean                                                                                                                                              |
@@ -2138,9 +2157,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>i2mint/xdol</code>                                                                   |
-| Run          | <a href="https://github.com/i2mint/xdol/actions/runs/40424402305">40424402305</a>          |
+| Run          | <a href="https://github.com/i2mint/xdol/actions/runs/40424897485">40424897485</a>          |
 | Ref          | <code>refs/heads/master</code>                                                             |
-| Event commit | <code>9c56d9c2f8d5d9071a3c8649dbd45a8bcee1a215</code> (in the history of the built commit) |
+| Event commit | <code>20a14f62ae88a11fa5a3e876fb5e2d3d65a0645a</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -2165,13 +2184,13 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/xdol/0.1.33/">0.1.33</a>, the same as the documented version.
+Latest release: <a href="https://pypi.org/project/xdol/0.1.35/">0.1.35</a>, newer than the documented version (0.1.34).
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/i2mint/xdol && cd xdol
-git checkout 9c56d9c2f8d5d9071a3c8649dbd45a8bcee1a215
+git checkout 20a14f62ae88a11fa5a3e876fb5e2d3d65a0645a
 pip install "epythet==0.2.22"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```

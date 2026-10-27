@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../_static/documentation_options.js?v=449df4d2"></script>
+    <script src="../../_static/documentation_options.js?v=8f14641f"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -411,7 +411,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.33" />
+  <meta name="docsearch:version" content="0.1.34" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -745,6 +745,9 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">event and not counted as events; a tombstone only records the delete (it never removes</span>
 <span class="sd">the key: the snapshot is already post-delete). Older readers skip tombstone lines.</span>
 
+<span class="sd">A log built with ``keep_tombstones_for=seconds`` drops tombstones older than that at</span>
+<span class="sd">compaction (default: keep them forever).</span>
+
 <span class="sd">Compaction runs by default once the file holds more than ``DFLT_COMPACT_ABOVE`` events</span>
 <span class="sd">(earlier versions never compacted on their own): it folds away the per-event history</span>
 <span class="sd">(``tag``, ``from``, each timestamp). Pass ``compact_above=None`` to keep the raw log.</span>
@@ -1036,6 +1039,13 @@ window.runMermaid = runMermaid;</script>
     <span class="k">return</span> <span class="n">stats_by_key</span><span class="p">,</span> <span class="n">tombstones</span><span class="p">,</span> <span class="n">last_ts</span><span class="p">,</span> <span class="n">nevents</span>
 
 
+<span class="k">def</span><span class="w"> </span><span class="nf">_live_tombstones</span><span class="p">(</span><span class="n">tombstones</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">not_before</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""``tombstones`` stamped at or after ``not_before`` (``None``: all of them)."""</span>
+    <span class="k">if</span> <span class="n">not_before</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span><span class="n">tombstones</span><span class="p">)</span>
+    <span class="k">return</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">ts</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">ts</span> <span class="ow">in</span> <span class="n">tombstones</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">ts</span> <span class="o">&gt;=</span> <span class="n">not_before</span><span class="p">}</span>
+
+
 <span class="k">def</span><span class="w"> </span><span class="nf">_compacted_lines</span><span class="p">(</span><span class="n">stats_by_key</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">tombstones</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="nb">bytes</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">"""The lines of a compacted file: snapshots, then tombstones in timestamp order."""</span>
     <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">st</span> <span class="ow">in</span> <span class="n">stats_by_key</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
@@ -1210,6 +1220,17 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">        than snapshots), :meth:`compact` it: checked on open and as this log records</span>
 <span class="sd">        (counting its own appends since then). ``None``: never; the file then grows with</span>
 <span class="sd">        every access.</span>
+<span class="sd">    :param keep_tombstones_for: seconds a delete's tombstone is kept: :meth:`compact`</span>
+<span class="sd">        drops those older than ``clock() - keep_tombstones_for``, from the file and</span>
+<span class="sd">        from this log's memory. ``None`` (default): keep them forever, so a churning</span>
+<span class="sd">        store's tombstones grow without bound. A tombstone stops two things from</span>
+<span class="sd">        resurrecting a deleted key: stats of another log merged by :func:`merge_stats`,</span>
+<span class="sd">        and a late event of this file (see the module docstring) stamped before the</span>
+<span class="sd">        delete. Keep them longer than any merged log can lag and any writer can be</span>
+<span class="sd">        late; ``0`` drops them all at every compaction. Pruning happens only when</span>
+<span class="sd">        :meth:`compact` runs (automatically only for a file log with ``compact_above``</span>
+<span class="sd">        set). Retention is per file: whichever log compacts applies its own setting to</span>
+<span class="sd">        every writer's tombstones, so let all logs sharing a file use the same one.</span>
 
 <span class="sd">    Opening replays the file in timestamp order (see the module docstring), so the</span>
 <span class="sd">    stats equal what recording those events live would give. Replay streams in constant</span>
@@ -1235,7 +1256,15 @@ window.runMermaid = runMermaid;</script>
         <span class="n">clock</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[],</span> <span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">,</span>
         <span class="n">tag</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">compact_above</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">DFLT_COMPACT_ABOVE</span><span class="p">,</span>
+        <span class="n">keep_tombstones_for</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">):</span>
+        <span class="k">if</span> <span class="n">keep_tombstones_for</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="p">(</span>
+            <span class="n">_is_finite</span><span class="p">(</span><span class="n">keep_tombstones_for</span><span class="p">)</span> <span class="ow">and</span> <span class="n">keep_tombstones_for</span> <span class="o">&gt;=</span> <span class="mi">0</span>
+        <span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">"keep_tombstones_for must be None or a non-negative number of "</span>
+                <span class="sa">f</span><span class="s2">"seconds, not </span><span class="si">{</span><span class="n">keep_tombstones_for</span><span class="si">!r}</span><span class="s2">"</span>
+            <span class="p">)</span>
         <span class="k">if</span> <span class="n">compact_above</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="p">(</span>
             <span class="nb">isinstance</span><span class="p">(</span><span class="n">compact_above</span><span class="p">,</span> <span class="nb">bool</span><span class="p">)</span>
             <span class="ow">or</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">compact_above</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span>
@@ -1248,6 +1277,7 @@ window.runMermaid = runMermaid;</script>
         <span class="bp">self</span><span class="o">.</span><span class="n">clock</span> <span class="o">=</span> <span class="n">clock</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">tag</span> <span class="o">=</span> <span class="n">platform</span><span class="o">.</span><span class="n">node</span><span class="p">()</span> <span class="k">if</span> <span class="n">tag</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">tag</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">compact_above</span> <span class="o">=</span> <span class="n">compact_above</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">keep_tombstones_for</span> <span class="o">=</span> <span class="n">keep_tombstones_for</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_stats</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">AccessStats</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_tombstones</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_appender</span> <span class="o">=</span> <span class="kc">None</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">path</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">_LockedAppender</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">)</span>
@@ -1356,19 +1386,28 @@ window.runMermaid = runMermaid;</script>
 
 <span class="sd">        Under the lock, so it re-folds the file from disk (keeping every writer's</span>
 <span class="sd">        events, not only this log's) and replaces it atomically; writers holding the</span>
-<span class="sd">        old file reopen the new one at their next append. This log's in-memory view</span>
-<span class="sd">        is left as it was.</span>
+<span class="sd">        old file reopen the new one at their next append. This log's in-memory stats</span>
+<span class="sd">        are left as they were; its tombstones older than ``keep_tombstones_for`` are</span>
+<span class="sd">        dropped, as from the file.</span>
 <span class="sd">        """</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">path</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">return</span>
-        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_appender</span><span class="o">.</span><span class="n">locked</span><span class="p">()</span> <span class="k">as</span> <span class="n">held</span><span class="p">:</span>
-            <span class="k">if</span> <span class="ow">not</span> <span class="n">held</span><span class="p">:</span>  <span class="c1"># unlocked, another writer's events could be lost</span>
-                <span class="k">raise</span> <span class="ne">OSError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"cannot lock </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="si">}</span><span class="s2">.lock: not compacting"</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">):</span>
-                <span class="n">stats_by_key</span><span class="p">,</span> <span class="n">tombstones</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">_fold_path</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">)</span>
-                <span class="n">atomic_write</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">,</span> <span class="n">_compacted_lines</span><span class="p">(</span><span class="n">stats_by_key</span><span class="p">,</span> <span class="n">tombstones</span><span class="p">))</span>
+        <span class="n">horizon</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tombstone_horizon</span><span class="p">()</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">path</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_appender</span><span class="o">.</span><span class="n">locked</span><span class="p">()</span> <span class="k">as</span> <span class="n">held</span><span class="p">:</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">held</span><span class="p">:</span>  <span class="c1"># unlocked, another writer's events could be lost</span>
+                    <span class="k">raise</span> <span class="ne">OSError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"cannot lock </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="si">}</span><span class="s2">.lock: not compacting"</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">):</span>
+                    <span class="n">stats_by_key</span><span class="p">,</span> <span class="n">tombstones</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">_fold_path</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">)</span>
+                    <span class="n">tombstones</span> <span class="o">=</span> <span class="n">_live_tombstones</span><span class="p">(</span><span class="n">tombstones</span><span class="p">,</span> <span class="n">not_before</span><span class="o">=</span><span class="n">horizon</span><span class="p">)</span>
+                    <span class="n">atomic_write</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">,</span> <span class="n">_compacted_lines</span><span class="p">(</span><span class="n">stats_by_key</span><span class="p">,</span> <span class="n">tombstones</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_tombstones</span> <span class="o">=</span> <span class="n">_live_tombstones</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_tombstones</span><span class="p">,</span> <span class="n">not_before</span><span class="o">=</span><span class="n">horizon</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_nevents</span> <span class="o">=</span> <span class="mi">0</span></div>
 
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_tombstone_horizon</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Tombstones stamped before this are expendable (``None``: none are)."""</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">keep_tombstones_for</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">clock</span><span class="p">()</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">keep_tombstones_for</span>
 
 <div class="viewcode-block" id="AccessLog.close">
 <a class="viewcode-back" href="../../_autosummary/xdol.access.html#xdol.access.AccessLog.close">[docs]</a>
