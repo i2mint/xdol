@@ -1,7 +1,7 @@
 {
-  "collection_duration_seconds": 3.5718138217926025,
-  "commit_message": "updating: review fixes (PREFER_SOURCE string, lazy update_newer, MISSING pickle/bool, tests)\n\nCo-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>",
-  "commit_sha": "d3d763d79ef829e801c654e2f8df86f7377d68fe",
+  "collection_duration_seconds": 3.4949862957000732,
+  "commit_message": "Merge d3d763d79ef829e801c654e2f8df86f7377d68fe into fd60b6c894a15e4b483bc69073ecfd347be416ab",
+  "commit_sha": "6fef2a25b54ced41b7d3e83b1cb8d14126f2dca8",
   "metrics": {
     "coverage": {
       "branch_coverage": 0.0,
@@ -42,6 +42,6 @@
   },
   "python_version": "3.10",
   "schema_version": "1.0",
-  "timestamp": "2026-10-27T00:03:18.344708Z",
+  "timestamp": "2026-10-27T00:03:29.632536Z",
   "workflow_status": {}
 }
