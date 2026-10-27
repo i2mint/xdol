@@ -1,6 +1,6 @@
 metric,value
 schema_version,1.0
-timestamp,2026-10-27T14:45:06.971387Z
+timestamp,2026-10-27T14:45:11.788174Z
 commit_sha,19cdfa6c9d19ed17992526c4ad386fa753da1e10
 commit_message,"updating: FutureWarning for the legacy missing=None default; one standard-policy registry (#47) (#53)
 
@@ -21,23 +21,23 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
 
 Co-authored-by: Claude Opus 5.5 <noreply@anthropic.com>"
 python_version,3.10
-metrics.umpyre_stats.num_functions,7135
-metrics.umpyre_stats.num_classes,1688
-metrics.umpyre_stats.total_lines,265355
-metrics.umpyre_stats.empty_lines,34277
-metrics.umpyre_stats.comment_lines,14717
-metrics.umpyre_stats.docs_lines,38713
-metrics.umpyre_stats.function_lines,117861
-metrics.umpyre_stats.empty_lines_ratio,0.12917412522846752
-metrics.umpyre_stats.comment_lines_ratio,0.05546155150647246
-metrics.umpyre_stats.function_lines_ratio,0.4441634791128865
-metrics.umpyre_stats.mean_lines_per_function,16.518710581639805
-metrics.umpyre_stats.files_analyzed,587
+metrics.umpyre_stats.num_functions,7227
+metrics.umpyre_stats.num_classes,1700
+metrics.umpyre_stats.total_lines,267439
+metrics.umpyre_stats.empty_lines,34594
+metrics.umpyre_stats.comment_lines,14829
+metrics.umpyre_stats.docs_lines,38750
+metrics.umpyre_stats.function_lines,119376
+metrics.umpyre_stats.empty_lines_ratio,0.1293528617740868
+metrics.umpyre_stats.comment_lines_ratio,0.05544815827160586
+metrics.umpyre_stats.function_lines_ratio,0.44636720897101767
+metrics.umpyre_stats.mean_lines_per_function,16.51805728518057
+metrics.umpyre_stats.files_analyzed,597
 metrics.umpyre_stats.pypi_version,0.1.36
 metrics.workflow_status.last_run_status,success
-metrics.workflow_status.last_success_timestamp,2026-10-27T14:43:38Z
+metrics.workflow_status.last_success_timestamp,2026-10-27T14:45:05Z
 metrics.workflow_status.recent_failure_count,0
-metrics.workflow_status.run_url,https://github.com/i2mint/xdol/actions/runs/40523686337
+metrics.workflow_status.run_url,https://github.com/i2mint/xdol/actions/runs/40523999669
 metrics.workflow_status.total_runs_analyzed,10
 metrics.wily.cyclomatic_avg,0.0
 metrics.wily.maintainability_index,0.0
@@ -53,4 +53,4 @@ metrics.coverage.branch_coverage,0.0
 metrics.coverage.statements_covered,0
 metrics.coverage.statements_total,0
 metrics.coverage.error,No coverage file found
-collection_duration_seconds,3.370558977127075
+collection_duration_seconds,3.3451437950134277
