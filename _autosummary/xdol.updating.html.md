@@ -234,6 +234,8 @@ says otherwise.
     that store (e.g. sizes or ETags, to avoid reading values); default: the values
     themselves, any pair that can’t be compared counting as different (and, for a
     policy that looks at presence only, nothing is read to decide).
+  * **policy** ([`DefaultPolicy`](#xdol.updating.DefaultPolicy) | [`UpdateDecider`](#xdol.updating.UpdateDecider)) – a [`DefaultPolicy`](#xdol.updating.DefaultPolicy), or a custom decider, which gets
+    [`MISSING`](#xdol.updating.MISSING) as the info of a key absent from a store.
   * **keys_to_consider** ([`Union`](https://docs.python.org/3/library/typing.html#typing.Union)[[`Iterable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterable)[`K`], [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[[`Mapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping), [`MutableMapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping)], [`Iterable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterable)[`K`]]]) – keys, or `(master, copy) -> keys` (default: master’s).
 * **Return type:**
   [`UpdateStats`](#xdol.updating.UpdateStats)
@@ -374,7 +376,7 @@ Update target with source values only if source has a newer timestamp.
 * **Returns:**
   Dictionary with statistics about the update operation
 
-### xdol.updating.update_with_policy(target, source, \*, policy=DefaultPolicy.UPDATE_IF_DIFFERENT, target_key_info=None, source_key_info=None, keys_to_consider=<function \_just_source_keys>, verbose=False, missing=None)
+### xdol.updating.update_with_policy(target, source, \*, policy=DefaultPolicy.UPDATE_IF_DIFFERENT, target_key_info=None, source_key_info=None, keys_to_consider=<function \_just_source_keys>, verbose=False, missing=<None, with a FutureWarning>)
 
 Update a target mapping with values from a source mapping using a customizable policy.
 
@@ -389,10 +391,12 @@ Update a target mapping with values from a source mapping using a customizable p
   * **verbose** ([`bool`](https://docs.python.org/3/builtins/functions.html#bool) | [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[`K`, [`KeyDecision`](#xdol.updating.KeyDecision)], [`Any`](https://docs.python.org/3/library/typing.html#typing.Any)]) – If True, will print debug information, if callable, call with
     (key, decision) on each key that is looped over
   * **missing** ([`Any`](https://docs.python.org/3/library/typing.html#typing.Any)) – What a *custom* decider gets as the info of a key absent from a
-    mapping. `None` (the default, for now) can’t be told from a present key
-    whose info is `None`; pass [`MISSING`](#xdol.updating.MISSING) to tell them apart (i2mint/xdol#21).
-    The standard policies always use `MISSING` and, when they look at
-    presence only, read no value or info to decide.
+    mapping. `None` (the default, for now, with a `FutureWarning`) can’t be
+    told from a present key whose info is `None`; pass [`MISSING`](#xdol.updating.MISSING) to
+    tell them apart, as a future version will by default (i2mint/xdol#21,
+    #47). The standard policies always use `MISSING` and, when they look at
+    presence only, read no value or info to decide (any key infos given are
+    not called).
 * **Return type:**
   [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`int`](https://docs.python.org/3/builtins/functions.html#int)]
 * **Returns:**
