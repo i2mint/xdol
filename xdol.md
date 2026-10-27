@@ -1,4 +1,4 @@
-> built 2026-10-26 20:35 UTC from 5a99b90 (master) · xdol 0.1.31. Details: build_info.json
+> built 2026-10-27 00:05 UTC from 00d139d (master) · xdol 0.1.32. Details: build_info.json
 
 # index.html.md
 
@@ -1449,7 +1449,7 @@ Controlled updates of one mapping from another, with customizable policies.
 `update_with_policy` decides, key by key, whether to copy a source item into a
 target mapping. It goes beyond `dict.update()` with:
 
-- built-in policies (always update, update if different, prefer target, prefer source)
+- built-in policies (always update, update if different, prefer target, prefer source, an alias of always update)
 - custom decision functions and custom “key info” extractors (compare sizes,
   hashes or timestamps instead of reading values)
 - statistics about what was examined, updated, added, unchanged or deleted
@@ -1482,8 +1482,9 @@ Using convenience methods:
 
 ### Module Attributes
 
-| [`KeyInfoFor`](_autosummary/xdol.updating.html.md#xdol.updating.KeyInfoFor)   | the `key -> info` extractor for `store`.   |
-|---------------------------------------------------------------|--------------------------------------------|
+| [`KeyInfoFor`](_autosummary/xdol.updating.html.md#xdol.updating.KeyInfoFor)   | the `key -> info` extractor for `store`.                         |
+|---------------------------------------------------------------|------------------------------------------------------------------|
+| [`MISSING`](_autosummary/xdol.updating.html.md#xdol.updating.MISSING)      | Info given to a decider for a key that is absent from a mapping. |
 
 ### Functions
 
@@ -1542,6 +1543,11 @@ the `key -> info` extractor for `store`.
   `key_info_for(store)`
 
 alias of [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[[`Mapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping)], [`KeyInfoExtractor`](_autosummary/xdol.updating.html.md#xdol.updating.KeyInfoExtractor)]
+
+### xdol.updating.MISSING *= MISSING*
+
+Info given to a decider for a key that is absent from a mapping. Unlike `None`,
+it cannot be mistaken for a key whose value or info is `None`.
 
 ### *class* xdol.updating.NotRetrieved
 
@@ -1672,8 +1678,6 @@ says otherwise.
     that store (e.g. sizes or ETags, to avoid reading values); default: the values
     themselves, any pair that can’t be compared counting as different (and, for a
     policy that looks at presence only, nothing is read to decide).
-    An info of `None` reads as “missing” (see i2mint/xdol#21), so an extractor
-    must not return `None` for a present key.
   * **keys_to_consider** ([`Union`](https://docs.python.org/3/library/typing.html#typing.Union)[[`Iterable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterable)[`K`], [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[[`Mapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping), [`MutableMapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping)], [`Iterable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterable)[`K`]]]) – keys, or `(master, copy) -> keys` (default: master’s).
 * **Return type:**
   [`UpdateStats`](_autosummary/xdol.updating.html.md#xdol.updating.UpdateStats)
@@ -1726,6 +1730,8 @@ Update target with all source values, equivalent to dict.update().
 ### xdol.updating.update_by_content_hash(target, source, \*, hash_function, keys_to_consider=<function \_just_source_keys>, verbose=False)
 
 Update target with source values only if their hash differs.
+
+`hash_function` is called on every present value, `None` included.
 
 * **Parameters:**
   * **target** ([`MutableMapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping)[`K`, `V`]) – The mapping to be updated (modified in-place)
@@ -1812,20 +1818,25 @@ Update target with source values only if source has a newer timestamp.
 * **Returns:**
   Dictionary with statistics about the update operation
 
-### xdol.updating.update_with_policy(target, source, \*, policy=DefaultPolicy.UPDATE_IF_DIFFERENT, target_key_info=None, source_key_info=None, keys_to_consider=<function \_just_source_keys>, verbose=False)
+### xdol.updating.update_with_policy(target, source, \*, policy=DefaultPolicy.UPDATE_IF_DIFFERENT, target_key_info=None, source_key_info=None, keys_to_consider=<function \_just_source_keys>, verbose=False, missing=None)
 
 Update a target mapping with values from a source mapping using a customizable policy.
 
 * **Parameters:**
   * **target** ([`MutableMapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping)[`K`, `V`]) – The mapping to be updated (modified in-place)
   * **source** ([`Mapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping)[`K`, `V`]) – The mapping containing items to potentially copy to target
-  * **policy** ([`DefaultPolicy`](_autosummary/xdol.updating.html.md#xdol.updating.DefaultPolicy) | [`UpdateDecider`](_autosummary/xdol.updating.html.md#xdol.updating.UpdateDecider)) – Either a DefaultPolicy enum value or a custom decision function
+  * **policy** ([`DefaultPolicy`](_autosummary/xdol.updating.html.md#xdol.updating.DefaultPolicy) | [`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`UpdateDecider`](_autosummary/xdol.updating.html.md#xdol.updating.UpdateDecider)) – Either a DefaultPolicy enum value or a custom decision function
   * **target_key_info** ([`KeyInfoExtractor`](_autosummary/xdol.updating.html.md#xdol.updating.KeyInfoExtractor) | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – Function to extract comparison info from target keys
   * **source_key_info** ([`KeyInfoExtractor`](_autosummary/xdol.updating.html.md#xdol.updating.KeyInfoExtractor) | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – Function to extract comparison info from source keys
   * **keys_to_consider** ([`Union`](https://docs.python.org/3/library/typing.html#typing.Union)[[`Iterable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterable)[`K`], [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[[`Mapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping), [`MutableMapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping)], [`Iterable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterable)[`K`]]]) – Specific iterable of keys to consider or a callable to make
     this from source and target. The default will consider source keys only.
   * **verbose** ([`bool`](https://docs.python.org/3/builtins/functions.html#bool) | [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[`K`, [`KeyDecision`](_autosummary/xdol.updating.html.md#xdol.updating.KeyDecision)], [`Any`](https://docs.python.org/3/library/typing.html#typing.Any)]) – If True, will print debug information, if callable, call with
     (key, decision) on each key that is looped over
+  * **missing** ([`Any`](https://docs.python.org/3/library/typing.html#typing.Any)) – What a *custom* decider gets as the info of a key absent from a
+    mapping. `None` (the default, for now) can’t be told from a present key
+    whose info is `None`; pass [`MISSING`](_autosummary/xdol.updating.html.md#xdol.updating.MISSING) to tell them apart (i2mint/xdol#21).
+    The standard policies always use `MISSING` and, when they look at
+    presence only, read no value or info to decide.
 * **Return type:**
   [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`int`](https://docs.python.org/3/builtins/functions.html#int)]
 * **Returns:**
@@ -2096,18 +2107,16 @@ A value that fails to decode raises [`CodecDecodeError`](_autosummary/xdol.x_cod
 
 # About this build
 
-This documentation was built on **2026-10-26 20:35 UTC** from commit <a href="https://github.com/i2mint/xdol/commit/5a99b90f766183e6fae67d9e67a8a71965d8f66a"><code>5a99b90</code></a> on branch <code>master</code>, for **xdol 0.1.31** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-10-27 00:05 UTC** from commit <a href="https://github.com/i2mint/xdol/commit/00d139d131590352848405b3a746258efd0222e4"><code>00d139d</code></a> on branch <code>master</code>, for **xdol 0.1.32** (from <code>pyproject.toml</code>).
 
-#### WARNING
-The documentation and the package may be misaligned:
-
-- The documented version (0.1.31) is behind the latest release on PyPI (0.1.32): `pip install xdol` gives newer code than these docs describe.
+#### NOTE
+Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
 
 ## Source
 
 |                     |                                                                                                                                                    |
 |---------------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/i2mint/xdol/commit/5a99b90f766183e6fae67d9e67a8a71965d8f66a"><code>5a99b90f766183e6fae67d9e67a8a71965d8f66a</code></a> |
+| Commit              | <a href="https://github.com/i2mint/xdol/commit/00d139d131590352848405b3a746258efd0222e4"><code>00d139d131590352848405b3a746258efd0222e4</code></a> |
 | Branch              | <code>master</code>                                                                                                                                |
 | Tags at this commit | none                                                                                                                                               |
 | Working tree        | clean                                                                                                                                              |
@@ -2118,9 +2127,9 @@ The documentation and the package may be misaligned:
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>i2mint/xdol</code>                                                                   |
-| Run          | <a href="https://github.com/i2mint/xdol/actions/runs/40396731528">40396731528</a>          |
+| Run          | <a href="https://github.com/i2mint/xdol/actions/runs/40423950176">40423950176</a>          |
 | Ref          | <code>refs/heads/master</code>                                                             |
-| Event commit | <code>5a99b90f766183e6fae67d9e67a8a71965d8f66a</code> (in the history of the built commit) |
+| Event commit | <code>00d139d131590352848405b3a746258efd0222e4</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -2145,13 +2154,13 @@ The documentation and the package may be misaligned:
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/xdol/0.1.32/">0.1.32</a>, newer than the documented version (0.1.31).
+Latest release: <a href="https://pypi.org/project/xdol/0.1.32/">0.1.32</a>, the same as the documented version.
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/i2mint/xdol && cd xdol
-git checkout 5a99b90f766183e6fae67d9e67a8a71965d8f66a
+git checkout 00d139d131590352848405b3a746258efd0222e4
 pip install "epythet==0.2.22"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```

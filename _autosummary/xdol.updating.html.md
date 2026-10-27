@@ -5,7 +5,7 @@ Controlled updates of one mapping from another, with customizable policies.
 `update_with_policy` decides, key by key, whether to copy a source item into a
 target mapping. It goes beyond `dict.update()` with:
 
-- built-in policies (always update, update if different, prefer target, prefer source)
+- built-in policies (always update, update if different, prefer target, prefer source, an alias of always update)
 - custom decision functions and custom “key info” extractors (compare sizes,
   hashes or timestamps instead of reading values)
 - statistics about what was examined, updated, added, unchanged or deleted
@@ -38,8 +38,9 @@ Using convenience methods:
 
 ### Module Attributes
 
-| [`KeyInfoFor`](#xdol.updating.KeyInfoFor)   | the `key -> info` extractor for `store`.   |
-|---------------------------------------------------------------|--------------------------------------------|
+| [`KeyInfoFor`](#xdol.updating.KeyInfoFor)   | the `key -> info` extractor for `store`.                         |
+|---------------------------------------------------------------|------------------------------------------------------------------|
+| [`MISSING`](#xdol.updating.MISSING)      | Info given to a decider for a key that is absent from a mapping. |
 
 ### Functions
 
@@ -98,6 +99,11 @@ the `key -> info` extractor for `store`.
   `key_info_for(store)`
 
 alias of [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[[`Mapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping)], [`KeyInfoExtractor`](#xdol.updating.KeyInfoExtractor)]
+
+### xdol.updating.MISSING *= MISSING*
+
+Info given to a decider for a key that is absent from a mapping. Unlike `None`,
+it cannot be mistaken for a key whose value or info is `None`.
 
 ### *class* xdol.updating.NotRetrieved
 
@@ -228,8 +234,6 @@ says otherwise.
     that store (e.g. sizes or ETags, to avoid reading values); default: the values
     themselves, any pair that can’t be compared counting as different (and, for a
     policy that looks at presence only, nothing is read to decide).
-    An info of `None` reads as “missing” (see i2mint/xdol#21), so an extractor
-    must not return `None` for a present key.
   * **keys_to_consider** ([`Union`](https://docs.python.org/3/library/typing.html#typing.Union)[[`Iterable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterable)[`K`], [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[[`Mapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping), [`MutableMapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping)], [`Iterable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterable)[`K`]]]) – keys, or `(master, copy) -> keys` (default: master’s).
 * **Return type:**
   [`UpdateStats`](#xdol.updating.UpdateStats)
@@ -282,6 +286,8 @@ Update target with all source values, equivalent to dict.update().
 ### xdol.updating.update_by_content_hash(target, source, \*, hash_function, keys_to_consider=<function \_just_source_keys>, verbose=False)
 
 Update target with source values only if their hash differs.
+
+`hash_function` is called on every present value, `None` included.
 
 * **Parameters:**
   * **target** ([`MutableMapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping)[`K`, `V`]) – The mapping to be updated (modified in-place)
@@ -368,20 +374,25 @@ Update target with source values only if source has a newer timestamp.
 * **Returns:**
   Dictionary with statistics about the update operation
 
-### xdol.updating.update_with_policy(target, source, \*, policy=DefaultPolicy.UPDATE_IF_DIFFERENT, target_key_info=None, source_key_info=None, keys_to_consider=<function \_just_source_keys>, verbose=False)
+### xdol.updating.update_with_policy(target, source, \*, policy=DefaultPolicy.UPDATE_IF_DIFFERENT, target_key_info=None, source_key_info=None, keys_to_consider=<function \_just_source_keys>, verbose=False, missing=None)
 
 Update a target mapping with values from a source mapping using a customizable policy.
 
 * **Parameters:**
   * **target** ([`MutableMapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping)[`K`, `V`]) – The mapping to be updated (modified in-place)
   * **source** ([`Mapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping)[`K`, `V`]) – The mapping containing items to potentially copy to target
-  * **policy** ([`DefaultPolicy`](#xdol.updating.DefaultPolicy) | [`UpdateDecider`](#xdol.updating.UpdateDecider)) – Either a DefaultPolicy enum value or a custom decision function
+  * **policy** ([`DefaultPolicy`](#xdol.updating.DefaultPolicy) | [`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`UpdateDecider`](#xdol.updating.UpdateDecider)) – Either a DefaultPolicy enum value or a custom decision function
   * **target_key_info** ([`KeyInfoExtractor`](#xdol.updating.KeyInfoExtractor) | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – Function to extract comparison info from target keys
   * **source_key_info** ([`KeyInfoExtractor`](#xdol.updating.KeyInfoExtractor) | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – Function to extract comparison info from source keys
   * **keys_to_consider** ([`Union`](https://docs.python.org/3/library/typing.html#typing.Union)[[`Iterable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterable)[`K`], [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[[`Mapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping), [`MutableMapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping)], [`Iterable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterable)[`K`]]]) – Specific iterable of keys to consider or a callable to make
     this from source and target. The default will consider source keys only.
   * **verbose** ([`bool`](https://docs.python.org/3/builtins/functions.html#bool) | [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[`K`, [`KeyDecision`](#xdol.updating.KeyDecision)], [`Any`](https://docs.python.org/3/library/typing.html#typing.Any)]) – If True, will print debug information, if callable, call with
     (key, decision) on each key that is looped over
+  * **missing** ([`Any`](https://docs.python.org/3/library/typing.html#typing.Any)) – What a *custom* decider gets as the info of a key absent from a
+    mapping. `None` (the default, for now) can’t be told from a present key
+    whose info is `None`; pass [`MISSING`](#xdol.updating.MISSING) to tell them apart (i2mint/xdol#21).
+    The standard policies always use `MISSING` and, when they look at
+    presence only, read no value or info to decide.
 * **Return type:**
   [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`int`](https://docs.python.org/3/builtins/functions.html#int)]
 * **Returns:**

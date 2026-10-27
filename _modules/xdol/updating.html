@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../_static/documentation_options.js?v=d71dfaa1"></script>
+    <script src="../../_static/documentation_options.js?v=e0e570cb"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -411,7 +411,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.31" />
+  <meta name="docsearch:version" content="0.1.32" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -703,7 +703,7 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">``update_with_policy`` decides, key by key, whether to copy a source item into a</span>
 <span class="sd">target mapping. It goes beyond ``dict.update()`` with:</span>
 
-<span class="sd">- built-in policies (always update, update if different, prefer target, prefer source)</span>
+<span class="sd">- built-in policies (always update, update if different, prefer target, prefer source, an alias of always update)</span>
 <span class="sd">- custom decision functions and custom "key info" extractors (compare sizes,</span>
 <span class="sd">  hashes or timestamps instead of reading values)</span>
 <span class="sd">- statistics about what was examined, updated, added, unchanged or deleted</span>
@@ -815,7 +815,14 @@ window.runMermaid = runMermaid;</script>
     <span class="n">ALWAYS_UPDATE</span> <span class="o">=</span> <span class="s2">"ALWAYS_UPDATE"</span>  <span class="c1"># Always update target with source values</span>
     <span class="n">UPDATE_IF_DIFFERENT</span> <span class="o">=</span> <span class="s2">"UPDATE_IF_DIFFERENT"</span>  <span class="c1"># Update only if values differ</span>
     <span class="n">PREFER_TARGET</span> <span class="o">=</span> <span class="s2">"PREFER_TARGET"</span>  <span class="c1"># Keep target values if they exist</span>
-    <span class="n">PREFER_SOURCE</span> <span class="o">=</span> <span class="s2">"PREFER_SOURCE"</span>  <span class="c1"># Always use source values when available</span></div>
+    <span class="n">PREFER_SOURCE</span> <span class="o">=</span> <span class="s2">"ALWAYS_UPDATE"</span>  <span class="c1"># Alias of ALWAYS_UPDATE (one decider, not two)</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_missing_</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="c1"># The string "PREFER_SOURCE" (saved configs, callers) still resolves</span>
+        <span class="k">if</span> <span class="n">value</span> <span class="o">==</span> <span class="s2">"PREFER_SOURCE"</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">ALWAYS_UPDATE</span>
+        <span class="k">return</span> <span class="kc">None</span></div>
 
 
 
@@ -861,8 +868,10 @@ window.runMermaid = runMermaid;</script>
 
 <span class="sd">        Args:</span>
 <span class="sd">            key: The key being considered</span>
-<span class="sd">            target_info: Comparison info for target, None if key not in target</span>
-<span class="sd">            source_info: Comparison info for source, None if key not in source</span>
+<span class="sd">            target_info: Comparison info for target, ``missing`` if key not in target</span>
+<span class="sd">            source_info: Comparison info for source, ``missing`` if key not in source</span>
+<span class="sd">            (``missing`` is ``None`` unless ``update_with_policy(missing=MISSING)``;</span>
+<span class="sd">            see i2mint/xdol#21)</span>
 
 <span class="sd">        Returns:</span>
 <span class="sd">            KeyDecision indicating what to do with this key</span>
@@ -912,6 +921,21 @@ window.runMermaid = runMermaid;</script>
 <span class="n">VALUE_NOT_RETRIEVED</span> <span class="o">=</span> <span class="n">NotRetrieved</span><span class="p">()</span>
 
 
+<span class="k">class</span><span class="w"> </span><span class="nc">_Missing</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Type of :data:`MISSING`."""</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">"MISSING"</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">__reduce__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>  <span class="c1"># stays the one MISSING through pickle and deepcopy</span>
+        <span class="k">return</span> <span class="s2">"MISSING"</span>
+
+
+<span class="n">MISSING</span> <span class="o">=</span> <span class="n">_Missing</span><span class="p">()</span>
+<span class="sd">"""Info given to a decider for a key that is absent from a mapping. Unlike ``None``,</span>
+<span class="sd">it cannot be mistaken for a key whose value or info is ``None``."""</span>
+
+
 <span class="k">def</span><span class="w"> </span><span class="nf">_key_info_from_mapping</span><span class="p">(</span><span class="n">mapping</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="n">K</span><span class="p">,</span> <span class="n">V</span><span class="p">],</span> <span class="n">key</span><span class="p">:</span> <span class="n">K</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Default key info extractor: the value, read as ``mapping[key]`` (the read a copy</span>
 <span class="sd">    would make, so the compared value is also the one written)."""</span>
@@ -919,42 +943,45 @@ window.runMermaid = runMermaid;</script>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_get_key_decisions</span><span class="p">(</span>
-    <span class="n">keys</span><span class="p">:</span> <span class="nb">set</span><span class="p">[</span><span class="n">K</span><span class="p">],</span>
+    <span class="n">keys</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">K</span><span class="p">],</span>
     <span class="n">target</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">,</span>
     <span class="n">source</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">,</span>
     <span class="n">decider</span><span class="p">:</span> <span class="n">UpdateDecider</span><span class="p">,</span>
     <span class="n">target_key_info</span><span class="p">:</span> <span class="n">KeyInfoExtractor</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">source_key_info</span><span class="p">:</span> <span class="n">KeyInfoExtractor</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">missing</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">K</span><span class="p">,</span> <span class="n">KeyDecision</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
 <span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Get decisions for each key regarding update action.</span>
 
+<span class="sd">    Key info is fetched only for a key that is in that mapping; ``missing`` stands in</span>
+<span class="sd">    for the info of one that isn't.</span>
+
 <span class="sd">    Args:</span>
-<span class="sd">        keys: Set of keys to consider</span>
+<span class="sd">        keys: Keys to consider</span>
 <span class="sd">        target: Target mapping</span>
 <span class="sd">        source: Source mapping</span>
 <span class="sd">        decider: Function to decide what to do with each key</span>
 <span class="sd">        target_key_info: Function to extract comparison info from target (optional)</span>
 <span class="sd">        source_key_info: Function to extract comparison info from source (optional)</span>
+<span class="sd">        missing: What the decider gets as the info of an absent key</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        Iterator of (key, decision, source_info) triples</span>
+<span class="sd">        Iterator of (key, decision, source_info) triples; ``source_info`` is</span>
+<span class="sd">        :data:`MISSING` when the key is not in source.</span>
 <span class="sd">    """</span>
     <span class="c1"># Use default extractors if none provided</span>
-    <span class="n">target_info_func</span> <span class="o">=</span> <span class="n">target_key_info</span> <span class="ow">or</span> <span class="p">(</span><span class="k">lambda</span> <span class="n">k</span><span class="p">:</span> <span class="n">_key_info_from_mapping</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="n">k</span><span class="p">))</span>
-    <span class="n">source_info_func</span> <span class="o">=</span> <span class="n">source_key_info</span> <span class="ow">or</span> <span class="p">(</span><span class="k">lambda</span> <span class="n">k</span><span class="p">:</span> <span class="n">_key_info_from_mapping</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="n">k</span><span class="p">))</span>
+    <span class="n">target_info_func</span> <span class="o">=</span> <span class="n">target_key_info</span> <span class="ow">or</span> <span class="n">partial</span><span class="p">(</span><span class="n">_key_info_from_mapping</span><span class="p">,</span> <span class="n">target</span><span class="p">)</span>
+    <span class="n">source_info_func</span> <span class="o">=</span> <span class="n">source_key_info</span> <span class="ow">or</span> <span class="n">partial</span><span class="p">(</span><span class="n">_key_info_from_mapping</span><span class="p">,</span> <span class="n">source</span><span class="p">)</span>
 
     <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">keys</span><span class="p">:</span>
-        <span class="n">target_in</span> <span class="o">=</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">target</span>
+        <span class="n">target_info</span> <span class="o">=</span> <span class="n">target_info_func</span><span class="p">(</span><span class="n">key</span><span class="p">)</span> <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">target</span> <span class="k">else</span> <span class="n">missing</span>
         <span class="n">source_in</span> <span class="o">=</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">source</span>
+        <span class="n">source_info</span> <span class="o">=</span> <span class="n">source_info_func</span><span class="p">(</span><span class="n">key</span><span class="p">)</span> <span class="k">if</span> <span class="n">source_in</span> <span class="k">else</span> <span class="n">missing</span>
 
-        <span class="c1"># Get info or None if key doesn't exist</span>
-        <span class="n">target_info</span> <span class="o">=</span> <span class="kc">None</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">target_in</span> <span class="k">else</span> <span class="n">target_info_func</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
-        <span class="n">source_info</span> <span class="o">=</span> <span class="kc">None</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">source_in</span> <span class="k">else</span> <span class="n">source_info_func</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
-
-        <span class="c1"># Get decision</span>
         <span class="n">decision</span> <span class="o">=</span> <span class="n">decider</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">target_info</span><span class="p">,</span> <span class="n">source_info</span><span class="p">)</span>
-        <span class="k">yield</span> <span class="n">key</span><span class="p">,</span> <span class="n">decision</span><span class="p">,</span> <span class="n">source_info</span>
+        <span class="k">yield</span> <span class="n">key</span><span class="p">,</span> <span class="n">decision</span><span class="p">,</span> <span class="p">(</span><span class="n">source_info</span> <span class="k">if</span> <span class="n">source_in</span> <span class="k">else</span> <span class="n">MISSING</span><span class="p">)</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_differ</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
@@ -972,21 +999,17 @@ window.runMermaid = runMermaid;</script>
         <span class="k">return</span> <span class="kc">True</span>
 
 
-<span class="c1"># Update the standard decider functions</span>
+<span class="c1"># The standard deciders always get MISSING for an absent key (update_with_policy</span>
+<span class="c1"># passes missing=MISSING to them), so a None value or info is just a value.</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">_update_if_different_decider</span><span class="p">(</span>
     <span class="n">key</span><span class="p">:</span> <span class="n">K</span><span class="p">,</span>
     <span class="n">target_info</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
     <span class="n">source_info</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">KeyDecision</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Default decision function that updates if values differ."""</span>
-    <span class="c1"># Handle case where key is missing from one mapping</span>
-    <span class="k">if</span> <span class="n">target_info</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">source_info</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">KeyDecision</span><span class="o">.</span><span class="n">COPY</span>
-    <span class="k">if</span> <span class="n">target_info</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">source_info</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">source_info</span> <span class="ow">is</span> <span class="n">MISSING</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">KeyDecision</span><span class="o">.</span><span class="n">SKIP</span>
-
-    <span class="c1"># Compare and decide</span>
-    <span class="k">if</span> <span class="n">_differ</span><span class="p">(</span><span class="n">target_info</span><span class="p">,</span> <span class="n">source_info</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">target_info</span> <span class="ow">is</span> <span class="n">MISSING</span> <span class="ow">or</span> <span class="n">_differ</span><span class="p">(</span><span class="n">target_info</span><span class="p">,</span> <span class="n">source_info</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">KeyDecision</span><span class="o">.</span><span class="n">COPY</span>
     <span class="k">return</span> <span class="n">KeyDecision</span><span class="o">.</span><span class="n">SKIP</span>
 
@@ -996,10 +1019,8 @@ window.runMermaid = runMermaid;</script>
     <span class="n">target_info</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
     <span class="n">source_info</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">KeyDecision</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""Decision function that always updates from source."""</span>
-    <span class="k">if</span> <span class="n">source_info</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">KeyDecision</span><span class="o">.</span><span class="n">SKIP</span>
-    <span class="k">return</span> <span class="n">KeyDecision</span><span class="o">.</span><span class="n">COPY</span>
+<span class="w">    </span><span class="sd">"""Decision function that always updates from source (``PREFER_SOURCE`` too)."""</span>
+    <span class="k">return</span> <span class="n">KeyDecision</span><span class="o">.</span><span class="n">SKIP</span> <span class="k">if</span> <span class="n">source_info</span> <span class="ow">is</span> <span class="n">MISSING</span> <span class="k">else</span> <span class="n">KeyDecision</span><span class="o">.</span><span class="n">COPY</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_prefer_target_decider</span><span class="p">(</span>
@@ -1008,34 +1029,24 @@ window.runMermaid = runMermaid;</script>
     <span class="n">source_info</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">KeyDecision</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Decision function that keeps target values if they exist."""</span>
-    <span class="k">if</span> <span class="n">target_info</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">source_info</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">target_info</span> <span class="ow">is</span> <span class="n">MISSING</span> <span class="ow">and</span> <span class="n">source_info</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">MISSING</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">KeyDecision</span><span class="o">.</span><span class="n">COPY</span>
     <span class="k">return</span> <span class="n">KeyDecision</span><span class="o">.</span><span class="n">SKIP</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">_prefer_source_decider</span><span class="p">(</span>
-    <span class="n">key</span><span class="p">:</span> <span class="n">K</span><span class="p">,</span>
-    <span class="n">target_info</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
-    <span class="n">source_info</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">KeyDecision</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""Decision function that always uses source values when available."""</span>
-    <span class="k">if</span> <span class="n">source_info</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">KeyDecision</span><span class="o">.</span><span class="n">SKIP</span>
-    <span class="k">return</span> <span class="n">KeyDecision</span><span class="o">.</span><span class="n">COPY</span>
+<span class="n">_STANDARD_DECIDERS</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="n">DefaultPolicy</span><span class="o">.</span><span class="n">ALWAYS_UPDATE</span><span class="p">:</span> <span class="n">_always_update_decider</span><span class="p">,</span>
+    <span class="n">DefaultPolicy</span><span class="o">.</span><span class="n">UPDATE_IF_DIFFERENT</span><span class="p">:</span> <span class="n">_update_if_different_decider</span><span class="p">,</span>
+    <span class="n">DefaultPolicy</span><span class="o">.</span><span class="n">PREFER_TARGET</span><span class="p">:</span> <span class="n">_prefer_target_decider</span><span class="p">,</span>
+<span class="p">}</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_get_standard_decider</span><span class="p">(</span><span class="n">policy</span><span class="p">:</span> <span class="n">DefaultPolicy</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">UpdateDecider</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Get a standard decision function for a given policy."""</span>
-    <span class="k">if</span> <span class="n">policy</span> <span class="o">==</span> <span class="n">DefaultPolicy</span><span class="o">.</span><span class="n">ALWAYS_UPDATE</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">_always_update_decider</span>
-    <span class="k">elif</span> <span class="n">policy</span> <span class="o">==</span> <span class="n">DefaultPolicy</span><span class="o">.</span><span class="n">UPDATE_IF_DIFFERENT</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">_update_if_different_decider</span>
-    <span class="k">elif</span> <span class="n">policy</span> <span class="o">==</span> <span class="n">DefaultPolicy</span><span class="o">.</span><span class="n">PREFER_TARGET</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">_prefer_target_decider</span>
-    <span class="k">elif</span> <span class="n">policy</span> <span class="o">==</span> <span class="n">DefaultPolicy</span><span class="o">.</span><span class="n">PREFER_SOURCE</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">_prefer_source_decider</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Unknown policy: </span><span class="si">{</span><span class="n">policy</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">_STANDARD_DECIDERS</span><span class="p">[</span><span class="n">DefaultPolicy</span><span class="p">(</span><span class="n">policy</span><span class="p">)]</span>
+    <span class="k">except</span> <span class="p">(</span><span class="ne">KeyError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Unknown policy: </span><span class="si">{</span><span class="n">policy</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="kc">None</span>
 
 
 <div class="viewcode-block" id="union_iter">
@@ -1084,6 +1095,22 @@ window.runMermaid = runMermaid;</script>
     <span class="k">return</span> <span class="n">source</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
 
 
+<span class="k">def</span><span class="w"> </span><span class="nf">_present</span><span class="p">(</span><span class="n">key</span><span class="p">:</span> <span class="n">K</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Presence-only key info: never reads a value.</span>
+
+<span class="sd">    ``update_with_policy`` only asks for the info of keys a mapping contains, so a</span>
+<span class="sd">    constant non-``None`` answer means "present" (even when the value is ``None``).</span>
+<span class="sd">    """</span>
+    <span class="k">return</span> <span class="kc">True</span>
+
+
+<span class="c1"># The standard policies that look at presence only, never at the infos' content</span>
+<span class="n">_PRESENCE_ONLY_POLICIES</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="n">DefaultPolicy</span><span class="o">.</span><span class="n">ALWAYS_UPDATE</span><span class="p">,</span>
+    <span class="n">DefaultPolicy</span><span class="o">.</span><span class="n">PREFER_TARGET</span><span class="p">,</span>
+<span class="p">)</span>  <span class="c1"># (PREFER_SOURCE is an alias of ALWAYS_UPDATE)</span>
+
+
 <span class="n">Target</span> <span class="o">=</span> <span class="n">MutableMapping</span>
 <span class="n">Source</span> <span class="o">=</span> <span class="n">Mapping</span>
 <span class="n">KeysToConsider</span> <span class="o">=</span> <span class="n">Union</span><span class="p">[</span><span class="n">Iterable</span><span class="p">[</span><span class="n">K</span><span class="p">],</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Source</span><span class="p">,</span> <span class="n">Target</span><span class="p">],</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">K</span><span class="p">]]]</span>
@@ -1095,11 +1122,12 @@ window.runMermaid = runMermaid;</script>
     <span class="n">target</span><span class="p">:</span> <span class="n">MutableMapping</span><span class="p">[</span><span class="n">K</span><span class="p">,</span> <span class="n">V</span><span class="p">],</span>
     <span class="n">source</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="n">K</span><span class="p">,</span> <span class="n">V</span><span class="p">],</span>
     <span class="o">*</span><span class="p">,</span>
-    <span class="n">policy</span><span class="p">:</span> <span class="n">DefaultPolicy</span> <span class="o">|</span> <span class="n">UpdateDecider</span> <span class="o">=</span> <span class="n">DefaultPolicy</span><span class="o">.</span><span class="n">UPDATE_IF_DIFFERENT</span><span class="p">,</span>
+    <span class="n">policy</span><span class="p">:</span> <span class="n">DefaultPolicy</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">UpdateDecider</span> <span class="o">=</span> <span class="n">DefaultPolicy</span><span class="o">.</span><span class="n">UPDATE_IF_DIFFERENT</span><span class="p">,</span>
     <span class="n">target_key_info</span><span class="p">:</span> <span class="n">KeyInfoExtractor</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">source_key_info</span><span class="p">:</span> <span class="n">KeyInfoExtractor</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">keys_to_consider</span><span class="p">:</span> <span class="n">KeysToConsider</span> <span class="o">=</span> <span class="n">_just_source_keys</span><span class="p">,</span>
     <span class="n">verbose</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">K</span><span class="p">,</span> <span class="n">KeyDecision</span><span class="p">],</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">missing</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Update a target mapping with values from a source mapping using a customizable policy.</span>
@@ -1114,6 +1142,11 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">            this from source and target. The default will consider source keys only.</span>
 <span class="sd">        verbose: If True, will print debug information, if callable, call with</span>
 <span class="sd">            (key, decision) on each key that is looped over</span>
+<span class="sd">        missing: What a *custom* decider gets as the info of a key absent from a</span>
+<span class="sd">            mapping. ``None`` (the default, for now) can't be told from a present key</span>
+<span class="sd">            whose info is ``None``; pass :data:`MISSING` to tell them apart (i2mint/xdol#21).</span>
+<span class="sd">            The standard policies always use ``MISSING`` and, when they look at</span>
+<span class="sd">            presence only, read no value or info to decide.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        Dictionary with statistics about the update operation</span>
@@ -1144,6 +1177,10 @@ window.runMermaid = runMermaid;</script>
     <span class="c1"># Determine the decision function</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">policy</span><span class="p">,</span> <span class="p">(</span><span class="n">DefaultPolicy</span><span class="p">,</span> <span class="nb">str</span><span class="p">)):</span>
         <span class="n">decider</span> <span class="o">=</span> <span class="n">_get_standard_decider</span><span class="p">(</span><span class="n">policy</span><span class="p">)</span>
+        <span class="n">missing</span> <span class="o">=</span> <span class="n">MISSING</span>
+        <span class="k">if</span> <span class="n">DefaultPolicy</span><span class="p">(</span><span class="n">policy</span><span class="p">)</span> <span class="ow">in</span> <span class="n">_PRESENCE_ONLY_POLICIES</span><span class="p">:</span>
+            <span class="n">target_key_info</span> <span class="o">=</span> <span class="n">target_key_info</span> <span class="ow">or</span> <span class="n">_present</span>
+            <span class="n">source_key_info</span> <span class="o">=</span> <span class="n">source_key_info</span> <span class="ow">or</span> <span class="n">_present</span>
     <span class="k">elif</span> <span class="nb">callable</span><span class="p">(</span><span class="n">policy</span><span class="p">):</span>
         <span class="n">decider</span> <span class="o">=</span> <span class="n">policy</span>
     <span class="k">else</span><span class="p">:</span>
@@ -1164,6 +1201,7 @@ window.runMermaid = runMermaid;</script>
         <span class="n">decider</span><span class="p">,</span>
         <span class="n">target_key_info</span><span class="p">,</span>
         <span class="n">source_key_info</span><span class="p">,</span>
+        <span class="n">missing</span><span class="o">=</span><span class="n">missing</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="n">verbose</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">decision</span><span class="p">)</span>
 
@@ -1171,7 +1209,7 @@ window.runMermaid = runMermaid;</script>
 
         <span class="k">if</span> <span class="n">decision</span> <span class="o">==</span> <span class="n">KeyDecision</span><span class="o">.</span><span class="n">COPY</span><span class="p">:</span>
             <span class="c1"># The default info is the value itself: don't download it twice</span>
-            <span class="k">if</span> <span class="n">source_key_info</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">source_info</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">source_key_info</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">source_info</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">MISSING</span><span class="p">:</span>
                 <span class="n">value</span> <span class="o">=</span> <span class="n">source_info</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">value</span> <span class="o">=</span> <span class="n">source</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
@@ -1329,6 +1367,8 @@ window.runMermaid = runMermaid;</script>
 <span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Update target with source values only if their hash differs.</span>
 
+<span class="sd">    ``hash_function`` is called on every present value, ``None`` included.</span>
+
 <span class="sd">    Args:</span>
 <span class="sd">        target: The mapping to be updated (modified in-place)</span>
 <span class="sd">        source: The mapping containing items to potentially copy to target</span>
@@ -1342,20 +1382,15 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">        Dictionary with statistics about the update operation</span>
 <span class="sd">    """</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">get_target_hash</span><span class="p">(</span><span class="n">key</span><span class="p">:</span> <span class="n">K</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
-        <span class="n">value</span> <span class="o">=</span> <span class="n">target</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
-        <span class="k">return</span> <span class="kc">None</span> <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">hash_function</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
-
-    <span class="k">def</span><span class="w"> </span><span class="nf">get_source_hash</span><span class="p">(</span><span class="n">key</span><span class="p">:</span> <span class="n">K</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
-        <span class="n">value</span> <span class="o">=</span> <span class="n">source</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
-        <span class="k">return</span> <span class="kc">None</span> <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">hash_function</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">hash_of</span><span class="p">(</span><span class="n">mapping</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="n">K</span><span class="p">,</span> <span class="n">V</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">KeyInfoExtractor</span><span class="p">:</span>
+        <span class="k">return</span> <span class="k">lambda</span> <span class="n">key</span><span class="p">:</span> <span class="n">hash_function</span><span class="p">(</span><span class="n">mapping</span><span class="p">[</span><span class="n">key</span><span class="p">])</span>
 
     <span class="k">return</span> <span class="n">update_with_policy</span><span class="p">(</span>
         <span class="n">target</span><span class="p">,</span>
         <span class="n">source</span><span class="p">,</span>
         <span class="n">policy</span><span class="o">=</span><span class="n">DefaultPolicy</span><span class="o">.</span><span class="n">UPDATE_IF_DIFFERENT</span><span class="p">,</span>
-        <span class="n">target_key_info</span><span class="o">=</span><span class="n">get_target_hash</span><span class="p">,</span>
-        <span class="n">source_key_info</span><span class="o">=</span><span class="n">get_source_hash</span><span class="p">,</span>
+        <span class="n">target_key_info</span><span class="o">=</span><span class="n">hash_of</span><span class="p">(</span><span class="n">target</span><span class="p">),</span>
+        <span class="n">source_key_info</span><span class="o">=</span><span class="n">hash_of</span><span class="p">(</span><span class="n">source</span><span class="p">),</span>
         <span class="n">keys_to_consider</span><span class="o">=</span><span class="n">keys_to_consider</span><span class="p">,</span>
         <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span>
     <span class="p">)</span></div>
@@ -1419,36 +1454,37 @@ window.runMermaid = runMermaid;</script>
         <span class="n">target_info</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
         <span class="n">source_info</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">KeyDecision</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">"""Decision function based on timestamp comparison."""</span>
-        <span class="k">if</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">source</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Decision function based on timestamp comparison (infos are timestamps)."""</span>
+        <span class="k">if</span> <span class="n">source_info</span> <span class="ow">is</span> <span class="n">MISSING</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">KeyDecision</span><span class="o">.</span><span class="n">SKIP</span>
-        <span class="k">if</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">target</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">target_info</span> <span class="ow">is</span> <span class="n">MISSING</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">KeyDecision</span><span class="o">.</span><span class="n">COPY</span>
-
+        <span class="c1"># If either timestamp is None, skip update (can't compare)</span>
+        <span class="k">if</span> <span class="n">source_info</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">target_info</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">KeyDecision</span><span class="o">.</span><span class="n">SKIP</span>
         <span class="k">try</span><span class="p">:</span>
-            <span class="c1"># Get timestamps using the provided functions</span>
-            <span class="n">source_ts</span> <span class="o">=</span> <span class="n">source_timestamp</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
-            <span class="n">target_ts</span> <span class="o">=</span> <span class="n">target_timestamp</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
-
-            <span class="c1"># If either timestamp is None, skip update (can't compare)</span>
-            <span class="k">if</span> <span class="n">source_ts</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">target_ts</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="k">return</span> <span class="n">KeyDecision</span><span class="o">.</span><span class="n">SKIP</span>
-
-            <span class="c1"># Update if source is newer</span>
-            <span class="k">if</span> <span class="n">source_ts</span> <span class="o">&gt;</span> <span class="n">target_ts</span><span class="p">:</span>
-                <span class="k">return</span> <span class="n">KeyDecision</span><span class="o">.</span><span class="n">COPY</span>
+            <span class="k">return</span> <span class="n">KeyDecision</span><span class="o">.</span><span class="n">COPY</span> <span class="k">if</span> <span class="n">source_info</span> <span class="o">&gt;</span> <span class="n">target_info</span> <span class="k">else</span> <span class="n">KeyDecision</span><span class="o">.</span><span class="n">SKIP</span>
+        <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>  <span class="c1"># can't compare</span>
             <span class="k">return</span> <span class="n">KeyDecision</span><span class="o">.</span><span class="n">SKIP</span>
 
-        <span class="k">except</span> <span class="p">(</span><span class="ne">KeyError</span><span class="p">,</span> <span class="ne">FileNotFoundError</span><span class="p">,</span> <span class="ne">AttributeError</span><span class="p">,</span> <span class="ne">TypeError</span><span class="p">):</span>
-            <span class="c1"># If we can't get or compare timestamps, skip</span>
-            <span class="k">return</span> <span class="n">KeyDecision</span><span class="o">.</span><span class="n">SKIP</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_safe</span><span class="p">(</span><span class="n">timestamp</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">K</span><span class="p">],</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">KeyInfoExtractor</span><span class="p">:</span>
+        <span class="k">def</span><span class="w"> </span><span class="nf">info</span><span class="p">(</span><span class="n">key</span><span class="p">:</span> <span class="n">K</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">timestamp</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+            <span class="k">except</span> <span class="p">(</span><span class="ne">KeyError</span><span class="p">,</span> <span class="ne">FileNotFoundError</span><span class="p">,</span> <span class="ne">AttributeError</span><span class="p">,</span> <span class="ne">TypeError</span><span class="p">):</span>
+                <span class="k">return</span> <span class="kc">None</span>  <span class="c1"># can't get a timestamp: skip</span>
+
+        <span class="k">return</span> <span class="n">info</span>
 
     <span class="k">return</span> <span class="n">update_with_policy</span><span class="p">(</span>
         <span class="n">target</span><span class="p">,</span>
         <span class="n">source</span><span class="p">,</span>
         <span class="n">policy</span><span class="o">=</span><span class="n">_newer_decider</span><span class="p">,</span>
+        <span class="n">target_key_info</span><span class="o">=</span><span class="n">_safe</span><span class="p">(</span><span class="n">target_timestamp</span><span class="p">),</span>
+        <span class="n">source_key_info</span><span class="o">=</span><span class="n">_safe</span><span class="p">(</span><span class="n">source_timestamp</span><span class="p">),</span>
         <span class="n">keys_to_consider</span><span class="o">=</span><span class="n">keys_to_consider</span><span class="p">,</span>
         <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span>
+        <span class="n">missing</span><span class="o">=</span><span class="n">MISSING</span><span class="p">,</span>
     <span class="p">)</span></div>
 
 
@@ -1503,15 +1539,6 @@ window.runMermaid = runMermaid;</script>
     <span class="k">return</span> <span class="n">UpdateStats</span><span class="p">(</span><span class="o">**</span><span class="n">stats</span><span class="p">)</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">_present</span><span class="p">(</span><span class="n">key</span><span class="p">:</span> <span class="n">K</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""Presence-only key info: never reads a value.</span>
-
-<span class="sd">    ``update_with_policy`` only asks for the info of keys a mapping contains, so a</span>
-<span class="sd">    constant non-``None`` answer means "present" (even when the value is ``None``).</span>
-<span class="sd">    """</span>
-    <span class="k">return</span> <span class="kc">True</span>
-
-
 <span class="k">def</span><span class="w"> </span><span class="nf">_copy_keys</span><span class="p">(</span><span class="n">master</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">copy</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">):</span>
     <span class="k">return</span> <span class="n">copy</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
 
@@ -1543,20 +1570,10 @@ window.runMermaid = runMermaid;</script>
             <span class="n">master</span><span class="p">,</span>
             <span class="n">copy</span><span class="p">,</span>
             <span class="n">policy</span><span class="o">=</span><span class="n">DefaultPolicy</span><span class="o">.</span><span class="n">PREFER_TARGET</span><span class="p">,</span>
-            <span class="n">target_key_info</span><span class="o">=</span><span class="n">_present</span><span class="p">,</span>
-            <span class="n">source_key_info</span><span class="o">=</span><span class="n">_present</span><span class="p">,</span>
             <span class="n">keys_to_consider</span><span class="o">=</span><span class="n">keys_to_consider</span><span class="p">,</span>
         <span class="p">)</span>
     <span class="p">)</span></div>
 
-
-
-<span class="c1"># The standard policies that look at presence only, never at the infos' content</span>
-<span class="n">_PRESENCE_ONLY_POLICIES</span> <span class="o">=</span> <span class="p">(</span>
-    <span class="n">DefaultPolicy</span><span class="o">.</span><span class="n">ALWAYS_UPDATE</span><span class="p">,</span>
-    <span class="n">DefaultPolicy</span><span class="o">.</span><span class="n">PREFER_TARGET</span><span class="p">,</span>
-    <span class="n">DefaultPolicy</span><span class="o">.</span><span class="n">PREFER_SOURCE</span><span class="p">,</span>
-<span class="p">)</span>
 
 
 <div class="viewcode-block" id="reconcile">
@@ -1576,8 +1593,6 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">        that store (e.g. sizes or ETags, to avoid reading values); default: the values</span>
 <span class="sd">        themselves, any pair that can't be compared counting as different (and, for a</span>
 <span class="sd">        policy that looks at presence only, nothing is read to decide).</span>
-<span class="sd">        An info of ``None`` reads as "missing" (see i2mint/xdol#21), so an extractor</span>
-<span class="sd">        must not return ``None`` for a present key.</span>
 <span class="sd">    :param keys_to_consider: keys, or ``(master, copy) -&gt; keys`` (default: master's).</span>
 
 <span class="sd">    &gt;&gt;&gt; master, copy = {'a': 1, 'b': 2, 'c': 3}, {'a': 9, 'c': 3}</span>
@@ -1592,8 +1607,6 @@ window.runMermaid = runMermaid;</script>
         <span class="n">infos</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
             <span class="n">target_key_info</span><span class="o">=</span><span class="n">key_info_for</span><span class="p">(</span><span class="n">copy</span><span class="p">),</span> <span class="n">source_key_info</span><span class="o">=</span><span class="n">key_info_for</span><span class="p">(</span><span class="n">master</span><span class="p">)</span>
         <span class="p">)</span>
-    <span class="k">elif</span> <span class="n">policy</span> <span class="ow">in</span> <span class="n">_PRESENCE_ONLY_POLICIES</span><span class="p">:</span>
-        <span class="n">infos</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">target_key_info</span><span class="o">=</span><span class="n">_present</span><span class="p">,</span> <span class="n">source_key_info</span><span class="o">=</span><span class="n">_present</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">_as_update_stats</span><span class="p">(</span>
         <span class="n">update_with_policy</span><span class="p">(</span>
             <span class="n">copy</span><span class="p">,</span> <span class="n">master</span><span class="p">,</span> <span class="n">policy</span><span class="o">=</span><span class="n">policy</span><span class="p">,</span> <span class="n">keys_to_consider</span><span class="o">=</span><span class="n">keys_to_consider</span><span class="p">,</span> <span class="o">**</span><span class="n">infos</span>
