@@ -3,7 +3,7 @@
 ``update_with_policy`` decides, key by key, whether to copy a source item into a
 target mapping. It goes beyond ``dict.update()`` with:
 
-- built-in policies (always update, update if different, prefer target, prefer source)
+- built-in policies (always update, update if different, prefer target, prefer source, an alias of always update)
 - custom decision functions and custom "key info" extractors (compare sizes,
   hashes or timestamps instead of reading values)
 - statistics about what was examined, updated, added, unchanged or deleted
@@ -109,6 +109,13 @@ class DefaultPolicy(StringEnum):
     PREFER_TARGET = "PREFER_TARGET"  # Keep target values if they exist
     PREFER_SOURCE = "ALWAYS_UPDATE"  # Alias of ALWAYS_UPDATE (one decider, not two)
 
+    @classmethod
+    def _missing_(cls, value):
+        # The string "PREFER_SOURCE" (saved configs, callers) still resolves
+        if value == "PREFER_SOURCE":
+            return cls.ALWAYS_UPDATE
+        return None
+
 
 class KeyDecision(StringEnum):
     """Decisions for individual keys during update."""
@@ -193,8 +200,8 @@ class _Missing:
     def __repr__(self):
         return "MISSING"
 
-    def __bool__(self):
-        return False
+    def __reduce__(self):  # stays the one MISSING through pickle and deepcopy
+        return "MISSING"
 
 
 MISSING = _Missing()
@@ -380,7 +387,7 @@ def update_with_policy(
     target: MutableMapping[K, V],
     source: Mapping[K, V],
     *,
-    policy: DefaultPolicy | UpdateDecider = DefaultPolicy.UPDATE_IF_DIFFERENT,
+    policy: DefaultPolicy | str | UpdateDecider = DefaultPolicy.UPDATE_IF_DIFFERENT,
     target_key_info: KeyInfoExtractor | None = None,
     source_key_info: KeyInfoExtractor | None = None,
     keys_to_consider: KeysToConsider = _just_source_keys,
@@ -613,6 +620,8 @@ def update_by_content_hash(
     """
     Update target with source values only if their hash differs.
 
+    ``hash_function`` is called on every present value, ``None`` included.
+
     Args:
         target: The mapping to be updated (modified in-place)
         source: The mapping containing items to potentially copy to target
@@ -692,36 +701,37 @@ def update_newer(
         target_info: Any,
         source_info: Any,
     ) -> KeyDecision:
-        """Decision function based on timestamp comparison."""
-        if key not in source:
+        """Decision function based on timestamp comparison (infos are timestamps)."""
+        if source_info is MISSING:
             return KeyDecision.SKIP
-        if key not in target:
+        if target_info is MISSING:
             return KeyDecision.COPY
-
+        # If either timestamp is None, skip update (can't compare)
+        if source_info is None or target_info is None:
+            return KeyDecision.SKIP
         try:
-            # Get timestamps using the provided functions
-            source_ts = source_timestamp(key)
-            target_ts = target_timestamp(key)
-
-            # If either timestamp is None, skip update (can't compare)
-            if source_ts is None or target_ts is None:
-                return KeyDecision.SKIP
-
-            # Update if source is newer
-            if source_ts > target_ts:
-                return KeyDecision.COPY
+            return KeyDecision.COPY if source_info > target_info else KeyDecision.SKIP
+        except TypeError:  # can't compare
             return KeyDecision.SKIP
 
-        except (KeyError, FileNotFoundError, AttributeError, TypeError):
-            # If we can't get or compare timestamps, skip
-            return KeyDecision.SKIP
+    def _safe(timestamp: Callable[[K], Any]) -> KeyInfoExtractor:
+        def info(key: K) -> Any:
+            try:
+                return timestamp(key)
+            except (KeyError, FileNotFoundError, AttributeError, TypeError):
+                return None  # can't get a timestamp: skip
+
+        return info
 
     return update_with_policy(
         target,
         source,
         policy=_newer_decider,
+        target_key_info=_safe(target_timestamp),
+        source_key_info=_safe(source_timestamp),
         keys_to_consider=keys_to_consider,
         verbose=verbose,
+        missing=MISSING,
     )
 
 

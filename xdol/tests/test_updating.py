@@ -917,16 +917,36 @@ def test_presence_only_policies_read_no_value_to_decide():
     assert t.reads == [] and s.reads == ["b"]  # only the one copied is read
 
 
-def test_key_info_only_for_keys_present():
-    calls = []
+def test_none_info_of_a_present_key_is_not_missing():
+    t, s = {"a": 1}, {"a": 1}
+    stats = update_with_policy(
+        t, s, target_key_info=lambda k: None, source_key_info=lambda k: None
+    )
+    assert stats["unchanged"] == 1  # None == None, not "source missing"
+    t = {}
+    update_with_policy(t, {"a": 1}, source_key_info=lambda k: None)
+    assert t == {"a": 1}
 
-    def info(k):
-        calls.append(k)
-        return k
 
-    update_with_policy({}, {"a": 1}, source_key_info=info, target_key_info=info)
-    assert calls == ["a"]
+def test_update_newer_reads_no_values():
+    t, s = _Counting(a=1), _Counting(a=2)
+    update_with_policy.newer(
+        t, s, target_timestamp=lambda k: 1, source_timestamp=lambda k: 2
+    )
+    assert t == {"a": 2}
+    assert t.reads == [] and s.reads == ["a"]  # only the copied value is read
 
 
 def test_prefer_source_is_an_alias_of_always_update():
     assert DefaultPolicy.PREFER_SOURCE is DefaultPolicy.ALWAYS_UPDATE
+
+
+def test_prefer_source_string_and_pickle():
+    import pickle
+    from xdol import MISSING
+
+    assert DefaultPolicy("PREFER_SOURCE") is DefaultPolicy.ALWAYS_UPDATE
+    t = {"a": 1}
+    update_with_policy(t, {"a": 2}, policy="PREFER_SOURCE")
+    assert t == {"a": 2}
+    assert pickle.loads(pickle.dumps(MISSING)) is MISSING
