@@ -1,5 +1,5 @@
 {
-  "collection_duration_seconds": 3.4805045127868652,
+  "collection_duration_seconds": 3.9928698539733887,
   "commit_message": "updating: contains_for= seam, one key listing per store (#45)\n\ncontains_by_lookup (default, unchanged) or contains_by_listing (one listing per\nstore instead of one membership test per key, e.g. HeadObject on S3), on\nupdate_with_policy, backfill, reconcile and verify. The write path reuses the\nmembership the decision was made on instead of testing it again.\n\nCo-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>",
   "commit_sha": "25666bfacf4c61c9e2912424c66361421a1c95a8",
   "metrics": {
@@ -11,19 +11,19 @@
       "statements_total": 0
     },
     "umpyre_stats": {
-      "comment_lines": 14717,
-      "comment_lines_ratio": 0.05544901380856395,
-      "docs_lines": 38740,
-      "empty_lines": 34287,
-      "empty_lines_ratio": 0.12918260083265828,
-      "files_analyzed": 587,
-      "function_lines": 117916,
-      "function_lines_ratio": 0.4442702936910122,
-      "mean_lines_per_function": 16.519473241804427,
-      "num_classes": 1688,
-      "num_functions": 7138,
+      "comment_lines": 14829,
+      "comment_lines_ratio": 0.05543572125503273,
+      "docs_lines": 38777,
+      "empty_lines": 34604,
+      "empty_lines_ratio": 0.12936123125693927,
+      "files_analyzed": 597,
+      "function_lines": 119431,
+      "function_lines_ratio": 0.44647269709419474,
+      "mean_lines_per_function": 16.51881051175657,
+      "num_classes": 1700,
+      "num_functions": 7230,
       "pypi_version": "0.1.36",
-      "total_lines": 265415
+      "total_lines": 267499
     },
     "wily": {
       "cyclomatic_avg": 0.0,
@@ -42,6 +42,6 @@
   },
   "python_version": "3.10",
   "schema_version": "1.0",
-  "timestamp": "2026-10-27T14:46:58.952913Z",
+  "timestamp": "2026-10-27T14:47:05.372515Z",
   "workflow_status": {}
 }
