@@ -1,7 +1,7 @@
 {
-  "collection_duration_seconds": 4.617490530014038,
-  "commit_message": "updating: MISSING sentinel, lazy key info (#21) (#48)\n\n* updating: MISSING sentinel, presence-only policies read no values, PREFER_SOURCE aliases ALWAYS_UPDATE (#21)\n\nCo-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>\n\n* updating: review fixes (PREFER_SOURCE string, lazy update_newer, MISSING pickle/bool, tests)\n\nCo-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>\n\n---------\n\nCo-authored-by: Claude Sonnet 5.5 <noreply@anthropic.com>",
-  "commit_sha": "00d139d131590352848405b3a746258efd0222e4",
+  "collection_duration_seconds": 4.220770597457886,
+  "commit_message": "Merge 303bdf938219174ee8f021c4842cff205a452a0e into 00d139d131590352848405b3a746258efd0222e4",
+  "commit_sha": "fa133d5fbd1a715f0a6d9780720b48742d544348",
   "metrics": {
     "coverage": {
       "branch_coverage": 0.0,
@@ -11,19 +11,19 @@
       "statements_total": 0
     },
     "umpyre_stats": {
-      "comment_lines": 14827,
-      "comment_lines_ratio": 0.05546204027889996,
-      "docs_lines": 38730,
-      "empty_lines": 34579,
-      "empty_lines_ratio": 0.12934659005895202,
-      "files_analyzed": 597,
-      "function_lines": 119309,
-      "function_lines_ratio": 0.4462885657000928,
-      "mean_lines_per_function": 16.522503808336797,
-      "num_classes": 1698,
-      "num_functions": 7221,
+      "comment_lines": 14715,
+      "comment_lines_ratio": 0.05547387468898439,
+      "docs_lines": 38693,
+      "empty_lines": 34263,
+      "empty_lines_ratio": 0.12916760913820402,
+      "files_analyzed": 587,
+      "function_lines": 117794,
+      "function_lines_ratio": 0.4440699690869336,
+      "mean_lines_per_function": 16.523215037172115,
+      "num_classes": 1686,
+      "num_functions": 7129,
       "pypi_version": "0.1.32",
-      "total_lines": 267336
+      "total_lines": 265260
     },
     "wily": {
       "cyclomatic_avg": 0.0,
@@ -42,6 +42,6 @@
   },
   "python_version": "3.10",
   "schema_version": "1.0",
-  "timestamp": "2026-10-27T00:05:09.167360Z",
+  "timestamp": "2026-10-27T00:06:04.121503Z",
   "workflow_status": {}
 }

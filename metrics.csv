@@ -1,33 +1,21 @@
 metric,value
 schema_version,1.0
-timestamp,2026-10-27T00:05:09.167360Z
-commit_sha,00d139d131590352848405b3a746258efd0222e4
-commit_message,"updating: MISSING sentinel, lazy key info (#21) (#48)
-
-* updating: MISSING sentinel, presence-only policies read no values, PREFER_SOURCE aliases ALWAYS_UPDATE (#21)
-
-Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>
-
-* updating: review fixes (PREFER_SOURCE string, lazy update_newer, MISSING pickle/bool, tests)
-
-Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>
-
----------
-
-Co-authored-by: Claude Sonnet 5.5 <noreply@anthropic.com>"
+timestamp,2026-10-27T00:06:04.121503Z
+commit_sha,fa133d5fbd1a715f0a6d9780720b48742d544348
+commit_message,Merge 303bdf938219174ee8f021c4842cff205a452a0e into 00d139d131590352848405b3a746258efd0222e4
 python_version,3.10
-metrics.umpyre_stats.num_functions,7221
-metrics.umpyre_stats.num_classes,1698
-metrics.umpyre_stats.total_lines,267336
-metrics.umpyre_stats.empty_lines,34579
-metrics.umpyre_stats.comment_lines,14827
-metrics.umpyre_stats.docs_lines,38730
-metrics.umpyre_stats.function_lines,119309
-metrics.umpyre_stats.empty_lines_ratio,0.12934659005895202
-metrics.umpyre_stats.comment_lines_ratio,0.05546204027889996
-metrics.umpyre_stats.function_lines_ratio,0.4462885657000928
-metrics.umpyre_stats.mean_lines_per_function,16.522503808336797
-metrics.umpyre_stats.files_analyzed,597
+metrics.umpyre_stats.num_functions,7129
+metrics.umpyre_stats.num_classes,1686
+metrics.umpyre_stats.total_lines,265260
+metrics.umpyre_stats.empty_lines,34263
+metrics.umpyre_stats.comment_lines,14715
+metrics.umpyre_stats.docs_lines,38693
+metrics.umpyre_stats.function_lines,117794
+metrics.umpyre_stats.empty_lines_ratio,0.12916760913820402
+metrics.umpyre_stats.comment_lines_ratio,0.05547387468898439
+metrics.umpyre_stats.function_lines_ratio,0.4440699690869336
+metrics.umpyre_stats.mean_lines_per_function,16.523215037172115
+metrics.umpyre_stats.files_analyzed,587
 metrics.umpyre_stats.pypi_version,0.1.32
 metrics.workflow_status.last_run_status,success
 metrics.workflow_status.last_success_timestamp,2026-10-27T00:03:45Z
@@ -48,4 +36,4 @@ metrics.coverage.branch_coverage,0.0
 metrics.coverage.statements_covered,0
 metrics.coverage.statements_total,0
 metrics.coverage.error,No coverage file found
-collection_duration_seconds,4.617490530014038
+collection_duration_seconds,4.220770597457886
