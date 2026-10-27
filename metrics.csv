@@ -1,32 +1,28 @@
 metric,value
 schema_version,1.0
-timestamp,2026-10-26T20:34:39.079383Z
-commit_sha,5a99b90f766183e6fae67d9e67a8a71965d8f66a
-commit_message,"updating: one argument order and one key_info convention for backfill/reconcile/verify (#22) (#46)
+timestamp,2026-10-27T00:00:54.412547Z
+commit_sha,9e48964183c1883dad2cd693cb5f510fb2daa969
+commit_message,"updating: MISSING sentinel, presence-only policies read no values, PREFER_SOURCE aliases ALWAYS_UPDATE (#21)
 
-* updating: keyword-only master/copy roles, keys_to_consider everywhere, key_info_for(store) convention, reconcile compares before rewriting (#22)
-
-* updating: safe value comparison, no double download, verify compares values by default, presence-only policies read nothing (review of #22)
-
-* updating: compare and write the value __getitem__ returns; equal arrays compare equal (re-review of #22)"
+Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>"
 python_version,3.10
-metrics.umpyre_stats.num_functions,7205
-metrics.umpyre_stats.num_classes,1696
-metrics.umpyre_stats.total_lines,267096
-metrics.umpyre_stats.empty_lines,34540
-metrics.umpyre_stats.comment_lines,14826
-metrics.umpyre_stats.docs_lines,38669
-metrics.umpyre_stats.function_lines,119171
-metrics.umpyre_stats.empty_lines_ratio,0.12931679995207715
-metrics.umpyre_stats.comment_lines_ratio,0.05550813190762872
-metrics.umpyre_stats.function_lines_ratio,0.4461729116123042
-metrics.umpyre_stats.mean_lines_per_function,16.54004163775156
+metrics.umpyre_stats.num_functions,7218
+metrics.umpyre_stats.num_classes,1698
+metrics.umpyre_stats.total_lines,267326
+metrics.umpyre_stats.empty_lines,34579
+metrics.umpyre_stats.comment_lines,14829
+metrics.umpyre_stats.docs_lines,38728
+metrics.umpyre_stats.function_lines,119299
+metrics.umpyre_stats.empty_lines_ratio,0.1293514285928043
+metrics.umpyre_stats.comment_lines_ratio,0.055471596477708864
+metrics.umpyre_stats.function_lines_ratio,0.4462678527341149
+metrics.umpyre_stats.mean_lines_per_function,16.527985591576613
 metrics.umpyre_stats.files_analyzed,597
-metrics.umpyre_stats.pypi_version,0.1.31
+metrics.umpyre_stats.pypi_version,0.1.32
 metrics.workflow_status.last_run_status,success
-metrics.workflow_status.last_success_timestamp,2026-10-26T20:33:05Z
+metrics.workflow_status.last_success_timestamp,2026-10-26T20:35:47Z
 metrics.workflow_status.recent_failure_count,0
-metrics.workflow_status.run_url,https://github.com/i2mint/xdol/actions/runs/40396471626
+metrics.workflow_status.run_url,https://github.com/i2mint/xdol/actions/runs/40396986374
 metrics.workflow_status.total_runs_analyzed,10
 metrics.wily.cyclomatic_avg,0.0
 metrics.wily.maintainability_index,0.0
@@ -42,4 +38,4 @@ metrics.coverage.branch_coverage,0.0
 metrics.coverage.statements_covered,0
 metrics.coverage.statements_total,0
 metrics.coverage.error,No coverage file found
-collection_duration_seconds,3.180908203125
+collection_duration_seconds,3.5983543395996094
