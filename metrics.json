@@ -1,7 +1,7 @@
 {
-  "collection_duration_seconds": 3.3451437950134277,
-  "commit_message": "updating: FutureWarning for the legacy missing=None default; one standard-policy registry (#47) (#53)\n\n* updating: FutureWarning for the legacy missing=None default; one standard-policy registry (#47)\n\nCustom deciders that don't choose missing= get a FutureWarning (they still get\nNone for now). reconcile gives custom deciders MISSING. Presence-only standard\npolicies no longer call any given key infos. _STANDARD_DECIDERS and\n_PRESENCE_ONLY_POLICIES are one registry.\n\nCo-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>\n\n* updating: review fixes for #47 (sentinel pickles, honest repr, FutureWarning is an error in tests)\n\nCo-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>\n\n---------\n\nCo-authored-by: Claude Opus 5.5 <noreply@anthropic.com>",
-  "commit_sha": "19cdfa6c9d19ed17992526c4ad386fa753da1e10",
+  "collection_duration_seconds": 3.4805045127868652,
+  "commit_message": "updating: contains_for= seam, one key listing per store (#45)\n\ncontains_by_lookup (default, unchanged) or contains_by_listing (one listing per\nstore instead of one membership test per key, e.g. HeadObject on S3), on\nupdate_with_policy, backfill, reconcile and verify. The write path reuses the\nmembership the decision was made on instead of testing it again.\n\nCo-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>",
+  "commit_sha": "25666bfacf4c61c9e2912424c66361421a1c95a8",
   "metrics": {
     "coverage": {
       "branch_coverage": 0.0,
@@ -11,19 +11,19 @@
       "statements_total": 0
     },
     "umpyre_stats": {
-      "comment_lines": 14829,
-      "comment_lines_ratio": 0.05544815827160586,
-      "docs_lines": 38750,
-      "empty_lines": 34594,
-      "empty_lines_ratio": 0.1293528617740868,
-      "files_analyzed": 597,
-      "function_lines": 119376,
-      "function_lines_ratio": 0.44636720897101767,
-      "mean_lines_per_function": 16.51805728518057,
-      "num_classes": 1700,
-      "num_functions": 7227,
+      "comment_lines": 14717,
+      "comment_lines_ratio": 0.05544901380856395,
+      "docs_lines": 38740,
+      "empty_lines": 34287,
+      "empty_lines_ratio": 0.12918260083265828,
+      "files_analyzed": 587,
+      "function_lines": 117916,
+      "function_lines_ratio": 0.4442702936910122,
+      "mean_lines_per_function": 16.519473241804427,
+      "num_classes": 1688,
+      "num_functions": 7138,
       "pypi_version": "0.1.36",
-      "total_lines": 267439
+      "total_lines": 265415
     },
     "wily": {
       "cyclomatic_avg": 0.0,
@@ -34,14 +34,14 @@
     },
     "workflow_status": {
       "last_run_status": "success",
-      "last_success_timestamp": "2026-10-27T14:45:05Z",
+      "last_success_timestamp": "2026-10-27T14:46:17Z",
       "recent_failure_count": 0,
-      "run_url": "https://github.com/i2mint/xdol/actions/runs/40523999669",
+      "run_url": "https://github.com/i2mint/xdol/actions/runs/40524269653",
       "total_runs_analyzed": 10
     }
   },
   "python_version": "3.10",
   "schema_version": "1.0",
-  "timestamp": "2026-10-27T14:45:11.788174Z",
+  "timestamp": "2026-10-27T14:46:58.952913Z",
   "workflow_status": {}
 }
