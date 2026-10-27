@@ -142,7 +142,9 @@ def test_custom_decision_function():
             return KeyDecision.COPY
         return KeyDecision.SKIP
 
-    stats = update_with_policy(target, source, policy=update_only_for_a_and_d)
+    stats = update_with_policy(
+        target, source, policy=update_only_for_a_and_d, missing=None
+    )
 
     assert target == {"a": 10, "b": 2, "c": 3, "d": 40}
     assert stats["updated"] == 1  # 'a' is updated
@@ -204,6 +206,7 @@ def test_delete_action():
         source,
         policy=delete_missing_from_source,
         keys_to_consider=_source_and_target_keys,
+        missing=None,
     )
 
     assert target == {"a": 10, "d": 40}
@@ -269,12 +272,14 @@ def test_nested_metadata_example():
     def get_source_modified_date(key):
         return source.get(key, {}).get("modified_date")
 
+    from xdol import MISSING
+
     # Update only if source is newer
     def source_is_newer(key, target_date, source_date):
-        if target_date is None:
-            return KeyDecision.COPY
-        if source_date is None:
+        if source_date is MISSING:
             return KeyDecision.SKIP
+        if target_date is MISSING:
+            return KeyDecision.COPY
         if source_date > target_date:
             return KeyDecision.COPY
         return KeyDecision.SKIP
@@ -285,6 +290,7 @@ def test_nested_metadata_example():
         policy=source_is_newer,
         target_key_info=get_target_modified_date,
         source_key_info=get_source_modified_date,
+        missing=MISSING,
     )
 
     assert target["file1.txt"]["content"] == "updated content"
@@ -907,8 +913,75 @@ def test_missing_sentinel_for_custom_deciders():
     )
     assert seen == {"a": (None, None), "b": (MISSING, 1)}
     seen.clear()
-    update_with_policy({"a": 1}, {"b": 1}, policy=decider)  # legacy: None
+    with pytest.warns(FutureWarning, match="missing=MISSING"):
+        update_with_policy({"a": 1}, {"b": 1}, policy=decider)  # legacy: None
     assert seen == {"b": (None, 1)}
+
+
+def test_custom_decider_warns_only_when_missing_is_not_chosen():
+    import warnings
+    from xdol import MISSING
+
+    skip = lambda k, t, s: KeyDecision.SKIP
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        for missing in (MISSING, None):
+            update_with_policy({}, {"a": 1}, policy=skip, missing=missing)
+        update_with_policy({}, {"a": 1})  # standard policies never warn
+    with pytest.warns(FutureWarning) as record:
+        update_with_policy({}, {"a": 1}, policy=skip)
+    assert record[0].filename == __file__  # points at the caller
+
+
+def test_missing_not_given_survives_pickle():
+    import pickle
+    from xdol.updating import _MISSING_NOT_GIVEN
+
+    assert pickle.loads(pickle.dumps(_MISSING_NOT_GIVEN)) is _MISSING_NOT_GIVEN
+
+
+def test_reconcile_gives_custom_deciders_missing():
+    import warnings
+    from xdol import MISSING, reconcile
+
+    seen = {}
+
+    def decider(key, t, s):
+        seen[key] = (t, s)
+        return KeyDecision.SKIP
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        reconcile(
+            master={"a": None, "b": 1},
+            copy={"a": None},
+            policy=decider,
+            keys_to_consider=["a", "b"],
+        )
+    assert seen == {"a": (None, None), "b": (MISSING, 1)}
+
+
+@pytest.mark.parametrize(
+    "policy", [DefaultPolicy.ALWAYS_UPDATE, DefaultPolicy.PREFER_TARGET]
+)
+def test_presence_only_policies_call_no_key_info(policy):
+    from xdol import reconcile
+
+    calls = []
+
+    def key_info_for(store):
+        return lambda k: calls.append(k)
+
+    t, s = _Counting(a=1), _Counting(a=2, b=3)
+    reconcile(master=s, copy=t, key_info_for=key_info_for, policy=policy)
+    update_with_policy(
+        _Counting(),
+        s,
+        policy=policy,
+        target_key_info=calls.append,
+        source_key_info=calls.append,
+    )
+    assert calls == []
 
 
 def test_presence_only_policies_read_no_value_to_decide():
@@ -956,7 +1029,8 @@ def test_verify_none_values_and_keys_in_neither():
     from xdol import verify
 
     r = verify(
-        master={"a": None, "b": None}, copy={"a": None, "c": None},
+        master={"a": None, "b": None},
+        copy={"a": None, "c": None},
         keys_to_consider=["a", "b", "c", "zzz", "a"],
     )
     assert (r.only_in_copy, r.only_in_master, r.mismatched) == (["c"], ["b"], [])
