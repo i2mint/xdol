@@ -1,5 +1,5 @@
 {
-  "collection_duration_seconds": 4.409991979598999,
+  "collection_duration_seconds": 4.443572759628296,
   "commit_message": "Merge 92fb6e545926cc5b0bd38b89fc3a6856bbf474e0 into 29b8b5f14e154afab6ccae48e9497293cd02b4f6",
   "commit_sha": "d779731acc171627ac1548ad81f3053b1c6bb063",
   "metrics": {
@@ -11,19 +11,19 @@
       "statements_total": 0
     },
     "umpyre_stats": {
-      "comment_lines": 14717,
-      "comment_lines_ratio": 0.05546155150647246,
-      "docs_lines": 38713,
-      "empty_lines": 34277,
-      "empty_lines_ratio": 0.12917412522846752,
-      "files_analyzed": 587,
-      "function_lines": 117861,
-      "function_lines_ratio": 0.4441634791128865,
-      "mean_lines_per_function": 16.518710581639805,
-      "num_classes": 1688,
-      "num_functions": 7135,
+      "comment_lines": 14829,
+      "comment_lines_ratio": 0.05544815827160586,
+      "docs_lines": 38750,
+      "empty_lines": 34594,
+      "empty_lines_ratio": 0.1293528617740868,
+      "files_analyzed": 597,
+      "function_lines": 119376,
+      "function_lines_ratio": 0.44636720897101767,
+      "mean_lines_per_function": 16.51805728518057,
+      "num_classes": 1700,
+      "num_functions": 7227,
       "pypi_version": "0.1.36",
-      "total_lines": 265355
+      "total_lines": 267439
     },
     "wily": {
       "cyclomatic_avg": 0.0,
@@ -34,14 +34,14 @@
     },
     "workflow_status": {
       "last_run_status": "success",
-      "last_success_timestamp": "2026-10-27T14:40:32Z",
+      "last_success_timestamp": "2026-10-27T14:43:25Z",
       "recent_failure_count": 0,
-      "run_url": "https://github.com/i2mint/xdol/actions/runs/40523204203",
+      "run_url": "https://github.com/i2mint/xdol/actions/runs/40523674583",
       "total_runs_analyzed": 10
     }
   },
   "python_version": "3.10",
   "schema_version": "1.0",
-  "timestamp": "2026-10-27T14:43:25.766021Z",
+  "timestamp": "2026-10-27T14:43:32.435766Z",
   "workflow_status": {}
 }
