@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../_static/documentation_options.js?v=1c946a6c"></script>
+    <script src="../../_static/documentation_options.js?v=b8ecee75"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -411,7 +411,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.36" />
+  <meta name="docsearch:version" content="0.1.37" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -952,7 +952,7 @@ window.runMermaid = runMermaid;</script>
     <span class="n">source_key_info</span><span class="p">:</span> <span class="n">KeyInfoExtractor</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
     <span class="n">missing</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">K</span><span class="p">,</span> <span class="n">KeyDecision</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">K</span><span class="p">,</span> <span class="n">KeyDecision</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="nb">bool</span><span class="p">]]:</span>
 <span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Get decisions for each key regarding update action.</span>
 
@@ -969,20 +969,20 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">        missing: What the decider gets as the info of an absent key</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        Iterator of (key, decision, source_info) triples; ``source_info`` is</span>
-<span class="sd">        :data:`MISSING` when the key is not in source.</span>
+<span class="sd">        Iterator of (key, decision, source_info, in_target) tuples; ``source_info``</span>
+<span class="sd">        is :data:`MISSING` when the key is not in source.</span>
 <span class="sd">    """</span>
     <span class="c1"># Use default extractors if none provided</span>
     <span class="n">target_info_func</span> <span class="o">=</span> <span class="n">target_key_info</span> <span class="ow">or</span> <span class="n">partial</span><span class="p">(</span><span class="n">_key_info_from_mapping</span><span class="p">,</span> <span class="n">target</span><span class="p">)</span>
     <span class="n">source_info_func</span> <span class="o">=</span> <span class="n">source_key_info</span> <span class="ow">or</span> <span class="n">partial</span><span class="p">(</span><span class="n">_key_info_from_mapping</span><span class="p">,</span> <span class="n">source</span><span class="p">)</span>
 
     <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">keys</span><span class="p">:</span>
-        <span class="n">target_info</span> <span class="o">=</span> <span class="n">target_info_func</span><span class="p">(</span><span class="n">key</span><span class="p">)</span> <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">target</span> <span class="k">else</span> <span class="n">missing</span>
-        <span class="n">source_in</span> <span class="o">=</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">source</span>
+        <span class="n">target_in</span><span class="p">,</span> <span class="n">source_in</span> <span class="o">=</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">target</span><span class="p">,</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">source</span>
+        <span class="n">target_info</span> <span class="o">=</span> <span class="n">target_info_func</span><span class="p">(</span><span class="n">key</span><span class="p">)</span> <span class="k">if</span> <span class="n">target_in</span> <span class="k">else</span> <span class="n">missing</span>
         <span class="n">source_info</span> <span class="o">=</span> <span class="n">source_info_func</span><span class="p">(</span><span class="n">key</span><span class="p">)</span> <span class="k">if</span> <span class="n">source_in</span> <span class="k">else</span> <span class="n">missing</span>
 
         <span class="n">decision</span> <span class="o">=</span> <span class="n">decider</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">target_info</span><span class="p">,</span> <span class="n">source_info</span><span class="p">)</span>
-        <span class="k">yield</span> <span class="n">key</span><span class="p">,</span> <span class="n">decision</span><span class="p">,</span> <span class="p">(</span><span class="n">source_info</span> <span class="k">if</span> <span class="n">source_in</span> <span class="k">else</span> <span class="n">MISSING</span><span class="p">)</span>
+        <span class="k">yield</span> <span class="n">key</span><span class="p">,</span> <span class="n">decision</span><span class="p">,</span> <span class="p">(</span><span class="n">source_info</span> <span class="k">if</span> <span class="n">source_in</span> <span class="k">else</span> <span class="n">MISSING</span><span class="p">),</span> <span class="n">target_in</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_differ</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
@@ -1156,6 +1156,9 @@ window.runMermaid = runMermaid;</script>
 <span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Update a target mapping with values from a source mapping using a customizable policy.</span>
 
+<span class="sd">    Each key is tested once with ``in`` on each mapping; where that is a request</span>
+<span class="sd">    (e.g. S3), wrap the mapping as ``dol.trans.cached_keys(store, keys_cache=set)``.</span>
+
 <span class="sd">    Args:</span>
 <span class="sd">        target: The mapping to be updated (modified in-place)</span>
 <span class="sd">        source: The mapping containing items to potentially copy to target</span>
@@ -1222,7 +1225,7 @@ window.runMermaid = runMermaid;</script>
     <span class="n">stats</span> <span class="o">=</span> <span class="n">UpdateStats</span><span class="p">()</span>
 
     <span class="c1"># Process each key according to the decided action</span>
-    <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">decision</span><span class="p">,</span> <span class="n">source_info</span> <span class="ow">in</span> <span class="n">_get_key_decisions</span><span class="p">(</span>
+    <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">decision</span><span class="p">,</span> <span class="n">source_info</span><span class="p">,</span> <span class="n">in_target</span> <span class="ow">in</span> <span class="n">_get_key_decisions</span><span class="p">(</span>
         <span class="n">keys_to_consider</span><span class="p">,</span>
         <span class="n">target</span><span class="p">,</span>
         <span class="n">source</span><span class="p">,</span>
@@ -1241,16 +1244,20 @@ window.runMermaid = runMermaid;</script>
                 <span class="n">value</span> <span class="o">=</span> <span class="n">source_info</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">value</span> <span class="o">=</span> <span class="n">source</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
-            <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">target</span><span class="p">:</span>
-                <span class="n">target</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+            <span class="n">target</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+            <span class="k">if</span> <span class="n">in_target</span><span class="p">:</span>
                 <span class="n">stats</span><span class="o">.</span><span class="n">updated</span> <span class="o">+=</span> <span class="mi">1</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="n">target</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
                 <span class="n">stats</span><span class="o">.</span><span class="n">added</span> <span class="o">+=</span> <span class="mi">1</span>
         <span class="k">elif</span> <span class="n">decision</span> <span class="o">==</span> <span class="n">KeyDecision</span><span class="o">.</span><span class="n">DELETE</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">target</span><span class="p">:</span>
-                <span class="k">del</span> <span class="n">target</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
-                <span class="n">stats</span><span class="o">.</span><span class="n">deleted</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="k">if</span> <span class="n">in_target</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="k">del</span> <span class="n">target</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+                <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">target</span><span class="p">:</span>  <span class="c1"># a real error, not a key gone since the decision</span>
+                        <span class="k">raise</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">stats</span><span class="o">.</span><span class="n">deleted</span> <span class="o">+=</span> <span class="mi">1</span>
         <span class="k">else</span><span class="p">:</span>  <span class="c1"># SKIP</span>
             <span class="n">stats</span><span class="o">.</span><span class="n">unchanged</span> <span class="o">+=</span> <span class="mi">1</span>
 
@@ -1584,6 +1591,10 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">    Decisions use key presence only: the one value read is ``copy[k]`` for each key</span>
 <span class="sd">    actually pushed, so nothing is ever downloaded from a cold (e.g. S3) master.</span>
 <span class="sd">    ``keys_to_consider``: keys, or ``(master, copy) -&gt; keys`` (default: copy's keys).</span>
+<span class="sd">    Each key is tested with ``in`` on both stores: where that is a request (e.g. S3),</span>
+<span class="sd">    wrap the store as ``dol.trans.cached_keys(store, keys_cache=set)`` to list it once</span>
+<span class="sd">    and test membership against that listing, kept current on writes (it must be</span>
+<span class="sd">    ``set``: a ``list`` cache re-lists the store on every write).</span>
 
 <span class="sd">    &gt;&gt;&gt; master, copy = {'a': 1}, {'a': 9, 'b': 2}</span>
 <span class="sd">    &gt;&gt;&gt; backfill(copy=copy, master=master).added</span>
@@ -1624,6 +1635,11 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">    :param policy: a :class:`DefaultPolicy`, or a custom decider, which gets</span>
 <span class="sd">        :data:`MISSING` as the info of a key absent from a store.</span>
 <span class="sd">    :param keys_to_consider: keys, or ``(master, copy) -&gt; keys`` (default: master's).</span>
+
+<span class="sd">    Each key is tested with ``in`` on both stores: where that is a request (e.g. S3),</span>
+<span class="sd">    wrap the store as ``dol.trans.cached_keys(store, keys_cache=set)`` to list it once</span>
+<span class="sd">    and test membership against that listing, kept current on writes (it must be</span>
+<span class="sd">    ``set``: a ``list`` cache re-lists the store on every write).</span>
 
 <span class="sd">    &gt;&gt;&gt; master, copy = {'a': 1, 'b': 2, 'c': 3}, {'a': 9, 'c': 3}</span>
 <span class="sd">    &gt;&gt;&gt; s = reconcile(master=master, copy=copy)</span>
@@ -1712,49 +1728,75 @@ window.runMermaid = runMermaid;</script>
     <span class="n">master</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="n">K</span><span class="p">,</span> <span class="n">V</span><span class="p">],</span>
     <span class="n">copy</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="n">K</span><span class="p">,</span> <span class="n">V</span><span class="p">],</span>
     <span class="n">key_info_for</span><span class="p">:</span> <span class="n">KeyInfoFor</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">keys_to_consider</span><span class="p">:</span> <span class="n">KeysToConsider</span> <span class="o">=</span> <span class="n">union_iter</span><span class="p">,</span>
+    <span class="n">keys_to_consider</span><span class="p">:</span> <span class="n">KeysToConsider</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">VerifyReport</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Compare ``copy`` with ``master`` without writing anything.</span>
 
 <span class="sd">    :param key_info_for: ``key_info_for(store)`` gives the ``key -&gt; info`` compared for</span>
 <span class="sd">        that store; pass a cheaper one (size, ETag) to avoid reading values. Default:</span>
 <span class="sd">        the values themselves, any pair that can't be compared counting as different.</span>
-<span class="sd">    :param keys_to_consider: keys, or ``(master, copy) -&gt; keys`` (default: the keys of</span>
-<span class="sd">        both, master's first), each considered once.</span>
+<span class="sd">    :param keys_to_consider: keys, or ``(master, copy) -&gt; keys``, each considered once,</span>
+<span class="sd">        tested with ``in`` on both stores. Default (``None``): the keys of both,</span>
+<span class="sd">        master's first, each store listed once and membership answered from those</span>
+<span class="sd">        listings (no per-key lookup, e.g. no ``HeadObject`` per key on S3).</span>
 
 <span class="sd">    &gt;&gt;&gt; r = verify(master={'a': 1, 'b': 20, 'd': 4}, copy={'a': 1, 'b': 2, 'c': 3})</span>
 <span class="sd">    &gt;&gt;&gt; r.only_in_copy, r.only_in_master, r.mismatched</span>
 <span class="sd">    (['c'], ['d'], ['b'])</span>
 <span class="sd">    """</span>
-    <span class="k">if</span> <span class="nb">callable</span><span class="p">(</span><span class="n">keys_to_consider</span><span class="p">):</span>
-        <span class="n">keys_to_consider</span> <span class="o">=</span> <span class="n">keys_to_consider</span><span class="p">(</span><span class="n">master</span><span class="p">,</span> <span class="n">copy</span><span class="p">)</span>
+    <span class="c1"># Membership is tested on these; key infos are still read from master and copy</span>
+    <span class="n">in_master</span><span class="p">,</span> <span class="n">in_copy</span> <span class="o">=</span> <span class="n">master</span><span class="p">,</span> <span class="n">copy</span>
+    <span class="k">if</span> <span class="n">keys_to_consider</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="c1"># One listing each; dicts, not sets, so the report keeps master-first order</span>
+        <span class="n">in_master</span><span class="p">,</span> <span class="n">in_copy</span> <span class="o">=</span> <span class="nb">dict</span><span class="o">.</span><span class="n">fromkeys</span><span class="p">(</span><span class="n">master</span><span class="p">),</span> <span class="nb">dict</span><span class="o">.</span><span class="n">fromkeys</span><span class="p">(</span><span class="n">copy</span><span class="p">)</span>
+        <span class="n">keys_to_consider</span> <span class="o">=</span> <span class="n">union_iter</span><span class="p">(</span><span class="n">in_master</span><span class="p">,</span> <span class="n">in_copy</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">callable</span><span class="p">(</span><span class="n">keys_to_consider</span><span class="p">):</span>
+            <span class="n">keys_to_consider</span> <span class="o">=</span> <span class="n">keys_to_consider</span><span class="p">(</span><span class="n">master</span><span class="p">,</span> <span class="n">copy</span><span class="p">)</span>
+        <span class="n">keys_to_consider</span> <span class="o">=</span> <span class="n">union_iter</span><span class="p">(</span><span class="n">keys_to_consider</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">key_info_for</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">key_info_for</span> <span class="o">=</span> <span class="n">partial</span><span class="p">(</span><span class="n">partial</span><span class="p">,</span> <span class="n">_key_info_from_mapping</span><span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">deferred</span><span class="p">(</span><span class="n">store</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">K</span><span class="p">],</span> <span class="n">Callable</span><span class="p">[[],</span> <span class="n">Any</span><span class="p">]]:</span>
-<span class="w">        </span><span class="sd">"""Info as a thunk: read only for a key both stores have."""</span>
+<span class="w">        </span><span class="sd">"""Info as a thunk: read only for a key both stores have. It gives</span>
+<span class="sd">        :data:`MISSING` for a key that is listed but can't be read (a folder marker,</span>
+<span class="sd">        a broken link, a key deleted since the listing)."""</span>
         <span class="n">info</span> <span class="o">=</span> <span class="n">key_info_for</span><span class="p">(</span><span class="n">store</span><span class="p">)</span>
-        <span class="k">return</span> <span class="k">lambda</span> <span class="n">key</span><span class="p">:</span> <span class="k">lambda</span><span class="p">:</span> <span class="n">info</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">thunk</span><span class="p">(</span><span class="n">key</span><span class="p">:</span> <span class="n">K</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">[[],</span> <span class="n">Any</span><span class="p">]:</span>
+            <span class="k">def</span><span class="w"> </span><span class="nf">read</span><span class="p">():</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="n">info</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+                <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="n">MISSING</span>
+
+            <span class="k">return</span> <span class="n">read</span>
+
+        <span class="k">return</span> <span class="n">thunk</span>
 
     <span class="n">report</span> <span class="o">=</span> <span class="n">VerifyReport</span><span class="p">()</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">record</span><span class="p">(</span><span class="n">key</span><span class="p">:</span> <span class="n">K</span><span class="p">,</span> <span class="n">copy_info</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">master_info</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">KeyDecision</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">copy_info</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">MISSING</span> <span class="ow">and</span> <span class="n">master_info</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">MISSING</span><span class="p">:</span>
+            <span class="n">copy_info</span><span class="p">,</span> <span class="n">master_info</span> <span class="o">=</span> <span class="n">copy_info</span><span class="p">(),</span> <span class="n">master_info</span><span class="p">()</span>  <span class="c1"># (may be MISSING)</span>
+            <span class="k">if</span> <span class="n">copy_info</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">MISSING</span> <span class="ow">and</span> <span class="n">master_info</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">MISSING</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">_differ</span><span class="p">(</span><span class="n">copy_info</span><span class="p">,</span> <span class="n">master_info</span><span class="p">):</span>
+                    <span class="n">report</span><span class="o">.</span><span class="n">mismatched</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+                <span class="k">return</span> <span class="n">KeyDecision</span><span class="o">.</span><span class="n">SKIP</span>
         <span class="k">if</span> <span class="n">master_info</span> <span class="ow">is</span> <span class="n">MISSING</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">copy_info</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">MISSING</span><span class="p">:</span>  <span class="c1"># (a requested key may be in neither)</span>
                 <span class="n">report</span><span class="o">.</span><span class="n">only_in_copy</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
         <span class="k">elif</span> <span class="n">copy_info</span> <span class="ow">is</span> <span class="n">MISSING</span><span class="p">:</span>
             <span class="n">report</span><span class="o">.</span><span class="n">only_in_master</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
-        <span class="k">elif</span> <span class="n">_differ</span><span class="p">(</span><span class="n">copy_info</span><span class="p">(),</span> <span class="n">master_info</span><span class="p">()):</span>
-            <span class="n">report</span><span class="o">.</span><span class="n">mismatched</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">KeyDecision</span><span class="o">.</span><span class="n">SKIP</span>  <span class="c1"># verify never writes</span>
 
-    <span class="c1"># ``record`` always SKIPs, so update_with_policy never writes: ``copy`` can be a</span>
-    <span class="c1"># read-only Mapping.</span>
+    <span class="c1"># ``record`` always SKIPs, so update_with_policy never writes and, given both key</span>
+    <span class="c1"># infos, only tests membership on these: ``in_copy`` can be read-only.</span>
     <span class="n">update_with_policy</span><span class="p">(</span>
-        <span class="n">copy</span><span class="p">,</span>  <span class="c1"># type: ignore[arg-type]</span>
-        <span class="n">master</span><span class="p">,</span>
+        <span class="n">in_copy</span><span class="p">,</span>  <span class="c1"># type: ignore[arg-type]</span>
+        <span class="n">in_master</span><span class="p">,</span>
         <span class="n">policy</span><span class="o">=</span><span class="n">record</span><span class="p">,</span>
-        <span class="n">keys_to_consider</span><span class="o">=</span><span class="n">union_iter</span><span class="p">(</span><span class="n">keys_to_consider</span><span class="p">),</span>
+        <span class="n">keys_to_consider</span><span class="o">=</span><span class="n">keys_to_consider</span><span class="p">,</span>
         <span class="n">target_key_info</span><span class="o">=</span><span class="n">deferred</span><span class="p">(</span><span class="n">copy</span><span class="p">),</span>
         <span class="n">source_key_info</span><span class="o">=</span><span class="n">deferred</span><span class="p">(</span><span class="n">master</span><span class="p">),</span>
         <span class="n">missing</span><span class="o">=</span><span class="n">MISSING</span><span class="p">,</span>

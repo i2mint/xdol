@@ -173,6 +173,10 @@ Push to `master` the items that only `copy` has. Never overwrites.
 Decisions use key presence only: the one value read is `copy[k]` for each key
 actually pushed, so nothing is ever downloaded from a cold (e.g. S3) master.
 `keys_to_consider`: keys, or `(master, copy) -> keys` (default: copy’s keys).
+Each key is tested with `in` on both stores: where that is a request (e.g. S3),
+wrap the store as `dol.trans.cached_keys(store, keys_cache=set)` to list it once
+and test membership against that listing, kept current on writes (it must be
+`set`: a `list` cache re-lists the store on every write).
 
 ```pycon
 >>> master, copy = {'a': 1}, {'a': 9, 'b': 2}
@@ -239,6 +243,11 @@ says otherwise.
   * **keys_to_consider** ([`Union`](https://docs.python.org/3/library/typing.html#typing.Union)[[`Iterable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterable)[`K`], [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[[`Mapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping), [`MutableMapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping)], [`Iterable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterable)[`K`]]]) – keys, or `(master, copy) -> keys` (default: master’s).
 * **Return type:**
   [`UpdateStats`](#xdol.updating.UpdateStats)
+
+Each key is tested with `in` on both stores: where that is a request (e.g. S3),
+wrap the store as `dol.trans.cached_keys(store, keys_cache=set)` to list it once
+and test membership against that listing, kept current on writes (it must be
+`set`: a `list` cache re-lists the store on every write).
 
 ```pycon
 >>> master, copy = {'a': 1, 'b': 2, 'c': 3}, {'a': 9, 'c': 3}
@@ -380,6 +389,9 @@ Update target with source values only if source has a newer timestamp.
 
 Update a target mapping with values from a source mapping using a customizable policy.
 
+Each key is tested once with `in` on each mapping; where that is a request
+(e.g. S3), wrap the mapping as `dol.trans.cached_keys(store, keys_cache=set)`.
+
 * **Parameters:**
   * **target** ([`MutableMapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping)[`K`, `V`]) – The mapping to be updated (modified in-place)
   * **source** ([`Mapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping)[`K`, `V`]) – The mapping containing items to potentially copy to target
@@ -423,7 +435,7 @@ Update a target mapping with values from a source mapping using a customizable p
 {'a': 1, 'b': 2, 'c': 30}
 ```
 
-### xdol.updating.verify(\*, master, copy, key_info_for=None, keys_to_consider=<function union_iter>)
+### xdol.updating.verify(, master, copy, key_info_for=None, keys_to_consider=None)
 
 Compare `copy` with `master` without writing anything.
 
@@ -431,8 +443,10 @@ Compare `copy` with `master` without writing anything.
   * **key_info_for** ([`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[[`Mapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping)], [`KeyInfoExtractor`](#xdol.updating.KeyInfoExtractor)] | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – `key_info_for(store)` gives the `key -> info` compared for
     that store; pass a cheaper one (size, ETag) to avoid reading values. Default:
     the values themselves, any pair that can’t be compared counting as different.
-  * **keys_to_consider** ([`Union`](https://docs.python.org/3/library/typing.html#typing.Union)[[`Iterable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterable)[`K`], [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[[`Mapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping), [`MutableMapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping)], [`Iterable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterable)[`K`]]]) – keys, or `(master, copy) -> keys` (default: the keys of
-    both, master’s first), each considered once.
+  * **keys_to_consider** ([`Union`](https://docs.python.org/3/library/typing.html#typing.Union)[[`Iterable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterable)[`K`], [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[[`Mapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping), [`MutableMapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping)], [`Iterable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterable)[`K`]], [`None`](https://docs.python.org/3/builtins/constants.html#None)]) – keys, or `(master, copy) -> keys`, each considered once,
+    tested with `in` on both stores. Default (`None`): the keys of both,
+    master’s first, each store listed once and membership answered from those
+    listings (no per-key lookup, e.g. no `HeadObject` per key on S3).
 * **Return type:**
   [`VerifyReport`](#xdol.updating.VerifyReport)
 

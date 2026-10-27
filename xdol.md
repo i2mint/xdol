@@ -1,4 +1,4 @@
-> built 2026-10-27 14:45 UTC from 19cdfa6 (master) · xdol 0.1.36. Details: build_info.json
+> built 2026-10-27 15:04 UTC from 1556705 (master) · xdol 0.1.37. Details: build_info.json
 
 # index.html.md
 
@@ -1645,6 +1645,10 @@ Push to `master` the items that only `copy` has. Never overwrites.
 Decisions use key presence only: the one value read is `copy[k]` for each key
 actually pushed, so nothing is ever downloaded from a cold (e.g. S3) master.
 `keys_to_consider`: keys, or `(master, copy) -> keys` (default: copy’s keys).
+Each key is tested with `in` on both stores: where that is a request (e.g. S3),
+wrap the store as `dol.trans.cached_keys(store, keys_cache=set)` to list it once
+and test membership against that listing, kept current on writes (it must be
+`set`: a `list` cache re-lists the store on every write).
 
 ```pycon
 >>> master, copy = {'a': 1}, {'a': 9, 'b': 2}
@@ -1711,6 +1715,11 @@ says otherwise.
   * **keys_to_consider** ([`Union`](https://docs.python.org/3/library/typing.html#typing.Union)[[`Iterable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterable)[`K`], [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[[`Mapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping), [`MutableMapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping)], [`Iterable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterable)[`K`]]]) – keys, or `(master, copy) -> keys` (default: master’s).
 * **Return type:**
   [`UpdateStats`](_autosummary/xdol.updating.html.md#xdol.updating.UpdateStats)
+
+Each key is tested with `in` on both stores: where that is a request (e.g. S3),
+wrap the store as `dol.trans.cached_keys(store, keys_cache=set)` to list it once
+and test membership against that listing, kept current on writes (it must be
+`set`: a `list` cache re-lists the store on every write).
 
 ```pycon
 >>> master, copy = {'a': 1, 'b': 2, 'c': 3}, {'a': 9, 'c': 3}
@@ -1852,6 +1861,9 @@ Update target with source values only if source has a newer timestamp.
 
 Update a target mapping with values from a source mapping using a customizable policy.
 
+Each key is tested once with `in` on each mapping; where that is a request
+(e.g. S3), wrap the mapping as `dol.trans.cached_keys(store, keys_cache=set)`.
+
 * **Parameters:**
   * **target** ([`MutableMapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping)[`K`, `V`]) – The mapping to be updated (modified in-place)
   * **source** ([`Mapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping)[`K`, `V`]) – The mapping containing items to potentially copy to target
@@ -1895,7 +1907,7 @@ Update a target mapping with values from a source mapping using a customizable p
 {'a': 1, 'b': 2, 'c': 30}
 ```
 
-### xdol.updating.verify(\*, master, copy, key_info_for=None, keys_to_consider=<function union_iter>)
+### xdol.updating.verify(, master, copy, key_info_for=None, keys_to_consider=None)
 
 Compare `copy` with `master` without writing anything.
 
@@ -1903,8 +1915,10 @@ Compare `copy` with `master` without writing anything.
   * **key_info_for** ([`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[[`Mapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping)], [`KeyInfoExtractor`](_autosummary/xdol.updating.html.md#xdol.updating.KeyInfoExtractor)] | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – `key_info_for(store)` gives the `key -> info` compared for
     that store; pass a cheaper one (size, ETag) to avoid reading values. Default:
     the values themselves, any pair that can’t be compared counting as different.
-  * **keys_to_consider** ([`Union`](https://docs.python.org/3/library/typing.html#typing.Union)[[`Iterable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterable)[`K`], [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[[`Mapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping), [`MutableMapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping)], [`Iterable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterable)[`K`]]]) – keys, or `(master, copy) -> keys` (default: the keys of
-    both, master’s first), each considered once.
+  * **keys_to_consider** ([`Union`](https://docs.python.org/3/library/typing.html#typing.Union)[[`Iterable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterable)[`K`], [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[[`Mapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping), [`MutableMapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping)], [`Iterable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterable)[`K`]], [`None`](https://docs.python.org/3/builtins/constants.html#None)]) – keys, or `(master, copy) -> keys`, each considered once,
+    tested with `in` on both stores. Default (`None`): the keys of both,
+    master’s first, each store listed once and membership answered from those
+    listings (no per-key lookup, e.g. no `HeadObject` per key on S3).
 * **Return type:**
   [`VerifyReport`](_autosummary/xdol.updating.html.md#xdol.updating.VerifyReport)
 
@@ -2139,7 +2153,7 @@ A value that fails to decode raises [`CodecDecodeError`](_autosummary/xdol.x_cod
 
 # About this build
 
-This documentation was built on **2026-10-27 14:45 UTC** from commit <a href="https://github.com/i2mint/xdol/commit/19cdfa6c9d19ed17992526c4ad386fa753da1e10"><code>19cdfa6</code></a> on branch <code>master</code>, for **xdol 0.1.36** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-10-27 15:04 UTC** from commit <a href="https://github.com/i2mint/xdol/commit/155670592e5bb828da6fff6fe0c73df6408118ec"><code>1556705</code></a> on branch <code>master</code>, for **xdol 0.1.37** (from <code>pyproject.toml</code>).
 
 #### NOTE
 Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
@@ -2148,7 +2162,7 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 |                     |                                                                                                                                                    |
 |---------------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/i2mint/xdol/commit/19cdfa6c9d19ed17992526c4ad386fa753da1e10"><code>19cdfa6c9d19ed17992526c4ad386fa753da1e10</code></a> |
+| Commit              | <a href="https://github.com/i2mint/xdol/commit/155670592e5bb828da6fff6fe0c73df6408118ec"><code>155670592e5bb828da6fff6fe0c73df6408118ec</code></a> |
 | Branch              | <code>master</code>                                                                                                                                |
 | Tags at this commit | none                                                                                                                                               |
 | Working tree        | clean                                                                                                                                              |
@@ -2159,9 +2173,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>i2mint/xdol</code>                                                                   |
-| Run          | <a href="https://github.com/i2mint/xdol/actions/runs/40523986940">40523986940</a>          |
+| Run          | <a href="https://github.com/i2mint/xdol/actions/runs/40526193230">40526193230</a>          |
 | Ref          | <code>refs/heads/master</code>                                                             |
-| Event commit | <code>19cdfa6c9d19ed17992526c4ad386fa753da1e10</code> (in the history of the built commit) |
+| Event commit | <code>155670592e5bb828da6fff6fe0c73df6408118ec</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -2186,13 +2200,13 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/xdol/0.1.36/">0.1.36</a>, the same as the documented version.
+Latest release: <a href="https://pypi.org/project/xdol/0.1.37/">0.1.37</a>, the same as the documented version.
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/i2mint/xdol && cd xdol
-git checkout 19cdfa6c9d19ed17992526c4ad386fa753da1e10
+git checkout 155670592e5bb828da6fff6fe0c73df6408118ec
 pip install "epythet==0.2.22"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```
