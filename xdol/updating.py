@@ -923,16 +923,16 @@ def verify(
     if callable(keys_to_consider):
         keys_to_consider = keys_to_consider(master, copy)
     if key_info_for is None:
-        key_info_for = lambda store: partial(_key_info_from_mapping, store)
+        key_info_for = partial(partial, _key_info_from_mapping)
 
-    def deferred(store: Mapping) -> KeyInfoExtractor:
+    def deferred(store: Mapping) -> Callable[[K], Callable[[], Any]]:
         """Info as a thunk: read only for a key both stores have."""
         info = key_info_for(store)
         return lambda key: lambda: info(key)
 
     report = VerifyReport()
 
-    def record(key, copy_info, master_info) -> KeyDecision:
+    def record(key: K, copy_info: Any, master_info: Any) -> KeyDecision:
         if master_info is MISSING:
             if copy_info is not MISSING:  # (a requested key may be in neither)
                 report.only_in_copy.append(key)
@@ -942,8 +942,10 @@ def verify(
             report.mismatched.append(key)
         return KeyDecision.SKIP  # verify never writes
 
+    # ``record`` always SKIPs, so update_with_policy never writes: ``copy`` can be a
+    # read-only Mapping.
     update_with_policy(
-        copy,
+        copy,  # type: ignore[arg-type]
         master,
         policy=record,
         keys_to_consider=union_iter(keys_to_consider),

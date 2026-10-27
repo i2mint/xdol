@@ -971,3 +971,14 @@ def test_verify_never_writes_and_reads_only_what_it_compares():
     verify(master=master, copy=copy)
     assert master.reads == ["a"] and copy.reads == ["a"]
     assert dict(master) == {"a": 1, "b": 2} and dict(copy) == {"a": 1, "c": 3}
+
+
+def test_verify_accepts_read_only_stores():
+    from types import MappingProxyType
+
+    from xdol import verify
+
+    r = verify(
+        master=MappingProxyType({"a": 1, "b": 2}), copy=MappingProxyType({"a": 3})
+    )
+    assert (r.mismatched, r.only_in_master) == (["a"], ["b"])
