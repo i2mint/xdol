@@ -55,6 +55,7 @@ from enum import Enum, auto
 from functools import partial
 from typing_extensions import Protocol
 import hashlib
+import operator
 from dataclasses import dataclass, field
 
 from dol.dig import inner_most_key
@@ -136,6 +137,39 @@ class KeyInfoExtractor(Protocol):
 
 KeyInfoFor = Callable[[Mapping], KeyInfoExtractor]
 """``key_info_for(store)``: the ``key -> info`` extractor for ``store``."""
+
+ContainsFor = Callable[[Mapping], Callable[[K], bool]]
+"""``contains_for(store)``: the ``key -> bool`` membership test used for ``store``."""
+
+
+def contains_by_lookup(store: Mapping) -> Callable[[K], bool]:
+    """A ``contains_for``: ``key in store``, one lookup per key tested (one
+    ``HeadObject`` per key on S3). The default; best when few keys are tested
+    against a large store."""
+    return partial(operator.contains, store)
+
+
+def contains_by_listing(store: Mapping) -> Callable[[K], bool]:
+    """A ``contains_for``: membership in one listing of ``store``, taken at the first
+    test (on S3, one ``ListObjects`` per 1000 keys instead of one ``HeadObject`` per
+    key). Best when the keys tested are much of the store, as in a whole-store sync.
+
+    The listing is a snapshot: a key the update itself writes later is not in it, so
+    give distinct keys.
+
+    >>> contains = contains_by_listing({'a': 1})
+    >>> contains('a'), contains('b')
+    (True, False)
+    """
+    listed = None
+
+    def contains(key: K) -> bool:
+        nonlocal listed
+        if listed is None:
+            listed = set(store)
+        return key in listed
+
+    return contains
 
 
 class UpdateDecider(Protocol):
@@ -225,7 +259,8 @@ def _get_key_decisions(
     source_key_info: KeyInfoExtractor | None = None,
     *,
     missing: Any,
-) -> Iterator[tuple[K, KeyDecision, Any]]:
+    contains_for: ContainsFor = contains_by_lookup,
+) -> Iterator[tuple[K, KeyDecision, Any, bool]]:
     """
     Get decisions for each key regarding update action.
 
@@ -240,22 +275,25 @@ def _get_key_decisions(
         target_key_info: Function to extract comparison info from target (optional)
         source_key_info: Function to extract comparison info from source (optional)
         missing: What the decider gets as the info of an absent key
+        contains_for: ``contains_for(store)`` gives the membership test for ``store``
 
     Returns:
-        Iterator of (key, decision, source_info) triples; ``source_info`` is
-        :data:`MISSING` when the key is not in source.
+        Iterator of (key, decision, source_info, in_target) tuples; ``source_info``
+        is :data:`MISSING` when the key is not in source.
     """
     # Use default extractors if none provided
     target_info_func = target_key_info or partial(_key_info_from_mapping, target)
     source_info_func = source_key_info or partial(_key_info_from_mapping, source)
 
+    in_target, in_source = contains_for(target), contains_for(source)
+
     for key in keys:
-        target_info = target_info_func(key) if key in target else missing
-        source_in = key in source
+        target_in, source_in = in_target(key), in_source(key)
+        target_info = target_info_func(key) if target_in else missing
         source_info = source_info_func(key) if source_in else missing
 
         decision = decider(key, target_info, source_info)
-        yield key, decision, (source_info if source_in else MISSING)
+        yield key, decision, (source_info if source_in else MISSING), target_in
 
 
 def _differ(a, b) -> bool:
@@ -417,6 +455,7 @@ def update_with_policy(
     keys_to_consider: KeysToConsider = _just_source_keys,
     verbose: bool | Callable[[K, KeyDecision], Any] = False,
     missing: Any = _MISSING_NOT_GIVEN,
+    contains_for: ContainsFor = contains_by_lookup,
 ) -> dict[str, int]:
     """
     Update a target mapping with values from a source mapping using a customizable policy.
@@ -438,6 +477,10 @@ def update_with_policy(
             #47). The standard policies always use ``MISSING`` and, when they look at
             presence only, read no value or info to decide (any key infos given are
             not called).
+        contains_for: ``contains_for(store)`` gives the ``key -> bool`` membership
+            test for each store, run once per key per store: :func:`contains_by_lookup`
+            (default) or :func:`contains_by_listing` (one listing per store, for
+            whole-store syncs on S3 and the like).
 
     Returns:
         Dictionary with statistics about the update operation
@@ -487,7 +530,7 @@ def update_with_policy(
     stats = UpdateStats()
 
     # Process each key according to the decided action
-    for key, decision, source_info in _get_key_decisions(
+    for key, decision, source_info, in_target in _get_key_decisions(
         keys_to_consider,
         target,
         source,
@@ -495,6 +538,7 @@ def update_with_policy(
         target_key_info,
         source_key_info,
         missing=missing,
+        contains_for=contains_for,
     ):
         verbose(key, decision)
 
@@ -506,14 +550,13 @@ def update_with_policy(
                 value = source_info
             else:
                 value = source[key]
-            if key in target:
-                target[key] = value
+            target[key] = value
+            if in_target:
                 stats.updated += 1
             else:
-                target[key] = value
                 stats.added += 1
         elif decision == KeyDecision.DELETE:
-            if key in target:
+            if in_target:
                 del target[key]
                 stats.deleted += 1
         else:  # SKIP
@@ -819,12 +862,16 @@ def backfill(
     master: MutableMapping[K, V],
     copy: Mapping[K, V],
     keys_to_consider: KeysToConsider = _copy_keys,
+    contains_for: ContainsFor = contains_by_lookup,
 ) -> UpdateStats:
     """Push to ``master`` the items that only ``copy`` has. Never overwrites.
 
     Decisions use key presence only: the one value read is ``copy[k]`` for each key
     actually pushed, so nothing is ever downloaded from a cold (e.g. S3) master.
     ``keys_to_consider``: keys, or ``(master, copy) -> keys`` (default: copy's keys).
+    ``contains_for``: ``contains_for(store)``, the key membership test of each store:
+    :func:`contains_by_lookup` (default) or :func:`contains_by_listing` (one listing
+    per store instead of one lookup per key, e.g. on S3).
 
     >>> master, copy = {'a': 1}, {'a': 9, 'b': 2}
     >>> backfill(copy=copy, master=master).added
@@ -840,6 +887,7 @@ def backfill(
             copy,
             policy=DefaultPolicy.PREFER_TARGET,
             keys_to_consider=keys_to_consider,
+            contains_for=contains_for,
         )
     )
 
@@ -851,6 +899,7 @@ def reconcile(
     key_info_for: KeyInfoFor | None = None,
     policy: DefaultPolicy | UpdateDecider = DefaultPolicy.UPDATE_IF_DIFFERENT,
     keys_to_consider: KeysToConsider = _just_source_keys,
+    contains_for: ContainsFor = contains_by_lookup,
 ) -> UpdateStats:
     """Update ``copy`` from ``master``: what differs is rewritten, unless ``policy``
     says otherwise.
@@ -862,6 +911,9 @@ def reconcile(
     :param policy: a :class:`DefaultPolicy`, or a custom decider, which gets
         :data:`MISSING` as the info of a key absent from a store.
     :param keys_to_consider: keys, or ``(master, copy) -> keys`` (default: master's).
+    :param contains_for: ``contains_for(store)``, the key membership test of each
+        store: :func:`contains_by_lookup` (default) or :func:`contains_by_listing`
+        (one listing per store instead of one lookup per key, e.g. on S3).
 
     >>> master, copy = {'a': 1, 'b': 2, 'c': 3}, {'a': 9, 'c': 3}
     >>> s = reconcile(master=master, copy=copy)
@@ -882,6 +934,7 @@ def reconcile(
             policy=policy,
             keys_to_consider=keys_to_consider,
             missing=MISSING,
+            contains_for=contains_for,
             **infos,
         )
     )
@@ -942,6 +995,7 @@ def verify(
     copy: Mapping[K, V],
     key_info_for: KeyInfoFor | None = None,
     keys_to_consider: KeysToConsider = union_iter,
+    contains_for: ContainsFor = contains_by_lookup,
 ) -> VerifyReport:
     """Compare ``copy`` with ``master`` without writing anything.
 
@@ -950,6 +1004,9 @@ def verify(
         the values themselves, any pair that can't be compared counting as different.
     :param keys_to_consider: keys, or ``(master, copy) -> keys`` (default: the keys of
         both, master's first), each considered once.
+    :param contains_for: ``contains_for(store)``, the key membership test of each
+        store: :func:`contains_by_lookup` (default) or :func:`contains_by_listing`
+        (one listing per store instead of one lookup per key, e.g. on S3).
 
     >>> r = verify(master={'a': 1, 'b': 20, 'd': 4}, copy={'a': 1, 'b': 2, 'c': 3})
     >>> r.only_in_copy, r.only_in_master, r.mismatched
@@ -987,5 +1044,6 @@ def verify(
         target_key_info=deferred(copy),
         source_key_info=deferred(master),
         missing=MISSING,
+        contains_for=contains_for,
     )
     return report

@@ -1056,3 +1056,75 @@ def test_verify_accepts_read_only_stores():
         master=MappingProxyType({"a": 1, "b": 2}), copy=MappingProxyType({"a": 3})
     )
     assert (r.mismatched, r.only_in_master) == (["a"], ["b"])
+
+
+class _CountingMembership(dict):
+    """A dict counting membership tests and listings, as an S3 store's HEADs and LISTs."""
+
+    def __init__(self, *a, **kw):
+        super().__init__(*a, **kw)
+        self.lookups = self.listings = 0
+
+    def __contains__(self, k):
+        self.lookups += 1
+        return super().__contains__(k)
+
+    def __iter__(self):
+        self.listings += 1
+        return super().__iter__()
+
+    def keys(self):  # dict.keys() bypasses __iter__
+        return list(iter(self))
+
+
+def _sync_pair(n=20):
+    master = _CountingMembership({f"k{i}": i for i in range(n)})
+    copy = _CountingMembership({f"k{i}": i for i in range(0, n, 2)})
+    return master, copy
+
+
+def test_copy_reuses_the_membership_it_decided_on():
+    master, copy = _sync_pair()
+    stats = update_with_policy(copy, master, policy=DefaultPolicy.ALWAYS_UPDATE)
+    assert (stats["updated"], stats["added"]) == (10, 10)
+    assert copy.lookups == 20  # one per key, not a second one to count the write
+
+
+@pytest.mark.parametrize("sync", ["reconcile", "backfill", "verify"])
+def test_contains_by_listing_lists_each_store_once(sync):
+    import xdol
+    from xdol import contains_by_listing
+
+    master, copy = _sync_pair()
+    expected = getattr(xdol, sync)(master=master, copy=copy)
+    master, copy = _sync_pair()
+    got = getattr(xdol, sync)(
+        master=master, copy=copy, contains_for=contains_by_listing
+    )
+    assert got == expected
+    assert master.lookups == copy.lookups == 0
+    # one listing per store for membership, plus any the default keys make
+    assert master.listings <= 2 and copy.listings <= 2
+
+
+def test_contains_by_listing_is_lazy():
+    from xdol import contains_by_listing
+
+    store = _CountingMembership(a=1)
+    contains = contains_by_listing(store)
+    assert store.listings == 0
+    assert contains("a") and not contains("b")
+    assert store.listings == 1
+
+
+def test_contains_for_is_given_each_store():
+    seen = []
+
+    def contains_for(store):
+        seen.append(store)
+        return lambda k: k in store
+
+    t, s = {"a": 1}, {"a": 2, "b": 3}
+    update_with_policy(t, s, contains_for=contains_for)
+    assert t == {"a": 2, "b": 3}
+    assert seen[0] is t and seen[1] is s
