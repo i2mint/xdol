@@ -1113,20 +1113,44 @@ def test_delete_skips_a_key_gone_since_the_decision():
     assert target == {"b": 2}
 
 
+def test_delete_reraises_a_key_error_of_a_present_key():
+    from xdol import MISSING
+
+    class Locked(dict):
+        def __delitem__(self, k):
+            raise KeyError("locked")
+
+    target = Locked(a=1)
+    with pytest.raises(KeyError, match="locked"):
+        update_with_policy(
+            target,
+            {},
+            policy=lambda k, t, s: KeyDecision.DELETE,
+            keys_to_consider=["a"],
+            missing=MISSING,
+        )
+
+
 @pytest.mark.parametrize("sync", ["reconcile", "backfill"])
 def test_cached_keys_stores_are_listed_once_and_never_looked_up(sync):
     import xdol
     from dol.trans import cached_keys
 
-    master, copy = _sync_pair()
-    expected = getattr(xdol, sync)(master=master, copy=copy)
-    master, copy = _sync_pair()
-    got = getattr(xdol, sync)(
-        master=cached_keys(master, keys_cache=set),
-        copy=cached_keys(copy, keys_cache=set),
-    )
-    assert got == expected
+    def pair():  # each has keys the other lacks, so both syncs write
+        master, copy = _sync_pair()
+        copy.update(extra=0)
+        return master, copy
+
+    expected = getattr(xdol, sync)(master=pair()[0], copy=pair()[1])
+    master, copy = pair()
+    cached_master = cached_keys(master, keys_cache=set)
+    cached_copy = cached_keys(copy, keys_cache=set)
+    got = getattr(xdol, sync)(master=cached_master, copy=cached_copy)
+    assert got == expected and got.added > 0
     assert (master.lookups, master.listings) == (copy.lookups, copy.listings) == (0, 1)
+    # the caches were kept current through the writes
+    assert set(cached_master._keys_cache) == set(dict.keys(master))
+    assert set(cached_copy._keys_cache) == set(dict.keys(copy))
 
 
 def test_verify_lists_each_store_once_by_default():
@@ -1139,3 +1163,15 @@ def test_verify_lists_each_store_once_by_default():
     assert (r.mismatched, r.only_in_copy) == (["k0"], ["extra"])
     assert r.only_in_master == [f"k{i}" for i in range(1, 20, 2)]
     assert (master.lookups, master.listings) == (copy.lookups, copy.listings) == (0, 1)
+
+
+def test_verify_reports_a_listed_key_that_cannot_be_read():
+    from xdol import verify
+
+    class Ghost(dict):  # lists 'g' (e.g. a folder marker) but can't read it
+        def __iter__(self):
+            yield from super().__iter__()
+            yield "g"
+
+    r = verify(master={"a": 1, "g": 2}, copy=Ghost(a=1))
+    assert (r.only_in_master, r.only_in_copy, r.mismatched) == (["g"], [], [])

@@ -519,7 +519,8 @@ def update_with_policy(
                 try:
                     del target[key]
                 except KeyError:
-                    pass  # gone since the decision: as if it had been absent
+                    if key in target:  # a real error, not a key gone since the decision
+                        raise
                 else:
                     stats.deleted += 1
         else:  # SKIP
@@ -833,7 +834,8 @@ def backfill(
     ``keys_to_consider``: keys, or ``(master, copy) -> keys`` (default: copy's keys).
     Each key is tested with ``in`` on both stores: where that is a request (e.g. S3),
     wrap the store as ``dol.trans.cached_keys(store, keys_cache=set)`` to list it once
-    and test membership against that listing (kept current on writes).
+    and test membership against that listing, kept current on writes (it must be
+    ``set``: a ``list`` cache re-lists the store on every write).
 
     >>> master, copy = {'a': 1}, {'a': 9, 'b': 2}
     >>> backfill(copy=copy, master=master).added
@@ -874,7 +876,8 @@ def reconcile(
 
     Each key is tested with ``in`` on both stores: where that is a request (e.g. S3),
     wrap the store as ``dol.trans.cached_keys(store, keys_cache=set)`` to list it once
-    and test membership against that listing (kept current on writes).
+    and test membership against that listing, kept current on writes (it must be
+    ``set``: a ``list`` cache re-lists the store on every write).
 
     >>> master, copy = {'a': 1, 'b': 2, 'c': 3}, {'a': 9, 'c': 3}
     >>> s = reconcile(master=master, copy=copy)
@@ -973,28 +976,47 @@ def verify(
     # Membership is tested on these; key infos are still read from master and copy
     in_master, in_copy = master, copy
     if keys_to_consider is None:
-        in_master, in_copy = dict.fromkeys(master), dict.fromkeys(copy)  # one listing
+        # One listing each; dicts, not sets, so the report keeps master-first order
+        in_master, in_copy = dict.fromkeys(master), dict.fromkeys(copy)
         keys_to_consider = union_iter(in_master, in_copy)
-    elif callable(keys_to_consider):
-        keys_to_consider = keys_to_consider(master, copy)
+    else:
+        if callable(keys_to_consider):
+            keys_to_consider = keys_to_consider(master, copy)
+        keys_to_consider = union_iter(keys_to_consider)
     if key_info_for is None:
         key_info_for = partial(partial, _key_info_from_mapping)
 
     def deferred(store: Mapping) -> Callable[[K], Callable[[], Any]]:
-        """Info as a thunk: read only for a key both stores have."""
+        """Info as a thunk: read only for a key both stores have. It gives
+        :data:`MISSING` for a key that is listed but can't be read (a folder marker,
+        a broken link, a key deleted since the listing)."""
         info = key_info_for(store)
-        return lambda key: lambda: info(key)
+
+        def thunk(key: K) -> Callable[[], Any]:
+            def read():
+                try:
+                    return info(key)
+                except KeyError:
+                    return MISSING
+
+            return read
+
+        return thunk
 
     report = VerifyReport()
 
     def record(key: K, copy_info: Any, master_info: Any) -> KeyDecision:
+        if copy_info is not MISSING and master_info is not MISSING:
+            copy_info, master_info = copy_info(), master_info()  # (may be MISSING)
+            if copy_info is not MISSING and master_info is not MISSING:
+                if _differ(copy_info, master_info):
+                    report.mismatched.append(key)
+                return KeyDecision.SKIP
         if master_info is MISSING:
             if copy_info is not MISSING:  # (a requested key may be in neither)
                 report.only_in_copy.append(key)
         elif copy_info is MISSING:
             report.only_in_master.append(key)
-        elif _differ(copy_info(), master_info()):
-            report.mismatched.append(key)
         return KeyDecision.SKIP  # verify never writes
 
     # ``record`` always SKIPs, so update_with_policy never writes and, given both key
@@ -1003,7 +1025,7 @@ def verify(
         in_copy,  # type: ignore[arg-type]
         in_master,
         policy=record,
-        keys_to_consider=union_iter(keys_to_consider),
+        keys_to_consider=keys_to_consider,
         target_key_info=deferred(copy),
         source_key_info=deferred(master),
         missing=MISSING,
