@@ -950,3 +950,35 @@ def test_prefer_source_string_and_pickle():
     update_with_policy(t, {"a": 2}, policy="PREFER_SOURCE")
     assert t == {"a": 2}
     assert pickle.loads(pickle.dumps(MISSING)) is MISSING
+
+
+def test_verify_none_values_and_keys_in_neither():
+    from xdol import verify
+
+    r = verify(
+        master={"a": None, "b": None}, copy={"a": None, "c": None},
+        keys_to_consider=["a", "b", "c", "zzz", "a"],
+    )
+    assert (r.only_in_copy, r.only_in_master, r.mismatched) == (["c"], ["b"], [])
+    r = verify(master={"a": None}, copy={"a": 1})
+    assert r.mismatched == ["a"]
+
+
+def test_verify_never_writes_and_reads_only_what_it_compares():
+    from xdol import verify
+
+    master, copy = _Counting(a=1, b=2), _Counting(a=1, c=3)
+    verify(master=master, copy=copy)
+    assert master.reads == ["a"] and copy.reads == ["a"]
+    assert dict(master) == {"a": 1, "b": 2} and dict(copy) == {"a": 1, "c": 3}
+
+
+def test_verify_accepts_read_only_stores():
+    from types import MappingProxyType
+
+    from xdol import verify
+
+    r = verify(
+        master=MappingProxyType({"a": 1, "b": 2}), copy=MappingProxyType({"a": 3})
+    )
+    assert (r.mismatched, r.only_in_master) == (["a"], ["b"])
