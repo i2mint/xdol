@@ -835,7 +835,7 @@ def _fold_keys(lines):
 
 def test_compaction_does_not_change_the_fold_fuzz():
     # compacting a prefix changes nothing when the events after it are stamped after
-    # it (a late event stamped before compacted ones folds approximately: #44)
+    # it (a late event stamped before compacted ones folds approximately, see the module docstring: #44)
     from xdol.access import _compacted_lines
 
     rng = random.Random(1)
