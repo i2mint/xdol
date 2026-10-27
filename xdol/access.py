@@ -45,6 +45,9 @@ delete, see :attr:`AccessLog.tombstones`). Both are the baseline, folded before 
 event and not counted as events; a tombstone only records the delete (it never removes
 the key: the snapshot is already post-delete). Older readers skip tombstone lines.
 
+A log built with ``keep_tombstones_for=seconds`` drops tombstones older than that at
+compaction (default: keep them forever).
+
 Compaction runs by default once the file holds more than ``DFLT_COMPACT_ABOVE`` events
 (earlier versions never compacted on their own): it folds away the per-event history
 (``tag``, ``from``, each timestamp). Pass ``compact_above=None`` to keep the raw log.
@@ -330,6 +333,13 @@ def _fold_path(path: str) -> tuple[dict, dict, float, int]:
     return stats_by_key, tombstones, last_ts, nevents
 
 
+def _live_tombstones(tombstones: Mapping, *, not_before: float | None) -> dict:
+    """``tombstones`` stamped at or after ``not_before`` (``None``: all of them)."""
+    if not_before is None:
+        return dict(tombstones)
+    return {k: ts for k, ts in tombstones.items() if ts >= not_before}
+
+
 def _compacted_lines(stats_by_key: Mapping, tombstones: Mapping) -> Iterator[bytes]:
     """The lines of a compacted file: snapshots, then tombstones in timestamp order."""
     for key, st in stats_by_key.items():
@@ -502,6 +512,12 @@ class AccessLog(Mapping):
         than snapshots), :meth:`compact` it: checked on open and as this log records
         (counting its own appends since then). ``None``: never; the file then grows with
         every access.
+    :param keep_tombstones_for: seconds a delete's tombstone is kept: :meth:`compact`
+        drops those older than ``clock() - keep_tombstones_for``, from the file and
+        from this log's memory. ``None`` (default): keep them forever, so a churning
+        store's tombstones grow without bound. A tombstone only matters against other
+        logs whose stats predate the delete (see :func:`merge_stats`): set this longer
+        than any such log can lag behind.
 
     Opening replays the file in timestamp order (see the module docstring), so the
     stats equal what recording those events live would give. Replay streams in constant
@@ -527,7 +543,15 @@ class AccessLog(Mapping):
         clock: Callable[[], float] = time.time,
         tag: str | None = None,
         compact_above: int | None = DFLT_COMPACT_ABOVE,
+        keep_tombstones_for: float | None = None,
     ):
+        if keep_tombstones_for is not None and not (
+            _is_finite(keep_tombstones_for) and keep_tombstones_for >= 0
+        ):
+            raise ValueError(
+                "keep_tombstones_for must be None or a non-negative number of "
+                f"seconds, not {keep_tombstones_for!r}"
+            )
         if compact_above is not None and (
             isinstance(compact_above, bool)
             or not isinstance(compact_above, int)
@@ -540,6 +564,7 @@ class AccessLog(Mapping):
         self.clock = clock
         self.tag = platform.node() if tag is None else tag
         self.compact_above = compact_above
+        self.keep_tombstones_for = keep_tombstones_for
         self._stats: dict[Any, AccessStats] = {}
         self._tombstones: dict[Any, float] = {}
         self._appender = None if self.path is None else _LockedAppender(self.path)
@@ -643,18 +668,27 @@ class AccessLog(Mapping):
 
         Under the lock, so it re-folds the file from disk (keeping every writer's
         events, not only this log's) and replaces it atomically; writers holding the
-        old file reopen the new one at their next append. This log's in-memory view
-        is left as it was.
+        old file reopen the new one at their next append. This log's in-memory stats
+        are left as they were; its tombstones older than ``keep_tombstones_for`` are
+        dropped, as from the file.
         """
-        if self.path is None:
-            return
-        with self._appender.locked() as held:
-            if not held:  # unlocked, another writer's events could be lost
-                raise OSError(f"cannot lock {self.path}.lock: not compacting")
-            if os.path.exists(self.path):
-                stats_by_key, tombstones, _, _ = _fold_path(self.path)
-                atomic_write(self.path, _compacted_lines(stats_by_key, tombstones))
+        horizon = self._tombstone_horizon()
+        if self.path is not None:
+            with self._appender.locked() as held:
+                if not held:  # unlocked, another writer's events could be lost
+                    raise OSError(f"cannot lock {self.path}.lock: not compacting")
+                if os.path.exists(self.path):
+                    stats_by_key, tombstones, _, _ = _fold_path(self.path)
+                    tombstones = _live_tombstones(tombstones, not_before=horizon)
+                    atomic_write(self.path, _compacted_lines(stats_by_key, tombstones))
+        self._tombstones = _live_tombstones(self._tombstones, not_before=horizon)
         self._nevents = 0
+
+    def _tombstone_horizon(self) -> float | None:
+        """Tombstones stamped before this are expendable (``None``: none are)."""
+        if self.keep_tombstones_for is None:
+            return None
+        return self.clock() - self.keep_tombstones_for
 
     def close(self) -> None:
         """Close the log's files (it stays usable: it reopens them when needed)."""

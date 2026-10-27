@@ -916,3 +916,47 @@ def test_no_compaction_without_the_lock(tmp_path, monkeypatch):
     assert AccessLog(p, compact_above=None)["a"].reads == 4
     with pytest.raises(OSError, match="not compacting"):
         log.compact()
+
+
+def test_keep_tombstones_for_drops_old_tombstones_at_compaction(tmp_path):
+    p = tmp_path / "log.jsonl"
+    now = [100.0]
+    log = AccessLog(p, clock=lambda: now[0], keep_tombstones_for=50, compact_above=None)
+    log.record("old", "write", 1)
+    log.record("old", "delete")  # ts 100
+    now[0] = 140.0
+    log.record("new", "write", 1)
+    log.record("new", "delete")  # ts 140
+    now[0] = 160.0  # horizon 110: "old" expires, "new" stays
+    log.compact()
+    assert dict(log.tombstones) == {"new": 140.0}
+    assert dict(AccessLog(p).tombstones) == {"new": 140.0}
+
+
+def test_tombstones_kept_forever_by_default(tmp_path):
+    p = tmp_path / "log.jsonl"
+    now = [1.0]
+    log = AccessLog(p, clock=lambda: now[0], compact_above=None)
+    log.record("a", "write", 1)
+    log.record("a", "delete")
+    now[0] = 1e12
+    log.compact()
+    assert dict(AccessLog(p).tombstones) == {"a": 1.0}
+
+
+def test_expired_tombstone_no_longer_hides_an_older_log(tmp_path):
+    now = [100.0]
+    log = AccessLog(clock=lambda: now[0], keep_tombstones_for=10)
+    log.record("a", "delete")
+    stale = {"a": AccessStats(reads=1, last_access=50.0)}
+    assert "a" not in merge_stats(stale, log)  # tombstone held
+    now[0] = 200.0
+    log.compact()  # in-memory log: tombstones pruned too
+    assert dict(log.tombstones) == {}
+    assert "a" in merge_stats(stale, log)  # the expired delete no longer applies
+
+
+@pytest.mark.parametrize("bad", [-1, float("nan"), "5", True])
+def test_keep_tombstones_for_validated(bad):
+    with pytest.raises(ValueError):
+        AccessLog(keep_tombstones_for=bad)
