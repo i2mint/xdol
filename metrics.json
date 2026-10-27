@@ -1,7 +1,7 @@
 {
-  "collection_duration_seconds": 4.149752616882324,
-  "commit_message": "Merge 303bdf938219174ee8f021c4842cff205a452a0e into 00d139d131590352848405b3a746258efd0222e4",
-  "commit_sha": "fa133d5fbd1a715f0a6d9780720b48742d544348",
+  "collection_duration_seconds": 4.280704021453857,
+  "commit_message": "access: document that late events fold approximately across a compaction (#44)\n\nCo-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>",
+  "commit_sha": "303bdf938219174ee8f021c4842cff205a452a0e",
   "metrics": {
     "coverage": {
       "branch_coverage": 0.0,
@@ -42,6 +42,6 @@
   },
   "python_version": "3.10",
   "schema_version": "1.0",
-  "timestamp": "2026-10-27T00:06:08.532860Z",
+  "timestamp": "2026-10-27T00:06:10.186120Z",
   "workflow_status": {}
 }
