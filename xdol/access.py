@@ -515,9 +515,14 @@ class AccessLog(Mapping):
     :param keep_tombstones_for: seconds a delete's tombstone is kept: :meth:`compact`
         drops those older than ``clock() - keep_tombstones_for``, from the file and
         from this log's memory. ``None`` (default): keep them forever, so a churning
-        store's tombstones grow without bound. A tombstone only matters against other
-        logs whose stats predate the delete (see :func:`merge_stats`): set this longer
-        than any such log can lag behind.
+        store's tombstones grow without bound. A tombstone stops two things from
+        resurrecting a deleted key: stats of another log merged by :func:`merge_stats`,
+        and a late event of this file (see the module docstring) stamped before the
+        delete. Keep them longer than any merged log can lag and any writer can be
+        late; ``0`` drops them all at every compaction. Pruning happens only when
+        :meth:`compact` runs (automatically only for a file log with ``compact_above``
+        set). Retention is per file: whichever log compacts applies its own setting to
+        every writer's tombstones, so let all logs sharing a file use the same one.
 
     Opening replays the file in timestamp order (see the module docstring), so the
     stats equal what recording those events live would give. Replay streams in constant
