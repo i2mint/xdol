@@ -1,23 +1,23 @@
 metric,value
 schema_version,1.0
-timestamp,2026-10-27T00:09:52.088096Z
+timestamp,2026-10-27T00:09:54.615007Z
 commit_sha,e8d6f5a84479ea623b96788c5dd7fa8c89a3f2ed
 commit_message,"access: keep_tombstones_for retention seam (#42)
 
 Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>"
 python_version,3.10
-metrics.umpyre_stats.num_functions,7131
-metrics.umpyre_stats.num_classes,1686
-metrics.umpyre_stats.total_lines,265297
-metrics.umpyre_stats.empty_lines,34267
-metrics.umpyre_stats.comment_lines,14715
-metrics.umpyre_stats.docs_lines,38702
-metrics.umpyre_stats.function_lines,117816
-metrics.umpyre_stats.empty_lines_ratio,0.12916467204680038
-metrics.umpyre_stats.comment_lines_ratio,0.055466137951051084
-metrics.umpyre_stats.function_lines_ratio,0.4440909622046235
-metrics.umpyre_stats.mean_lines_per_function,16.521665965502734
-metrics.umpyre_stats.files_analyzed,587
+metrics.umpyre_stats.num_functions,7223
+metrics.umpyre_stats.num_classes,1698
+metrics.umpyre_stats.total_lines,267381
+metrics.umpyre_stats.empty_lines,34584
+metrics.umpyre_stats.comment_lines,14827
+metrics.umpyre_stats.docs_lines,38739
+metrics.umpyre_stats.function_lines,119331
+metrics.umpyre_stats.empty_lines_ratio,0.12934352104300606
+metrics.umpyre_stats.comment_lines_ratio,0.05545270606363205
+metrics.umpyre_stats.function_lines_ratio,0.44629573529906763
+metrics.umpyre_stats.mean_lines_per_function,16.520974664266927
+metrics.umpyre_stats.files_analyzed,597
 metrics.umpyre_stats.pypi_version,0.1.33
 metrics.workflow_status.last_run_status,success
 metrics.workflow_status.last_success_timestamp,2026-10-27T00:09:44Z
@@ -38,4 +38,4 @@ metrics.coverage.branch_coverage,0.0
 metrics.coverage.statements_covered,0
 metrics.coverage.statements_total,0
 metrics.coverage.error,No coverage file found
-collection_duration_seconds,4.267863512039185
+collection_duration_seconds,3.953706741333008
