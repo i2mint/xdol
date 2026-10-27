@@ -1,0 +1,47 @@
+{
+  "collection_duration_seconds": 4.081297397613525,
+  "commit_message": "updating: FutureWarning for the legacy missing=None default; one standard-policy registry (#47)\n\nCustom deciders that don't choose missing= get a FutureWarning (they still get\nNone for now). reconcile gives custom deciders MISSING. Presence-only standard\npolicies no longer call any given key infos. _STANDARD_DECIDERS and\n_PRESENCE_ONLY_POLICIES are one registry.\n\nCo-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>",
+  "commit_sha": "f378b79a4d9cd3a6d53405519e6773a93fe3e543",
+  "metrics": {
+    "coverage": {
+      "branch_coverage": 0.0,
+      "error": "No coverage file found",
+      "line_coverage": 0.0,
+      "statements_covered": 0,
+      "statements_total": 0
+    },
+    "umpyre_stats": {
+      "comment_lines": 14717,
+      "comment_lines_ratio": 0.05546301460723277,
+      "docs_lines": 38713,
+      "empty_lines": 34276,
+      "empty_lines_ratio": 0.1291737642642869,
+      "files_analyzed": 587,
+      "function_lines": 117859,
+      "function_lines_ratio": 0.44416765907412153,
+      "mean_lines_per_function": 16.520745724698628,
+      "num_classes": 1688,
+      "num_functions": 7134,
+      "pypi_version": "0.1.36",
+      "total_lines": 265348
+    },
+    "wily": {
+      "cyclomatic_avg": 0.0,
+      "error": "wily report failed: Usage: wily report [OPTIONS] FILE [METRICS]...\nTry 'wily report --help' for help.\n\nError: Invalid value for '-f' / '--format': 'json' is not one of 'CONSOLE', 'HTML'.\n",
+      "files_analyzed": 0,
+      "maintainability_index": 0.0,
+      "total_loc": 0
+    },
+    "workflow_status": {
+      "last_run_status": "success",
+      "last_success_timestamp": "2026-10-27T00:20:07Z",
+      "recent_failure_count": 0,
+      "run_url": "https://github.com/i2mint/xdol/actions/runs/40425683615",
+      "total_runs_analyzed": 10
+    }
+  },
+  "python_version": "3.10",
+  "schema_version": "1.0",
+  "timestamp": "2026-10-27T14:39:56.755664Z",
+  "workflow_status": {}
+}

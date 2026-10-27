@@ -1,6 +1,6 @@
 metric,value
 schema_version,1.0
-timestamp,2026-10-27T14:39:48.953462Z
+timestamp,2026-10-27T14:39:56.755664Z
 commit_sha,f378b79a4d9cd3a6d53405519e6773a93fe3e543
 commit_message,"updating: FutureWarning for the legacy missing=None default; one standard-policy registry (#47)
 
@@ -11,18 +11,18 @@ _PRESENCE_ONLY_POLICIES are one registry.
 
 Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 python_version,3.10
-metrics.umpyre_stats.num_functions,7226
-metrics.umpyre_stats.num_classes,1700
-metrics.umpyre_stats.total_lines,267432
-metrics.umpyre_stats.empty_lines,34593
-metrics.umpyre_stats.comment_lines,14829
-metrics.umpyre_stats.docs_lines,38750
-metrics.umpyre_stats.function_lines,119374
-metrics.umpyre_stats.empty_lines_ratio,0.12935250830117562
-metrics.umpyre_stats.comment_lines_ratio,0.05544960962038948
-metrics.umpyre_stats.function_lines_ratio,0.44637141404170033
-metrics.umpyre_stats.mean_lines_per_function,16.52006642679214
-metrics.umpyre_stats.files_analyzed,597
+metrics.umpyre_stats.num_functions,7134
+metrics.umpyre_stats.num_classes,1688
+metrics.umpyre_stats.total_lines,265348
+metrics.umpyre_stats.empty_lines,34276
+metrics.umpyre_stats.comment_lines,14717
+metrics.umpyre_stats.docs_lines,38713
+metrics.umpyre_stats.function_lines,117859
+metrics.umpyre_stats.empty_lines_ratio,0.1291737642642869
+metrics.umpyre_stats.comment_lines_ratio,0.05546301460723277
+metrics.umpyre_stats.function_lines_ratio,0.44416765907412153
+metrics.umpyre_stats.mean_lines_per_function,16.520745724698628
+metrics.umpyre_stats.files_analyzed,587
 metrics.umpyre_stats.pypi_version,0.1.36
 metrics.workflow_status.last_run_status,success
 metrics.workflow_status.last_success_timestamp,2026-10-27T00:20:07Z
@@ -43,4 +43,4 @@ metrics.coverage.branch_coverage,0.0
 metrics.coverage.statements_covered,0
 metrics.coverage.statements_total,0
 metrics.coverage.error,No coverage file found
-collection_duration_seconds,3.6304633617401123
+collection_duration_seconds,4.081297397613525
