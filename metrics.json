@@ -1,5 +1,5 @@
 {
-  "collection_duration_seconds": 2.923344373703003,
+  "collection_duration_seconds": 4.382422685623169,
   "commit_message": "updating: one key listing per store (#45): write path reuses membership, verify lists once (#54)\n\n* updating: contains_for= seam, one key listing per store (#45)\n\ncontains_by_lookup (default, unchanged) or contains_by_listing (one listing per\nstore instead of one membership test per key, e.g. HeadObject on S3), on\nupdate_with_policy, backfill, reconcile and verify. The write path reuses the\nmembership the decision was made on instead of testing it again.\n\nCo-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>\n\n* updating: drop contains_for; cached_keys for one listing per store (#45)\n\nReview of #54: dol.trans.cached_keys(store, keys_cache=set) already lists a\nstore once and answers `in` from that listing, kept current on writes, so the\ncontains_for seam (a stale snapshot that listed twice) is removed.\n\n- update_with_policy still reuses the decision-time membership on COPY/DELETE;\n  a DELETE whose key vanished since the decision is skipped, as before.\n- verify's default keys (None) list each store once and answer membership\n  from those listings: no per-key lookup.\n- reconcile/backfill/update_with_policy docs point to cached_keys for S3.\n\nCo-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>\n\n* updating: review fixes for #45 (real KeyError on delete raises, verify reports unreadable listed keys, set-only cache note, tighter tests)\n\nCo-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>\n\n---------\n\nCo-authored-by: Claude Opus 5.5 <noreply@anthropic.com>",
   "commit_sha": "155670592e5bb828da6fff6fe0c73df6408118ec",
   "metrics": {
@@ -11,19 +11,19 @@
       "statements_total": 0
     },
     "umpyre_stats": {
-      "comment_lines": 14719,
-      "comment_lines_ratio": 0.05546031040290583,
-      "docs_lines": 38729,
-      "empty_lines": 34282,
-      "empty_lines_ratio": 0.1291725226735796,
-      "files_analyzed": 587,
-      "function_lines": 117932,
-      "function_lines_ratio": 0.444360712442115,
-      "mean_lines_per_function": 16.524029704357574,
-      "num_classes": 1688,
-      "num_functions": 7137,
+      "comment_lines": 14831,
+      "comment_lines_ratio": 0.055446928940747195,
+      "docs_lines": 38766,
+      "empty_lines": 34599,
+      "empty_lines_ratio": 0.12935124363973516,
+      "files_analyzed": 597,
+      "function_lines": 119447,
+      "function_lines_ratio": 0.44656255958367136,
+      "mean_lines_per_function": 16.52330889472956,
+      "num_classes": 1700,
+      "num_functions": 7229,
       "pypi_version": "0.1.37",
-      "total_lines": 265397
+      "total_lines": 267481
     },
     "wily": {
       "cyclomatic_avg": 0.0,
@@ -42,6 +42,6 @@
   },
   "python_version": "3.10",
   "schema_version": "1.0",
-  "timestamp": "2026-10-27T15:03:26.785290Z",
+  "timestamp": "2026-10-27T15:03:41.143546Z",
   "workflow_status": {}
 }
