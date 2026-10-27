@@ -1,4 +1,4 @@
-> built 2026-10-27 00:05 UTC from 00d139d (master) · xdol 0.1.32. Details: build_info.json
+> built 2026-10-27 00:09 UTC from 9c56d9c (master) · xdol 0.1.33. Details: build_info.json
 
 # index.html.md
 
@@ -63,6 +63,17 @@ order, exactly as live recording folds them. So a `delete` clears a key (pin
 included) and only later-stamped events bring it back. An event without `ts` is
 ordered right after the line before it in the file (it takes that line’s timestamp,
 `0` at the top of the file): an unstamped `delete` still deletes what came before.
+
+Folding a compacted prefix plus the events after it is exact when those events are
+stamped after the compacted ones (the normal case). A *late* event, stamped before some
+compacted events (a slow writer that stamped it, then waited for the lock while another
+process compacted; or a clock running behind), folds only approximately: a snapshot
+keeps no per-event history, so it cannot split its counts around a late, older
+`delete`, nor order a late `pin`/`admit` against a compacted `unpin`/`release`.
+Per-field stamps would fix the flag ordering; only a grace window (compacting events
+older than some age, keeping the recent tail raw) fixes the counts, and only for events
+less than that window late. Revisit (i2mint/xdol#44) if a multi-writer user shows the
+drift matters.
 
 Keys must be JSON scalars, in practice `str`: a key that does not survive a JSON
 round trip (a tuple, a `Path`…) is counted in memory but lost or changed on reopen,
@@ -2107,7 +2118,7 @@ A value that fails to decode raises [`CodecDecodeError`](_autosummary/xdol.x_cod
 
 # About this build
 
-This documentation was built on **2026-10-27 00:05 UTC** from commit <a href="https://github.com/i2mint/xdol/commit/00d139d131590352848405b3a746258efd0222e4"><code>00d139d</code></a> on branch <code>master</code>, for **xdol 0.1.32** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-10-27 00:09 UTC** from commit <a href="https://github.com/i2mint/xdol/commit/9c56d9c2f8d5d9071a3c8649dbd45a8bcee1a215"><code>9c56d9c</code></a> on branch <code>master</code>, for **xdol 0.1.33** (from <code>pyproject.toml</code>).
 
 #### NOTE
 Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
@@ -2116,7 +2127,7 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 |                     |                                                                                                                                                    |
 |---------------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/i2mint/xdol/commit/00d139d131590352848405b3a746258efd0222e4"><code>00d139d131590352848405b3a746258efd0222e4</code></a> |
+| Commit              | <a href="https://github.com/i2mint/xdol/commit/9c56d9c2f8d5d9071a3c8649dbd45a8bcee1a215"><code>9c56d9c2f8d5d9071a3c8649dbd45a8bcee1a215</code></a> |
 | Branch              | <code>master</code>                                                                                                                                |
 | Tags at this commit | none                                                                                                                                               |
 | Working tree        | clean                                                                                                                                              |
@@ -2127,9 +2138,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>i2mint/xdol</code>                                                                   |
-| Run          | <a href="https://github.com/i2mint/xdol/actions/runs/40423950176">40423950176</a>          |
+| Run          | <a href="https://github.com/i2mint/xdol/actions/runs/40424402305">40424402305</a>          |
 | Ref          | <code>refs/heads/master</code>                                                             |
-| Event commit | <code>00d139d131590352848405b3a746258efd0222e4</code> (in the history of the built commit) |
+| Event commit | <code>9c56d9c2f8d5d9071a3c8649dbd45a8bcee1a215</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -2154,13 +2165,13 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/xdol/0.1.32/">0.1.32</a>, the same as the documented version.
+Latest release: <a href="https://pypi.org/project/xdol/0.1.33/">0.1.33</a>, the same as the documented version.
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/i2mint/xdol && cd xdol
-git checkout 00d139d131590352848405b3a746258efd0222e4
+git checkout 9c56d9c2f8d5d9071a3c8649dbd45a8bcee1a215
 pip install "epythet==0.2.22"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```

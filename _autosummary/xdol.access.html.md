@@ -28,6 +28,17 @@ included) and only later-stamped events bring it back. An event without `ts` is
 ordered right after the line before it in the file (it takes that line’s timestamp,
 `0` at the top of the file): an unstamped `delete` still deletes what came before.
 
+Folding a compacted prefix plus the events after it is exact when those events are
+stamped after the compacted ones (the normal case). A *late* event, stamped before some
+compacted events (a slow writer that stamped it, then waited for the lock while another
+process compacted; or a clock running behind), folds only approximately: a snapshot
+keeps no per-event history, so it cannot split its counts around a late, older
+`delete`, nor order a late `pin`/`admit` against a compacted `unpin`/`release`.
+Per-field stamps would fix the flag ordering; only a grace window (compacting events
+older than some age, keeping the recent tail raw) fixes the counts, and only for events
+less than that window late. Revisit (i2mint/xdol#44) if a multi-writer user shows the
+drift matters.
+
 Keys must be JSON scalars, in practice `str`: a key that does not survive a JSON
 round trip (a tuple, a `Path`…) is counted in memory but lost or changed on reopen,
 and recording one warns once.
