@@ -1,7 +1,7 @@
 {
-  "collection_duration_seconds": 3.6786298751831055,
-  "commit_message": "updating: drop contains_for; cached_keys for one listing per store (#45)\n\nReview of #54: dol.trans.cached_keys(store, keys_cache=set) already lists a\nstore once and answers `in` from that listing, kept current on writes, so the\ncontains_for seam (a stale snapshot that listed twice) is removed.\n\n- update_with_policy still reuses the decision-time membership on COPY/DELETE;\n  a DELETE whose key vanished since the decision is skipped, as before.\n- verify's default keys (None) list each store once and answer membership\n  from those listings: no per-key lookup.\n- reconcile/backfill/update_with_policy docs point to cached_keys for S3.\n\nCo-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>",
-  "commit_sha": "5b34e8d75f48a219260bd284db1a37c720576a4f",
+  "collection_duration_seconds": 4.207830190658569,
+  "commit_message": "Merge 5b34e8d75f48a219260bd284db1a37c720576a4f into ca9f2fd1f8240658f0ece5b78479b6b0adb6ccf8",
+  "commit_sha": "781c3715e7f16341817f11f2238f550c1f7f77b4",
   "metrics": {
     "coverage": {
       "branch_coverage": 0.0,
@@ -22,7 +22,7 @@
       "mean_lines_per_function": 16.521513665031534,
       "num_classes": 1688,
       "num_functions": 7135,
-      "pypi_version": "0.1.36",
+      "pypi_version": "0.1.37",
       "total_lines": 265375
     },
     "wily": {
@@ -42,6 +42,6 @@
   },
   "python_version": "3.10",
   "schema_version": "1.0",
-  "timestamp": "2026-10-27T14:53:14.284564Z",
+  "timestamp": "2026-10-27T14:53:23.757084Z",
   "workflow_status": {}
 }
