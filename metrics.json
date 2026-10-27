@@ -1,7 +1,7 @@
 {
-  "collection_duration_seconds": 2.7152810096740723,
-  "commit_message": "Merge e8d6f5a84479ea623b96788c5dd7fa8c89a3f2ed into 9c56d9c2f8d5d9071a3c8649dbd45a8bcee1a215",
-  "commit_sha": "32e91398f1f9d26ec34b2b9c4cbff8ca25538fba",
+  "collection_duration_seconds": 4.267863512039185,
+  "commit_message": "access: keep_tombstones_for retention seam (#42)\n\nCo-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>",
+  "commit_sha": "e8d6f5a84479ea623b96788c5dd7fa8c89a3f2ed",
   "metrics": {
     "coverage": {
       "branch_coverage": 0.0,
@@ -34,14 +34,14 @@
     },
     "workflow_status": {
       "last_run_status": "success",
-      "last_success_timestamp": "2026-10-27T00:07:45Z",
+      "last_success_timestamp": "2026-10-27T00:09:44Z",
       "recent_failure_count": 0,
-      "run_url": "https://github.com/i2mint/xdol/actions/runs/40424233055",
+      "run_url": "https://github.com/i2mint/xdol/actions/runs/40424402305",
       "total_runs_analyzed": 10
     }
   },
   "python_version": "3.10",
   "schema_version": "1.0",
-  "timestamp": "2026-10-27T00:09:44.852799Z",
+  "timestamp": "2026-10-27T00:09:52.088096Z",
   "workflow_status": {}
 }
