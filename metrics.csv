@@ -1,38 +1,33 @@
 metric,value
 schema_version,1.0
-timestamp,2026-10-27T00:19:07.888260Z
-commit_sha,5cb5d9a23d4e0ab6eda8710bd964f4b4052af7f9
-commit_message,"updating: verify on update_with_policy machinery (#45) (#52)
+timestamp,2026-10-27T14:39:48.953462Z
+commit_sha,f378b79a4d9cd3a6d53405519e6773a93fe3e543
+commit_message,"updating: FutureWarning for the legacy missing=None default; one standard-policy registry (#47)
 
-* updating: verify runs on update_with_policy (#45, item 1)
+Custom deciders that don't choose missing= get a FutureWarning (they still get
+None for now). reconcile gives custom deciders MISSING. Presence-only standard
+policies no longer call any given key infos. _STANDARD_DECIDERS and
+_PRESENCE_ONLY_POLICIES are one registry.
 
-Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>
-
-* updating: verify review fixes (types, read-only test)
-
-Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>
-
----------
-
-Co-authored-by: Claude Sonnet 5.5 <noreply@anthropic.com>"
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 python_version,3.10
-metrics.umpyre_stats.num_functions,7225
-metrics.umpyre_stats.num_classes,1698
-metrics.umpyre_stats.total_lines,267404
-metrics.umpyre_stats.empty_lines,34588
+metrics.umpyre_stats.num_functions,7226
+metrics.umpyre_stats.num_classes,1700
+metrics.umpyre_stats.total_lines,267432
+metrics.umpyre_stats.empty_lines,34593
 metrics.umpyre_stats.comment_lines,14829
-metrics.umpyre_stats.docs_lines,38745
-metrics.umpyre_stats.function_lines,119362
-metrics.umpyre_stats.empty_lines_ratio,0.1293473545646288
-metrics.umpyre_stats.comment_lines_ratio,0.05545541577538107
-metrics.umpyre_stats.function_lines_ratio,0.44637327788664344
-metrics.umpyre_stats.mean_lines_per_function,16.52069204152249
+metrics.umpyre_stats.docs_lines,38750
+metrics.umpyre_stats.function_lines,119374
+metrics.umpyre_stats.empty_lines_ratio,0.12935250830117562
+metrics.umpyre_stats.comment_lines_ratio,0.05544960962038948
+metrics.umpyre_stats.function_lines_ratio,0.44637141404170033
+metrics.umpyre_stats.mean_lines_per_function,16.52006642679214
 metrics.umpyre_stats.files_analyzed,597
-metrics.umpyre_stats.pypi_version,0.1.35
+metrics.umpyre_stats.pypi_version,0.1.36
 metrics.workflow_status.last_run_status,success
-metrics.workflow_status.last_success_timestamp,2026-10-27T00:17:42Z
+metrics.workflow_status.last_success_timestamp,2026-10-27T00:20:07Z
 metrics.workflow_status.recent_failure_count,0
-metrics.workflow_status.run_url,https://github.com/i2mint/xdol/actions/runs/40425364496
+metrics.workflow_status.run_url,https://github.com/i2mint/xdol/actions/runs/40425683615
 metrics.workflow_status.total_runs_analyzed,10
 metrics.wily.cyclomatic_avg,0.0
 metrics.wily.maintainability_index,0.0
@@ -48,4 +43,4 @@ metrics.coverage.branch_coverage,0.0
 metrics.coverage.statements_covered,0
 metrics.coverage.statements_total,0
 metrics.coverage.error,No coverage file found
-collection_duration_seconds,4.232070684432983
+collection_duration_seconds,3.6304633617401123
