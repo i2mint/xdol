@@ -860,3 +860,93 @@ def test_reconcile_reads_each_master_value_at_most_once():
     master, copy = pair()
     reconcile(master=master, copy=copy, policy=DefaultPolicy.PREFER_TARGET)
     assert master.reads == ["new"] and copy.reads == []
+
+
+# ---------------------------------------------------------------------------
+# i2mint/xdol#21: a None value is not a missing key; info is fetched lazily
+
+
+class _Counting(dict):
+    def __init__(self, *a, **kw):
+        super().__init__(*a, **kw)
+        self.reads = []
+
+    def __getitem__(self, k):
+        self.reads.append(k)
+        return super().__getitem__(k)
+
+
+def test_none_values_are_values_for_standard_policies():
+    from xdol import MISSING  # noqa: F401
+
+    t, s = {"a": None}, {"a": 1, "b": None}
+    update_with_policy(t, s, policy=DefaultPolicy.PREFER_TARGET)
+    assert t == {"a": None, "b": None}  # present None kept; absent key copied
+    t = {"a": 1}
+    update_with_policy(t, {"a": None})  # UPDATE_IF_DIFFERENT
+    assert t == {"a": None}
+    t = {"a": None}
+    stats = update_with_policy(t, {"a": None})
+    assert stats["unchanged"] == 1
+    t = {"a": 1}
+    update_with_policy(t, {"a": None}, policy=DefaultPolicy.ALWAYS_UPDATE)
+    assert t == {"a": None}
+
+
+def test_missing_sentinel_for_custom_deciders():
+    from xdol import MISSING
+
+    seen = {}
+
+    def decider(key, t, s):
+        seen[key] = (t, s)
+        return KeyDecision.SKIP
+
+    update_with_policy(
+        {"a": None}, {"a": None, "b": 1}, policy=decider, missing=MISSING
+    )
+    assert seen == {"a": (None, None), "b": (MISSING, 1)}
+    seen.clear()
+    update_with_policy({"a": 1}, {"b": 1}, policy=decider)  # legacy: None
+    assert seen == {"b": (None, 1)}
+
+
+def test_presence_only_policies_read_no_value_to_decide():
+    t, s = _Counting(a=1), _Counting(a=2, b=3)
+    update_with_policy(t, s, policy=DefaultPolicy.PREFER_TARGET)
+    assert t.reads == [] and s.reads == ["b"]  # only the one copied is read
+
+
+def test_none_info_of_a_present_key_is_not_missing():
+    t, s = {"a": 1}, {"a": 1}
+    stats = update_with_policy(
+        t, s, target_key_info=lambda k: None, source_key_info=lambda k: None
+    )
+    assert stats["unchanged"] == 1  # None == None, not "source missing"
+    t = {}
+    update_with_policy(t, {"a": 1}, source_key_info=lambda k: None)
+    assert t == {"a": 1}
+
+
+def test_update_newer_reads_no_values():
+    t, s = _Counting(a=1), _Counting(a=2)
+    update_with_policy.newer(
+        t, s, target_timestamp=lambda k: 1, source_timestamp=lambda k: 2
+    )
+    assert t == {"a": 2}
+    assert t.reads == [] and s.reads == ["a"]  # only the copied value is read
+
+
+def test_prefer_source_is_an_alias_of_always_update():
+    assert DefaultPolicy.PREFER_SOURCE is DefaultPolicy.ALWAYS_UPDATE
+
+
+def test_prefer_source_string_and_pickle():
+    import pickle
+    from xdol import MISSING
+
+    assert DefaultPolicy("PREFER_SOURCE") is DefaultPolicy.ALWAYS_UPDATE
+    t = {"a": 1}
+    update_with_policy(t, {"a": 2}, policy="PREFER_SOURCE")
+    assert t == {"a": 2}
+    assert pickle.loads(pickle.dumps(MISSING)) is MISSING

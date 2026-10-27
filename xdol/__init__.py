@@ -4,6 +4,7 @@ from xdol.pystores import PyFilesReader, PkgReader, SetupCfgReader
 from xdol.util import resolve_module_filepath, resolve_to_folder, save_obj
 from xdol.updating import (
     update_with_policy,
+    MISSING,
     backfill,
     reconcile,
     verify,
