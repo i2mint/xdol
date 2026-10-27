@@ -1,7 +1,7 @@
 {
-  "collection_duration_seconds": 5.2044596672058105,
-  "commit_message": "Merge f378b79a4d9cd3a6d53405519e6773a93fe3e543 into 29b8b5f14e154afab6ccae48e9497293cd02b4f6",
-  "commit_sha": "980d1dece7c870fe31d7e9702cf99ff5930a22a5",
+  "collection_duration_seconds": 4.477745056152344,
+  "commit_message": "updating: review fixes for #47 (sentinel pickles, honest repr, FutureWarning is an error in tests)\n\nCo-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>",
+  "commit_sha": "92fb6e545926cc5b0bd38b89fc3a6856bbf474e0",
   "metrics": {
     "coverage": {
       "branch_coverage": 0.0,
@@ -12,18 +12,18 @@
     },
     "umpyre_stats": {
       "comment_lines": 14717,
-      "comment_lines_ratio": 0.05546301460723277,
+      "comment_lines_ratio": 0.05546155150647246,
       "docs_lines": 38713,
-      "empty_lines": 34276,
-      "empty_lines_ratio": 0.1291737642642869,
+      "empty_lines": 34277,
+      "empty_lines_ratio": 0.12917412522846752,
       "files_analyzed": 587,
-      "function_lines": 117859,
-      "function_lines_ratio": 0.44416765907412153,
-      "mean_lines_per_function": 16.520745724698628,
+      "function_lines": 117861,
+      "function_lines_ratio": 0.4441634791128865,
+      "mean_lines_per_function": 16.518710581639805,
       "num_classes": 1688,
-      "num_functions": 7134,
+      "num_functions": 7135,
       "pypi_version": "0.1.36",
-      "total_lines": 265348
+      "total_lines": 265355
     },
     "wily": {
       "cyclomatic_avg": 0.0,
@@ -34,14 +34,14 @@
     },
     "workflow_status": {
       "last_run_status": "success",
-      "last_success_timestamp": "2026-10-27T14:40:03Z",
+      "last_success_timestamp": "2026-10-27T14:40:32Z",
       "recent_failure_count": 0,
-      "run_url": "https://github.com/i2mint/xdol/actions/runs/40523116937",
+      "run_url": "https://github.com/i2mint/xdol/actions/runs/40523204203",
       "total_runs_analyzed": 10
     }
   },
   "python_version": "3.10",
   "schema_version": "1.0",
-  "timestamp": "2026-10-27T14:40:27.291978Z",
+  "timestamp": "2026-10-27T14:43:16.236629Z",
   "workflow_status": {}
 }
