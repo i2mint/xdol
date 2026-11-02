@@ -1,5 +1,5 @@
 {
-  "collection_duration_seconds": 4.1222100257873535,
+  "collection_duration_seconds": 3.9689090251922607,
   "commit_message": "memoize_calls: miss_hint for a caller's line in the CacheMiss message (#55) (#56)\n\n* memoize_calls: miss_hint appends a caller's line to the CacheMiss message (#55)\n\n* test: compare the hinted miss message against the unhinted one",
   "commit_sha": "1a7990603fcafb7a0600d66bc42b51fe5c21f59e",
   "metrics": {
@@ -11,19 +11,19 @@
       "statements_total": 0
     },
     "umpyre_stats": {
-      "comment_lines": 15078,
-      "comment_lines_ratio": 0.05595324241580852,
-      "docs_lines": 39115,
-      "empty_lines": 34850,
-      "empty_lines_ratio": 0.12932554040263475,
-      "files_analyzed": 598,
-      "function_lines": 120959,
-      "function_lines_ratio": 0.44886909731886077,
-      "mean_lines_per_function": 16.567456512806466,
-      "num_classes": 1706,
-      "num_functions": 7301,
+      "comment_lines": 14966,
+      "comment_lines_ratio": 0.0559704702102913,
+      "docs_lines": 39078,
+      "empty_lines": 34533,
+      "empty_lines_ratio": 0.1291479518757176,
+      "files_analyzed": 588,
+      "function_lines": 119444,
+      "function_lines_ratio": 0.44670164665228074,
+      "mean_lines_per_function": 16.568733527535027,
+      "num_classes": 1694,
+      "num_functions": 7209,
       "pypi_version": "0.1.38",
-      "total_lines": 269475
+      "total_lines": 267391
     },
     "wily": {
       "cyclomatic_avg": 0.0,
@@ -42,6 +42,6 @@
   },
   "python_version": "3.10",
   "schema_version": "1.0",
-  "timestamp": "2026-11-02T10:46:40.688246Z",
+  "timestamp": "2026-11-02T10:46:54.461866Z",
   "workflow_status": {}
 }
