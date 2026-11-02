@@ -430,10 +430,11 @@ def test_atomic_files_directory_style_key_is_absent_for_get_and_in(tmp_path):
 
 def test_miss_hint_is_appended_to_the_miss_message(tmp_path):
     hint = "Record with: pytest --record-cassettes (this spends real money)."
+    f = Counter()
 
     def miss_message(**kwargs):
         with pytest.raises(CacheMiss) as info:
-            memoize_calls(Counter(), store=tmp_path, **kwargs)(1)
+            memoize_calls(f, store=tmp_path, **kwargs)(1)
         return str(info.value)
 
     assert miss_message(miss_hint=hint) == miss_message() + "\n" + hint
