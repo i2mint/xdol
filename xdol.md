@@ -1,4 +1,4 @@
-> built 2026-10-27 15:04 UTC from 1556705 (master) · xdol 0.1.37. Details: build_info.json
+> built 2026-11-02 10:47 UTC from 1a79906 (master) · xdol 0.1.38. Details: build_info.json
 
 # index.html.md
 
@@ -580,7 +580,7 @@ values as `<key>.json` + `<key>.bin`.
 * **Return type:**
   [`MutableMapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping)
 
-### xdol.memoize.memoize_calls(func=None, \*, store, codec=None, key_func=None, drop=(), mode=None, default_mode='replay', record_env='XDOL_MEMOIZE_RECORD', corrupt_errors=(<class 'xdol.x_codecs.CodecDecodeError'>, ), on_write_error='raise', copy_results=None, reread_after_write=True)
+### xdol.memoize.memoize_calls(func=None, \*, store, codec=None, key_func=None, drop=(), mode=None, default_mode='replay', record_env='XDOL_MEMOIZE_RECORD', corrupt_errors=(<class 'xdol.x_codecs.CodecDecodeError'>, ), on_write_error='raise', copy_results=None, reread_after_write=True, miss_hint='')
 
 Persistently memoize `func` into `store` (record/replay).
 
@@ -620,6 +620,9 @@ Usable as `memoize_calls(fn, store=...)` or as a decorator
     large asset.
   * **on_write_error** ([`Literal`](https://docs.python.org/3/library/typing.html#typing.Literal)[`'raise'`, `'warn'`]) – what to do if a fresh result cannot be stored: `"raise"`
     [`CacheWriteError`](_autosummary/xdol.memoize.html.md#xdol.memoize.CacheWriteError) (carrying the result) or `"warn"` and return it.
+  * **miss_hint** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str)) – text appended, on its own line, to the [`CacheMiss`](_autosummary/xdol.memoize.html.md#xdol.memoize.CacheMiss) message:
+    how *your* suite records (`"Record with: pytest --record-cassettes"`) and
+    what recording costs, which the generic advice cannot know.
 * **Return type:**
   [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)
 
@@ -2153,7 +2156,7 @@ A value that fails to decode raises [`CodecDecodeError`](_autosummary/xdol.x_cod
 
 # About this build
 
-This documentation was built on **2026-10-27 15:04 UTC** from commit <a href="https://github.com/i2mint/xdol/commit/155670592e5bb828da6fff6fe0c73df6408118ec"><code>1556705</code></a> on branch <code>master</code>, for **xdol 0.1.37** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-11-02 10:47 UTC** from commit <a href="https://github.com/i2mint/xdol/commit/1a7990603fcafb7a0600d66bc42b51fe5c21f59e"><code>1a79906</code></a> on branch <code>master</code>, for **xdol 0.1.38** (from <code>pyproject.toml</code>).
 
 #### NOTE
 Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
@@ -2162,7 +2165,7 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 |                     |                                                                                                                                                    |
 |---------------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/i2mint/xdol/commit/155670592e5bb828da6fff6fe0c73df6408118ec"><code>155670592e5bb828da6fff6fe0c73df6408118ec</code></a> |
+| Commit              | <a href="https://github.com/i2mint/xdol/commit/1a7990603fcafb7a0600d66bc42b51fe5c21f59e"><code>1a7990603fcafb7a0600d66bc42b51fe5c21f59e</code></a> |
 | Branch              | <code>master</code>                                                                                                                                |
 | Tags at this commit | none                                                                                                                                               |
 | Working tree        | clean                                                                                                                                              |
@@ -2173,9 +2176,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>i2mint/xdol</code>                                                                   |
-| Run          | <a href="https://github.com/i2mint/xdol/actions/runs/40526193230">40526193230</a>          |
+| Run          | <a href="https://github.com/i2mint/xdol/actions/runs/41431357835">41431357835</a>          |
 | Ref          | <code>refs/heads/master</code>                                                             |
-| Event commit | <code>155670592e5bb828da6fff6fe0c73df6408118ec</code> (in the history of the built commit) |
+| Event commit | <code>1a7990603fcafb7a0600d66bc42b51fe5c21f59e</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -2200,13 +2203,13 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/xdol/0.1.37/">0.1.37</a>, the same as the documented version.
+Latest release: <a href="https://pypi.org/project/xdol/0.1.38/">0.1.38</a>, the same as the documented version.
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/i2mint/xdol && cd xdol
-git checkout 155670592e5bb828da6fff6fe0c73df6408118ec
+git checkout 1a7990603fcafb7a0600d66bc42b51fe5c21f59e
 pip install "epythet==0.2.22"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```

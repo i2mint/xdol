@@ -144,7 +144,7 @@ values as `<key>.json` + `<key>.bin`.
 * **Return type:**
   [`MutableMapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping)
 
-### xdol.memoize.memoize_calls(func=None, \*, store, codec=None, key_func=None, drop=(), mode=None, default_mode='replay', record_env='XDOL_MEMOIZE_RECORD', corrupt_errors=(<class 'xdol.x_codecs.CodecDecodeError'>, ), on_write_error='raise', copy_results=None, reread_after_write=True)
+### xdol.memoize.memoize_calls(func=None, \*, store, codec=None, key_func=None, drop=(), mode=None, default_mode='replay', record_env='XDOL_MEMOIZE_RECORD', corrupt_errors=(<class 'xdol.x_codecs.CodecDecodeError'>, ), on_write_error='raise', copy_results=None, reread_after_write=True, miss_hint='')
 
 Persistently memoize `func` into `store` (record/replay).
 
@@ -184,6 +184,9 @@ Usable as `memoize_calls(fn, store=...)` or as a decorator
     large asset.
   * **on_write_error** ([`Literal`](https://docs.python.org/3/library/typing.html#typing.Literal)[`'raise'`, `'warn'`]) – what to do if a fresh result cannot be stored: `"raise"`
     [`CacheWriteError`](#xdol.memoize.CacheWriteError) (carrying the result) or `"warn"` and return it.
+  * **miss_hint** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str)) – text appended, on its own line, to the [`CacheMiss`](#xdol.memoize.CacheMiss) message:
+    how *your* suite records (`"Record with: pytest --record-cassettes"`) and
+    what recording costs, which the generic advice cannot know.
 * **Return type:**
   [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)
 

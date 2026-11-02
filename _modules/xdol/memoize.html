@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../_static/documentation_options.js?v=b8ecee75"></script>
+    <script src="../../_static/documentation_options.js?v=50f64db7"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -411,7 +411,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.37" />
+  <meta name="docsearch:version" content="0.1.38" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -972,9 +972,11 @@ window.runMermaid = runMermaid;</script>
     <span class="k">return</span> <span class="n">mode</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">_miss_message</span><span class="p">(</span><span class="n">func</span><span class="p">:</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">store</span><span class="p">:</span> <span class="n">MutableMapping</span><span class="p">,</span> <span class="n">env</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_miss_message</span><span class="p">(</span>
+    <span class="n">func</span><span class="p">:</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">store</span><span class="p">:</span> <span class="n">MutableMapping</span><span class="p">,</span> <span class="n">env</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">hint</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">""</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
     <span class="n">where</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">store</span><span class="p">,</span> <span class="s2">"rootdir"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">type</span><span class="p">(</span><span class="n">store</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span>
-    <span class="k">return</span> <span class="p">(</span>
+    <span class="n">message</span> <span class="o">=</span> <span class="p">(</span>
         <span class="sa">f</span><span class="s2">"No cached result for </span><span class="si">{</span><span class="n">_name</span><span class="p">(</span><span class="n">func</span><span class="p">)</span><span class="si">!r}</span><span class="s2"> at key </span><span class="si">{</span><span class="n">key</span><span class="si">!r}</span><span class="s2"> "</span>
         <span class="sa">f</span><span class="s2">"in </span><span class="si">{</span><span class="n">where</span><span class="si">}</span><span class="s2">. Nothing was called: this run is replay-only, so a miss fails "</span>
         <span class="sa">f</span><span class="s2">"instead of spending.</span><span class="se">\n</span><span class="s2">"</span>
@@ -984,6 +986,7 @@ window.runMermaid = runMermaid;</script>
         <span class="sa">f</span><span class="s2">"To record it, re-run with </span><span class="si">{</span><span class="n">env</span><span class="si">}</span><span class="s2">=1 (or pass mode='record') where the function "</span>
         <span class="s2">"can really run, and commit the new entries."</span>
     <span class="p">)</span>
+    <span class="k">return</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">message</span><span class="si">}</span><span class="se">\n</span><span class="si">{</span><span class="n">hint</span><span class="si">}</span><span class="s2">"</span> <span class="k">if</span> <span class="n">hint</span> <span class="k">else</span> <span class="n">message</span>
 
 
 <div class="viewcode-block" id="memoize_calls">
@@ -1002,6 +1005,7 @@ window.runMermaid = runMermaid;</script>
     <span class="n">on_write_error</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"raise"</span><span class="p">,</span> <span class="s2">"warn"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"raise"</span><span class="p">,</span>
     <span class="n">copy_results</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">reread_after_write</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">miss_hint</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">""</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Persistently memoize ``func`` into ``store`` (record/replay).</span>
 
@@ -1041,6 +1045,9 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">            large asset.</span>
 <span class="sd">        on_write_error: what to do if a fresh result cannot be stored: ``"raise"``</span>
 <span class="sd">            :class:`CacheWriteError` (carrying the result) or ``"warn"`` and return it.</span>
+<span class="sd">        miss_hint: text appended, on its own line, to the :class:`CacheMiss` message:</span>
+<span class="sd">            how *your* suite records (``"Record with: pytest --record-cassettes"``) and</span>
+<span class="sd">            what recording costs, which the generic advice cannot know.</span>
 
 <span class="sd">    The returned wrapper has attributes ``cache_store``, ``key_func``, ``cache_key(*args,</span>
 <span class="sd">    **kwargs)`` and ``cache_mode()`` (the mode that would apply now).</span>
@@ -1123,7 +1130,9 @@ window.runMermaid = runMermaid;</script>
                 <span class="k">return</span> <span class="n">mode_now</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">None</span>
             <span class="n">hit</span><span class="p">,</span> <span class="n">value</span> <span class="o">=</span> <span class="n">lookup</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">mode_now</span><span class="p">)</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="n">hit</span> <span class="ow">and</span> <span class="n">mode_now</span> <span class="o">==</span> <span class="s2">"replay"</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="n">CacheMiss</span><span class="p">(</span><span class="n">_miss_message</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">cache</span><span class="p">,</span> <span class="n">record_env</span><span class="p">))</span>
+                <span class="k">raise</span> <span class="n">CacheMiss</span><span class="p">(</span>
+                    <span class="n">_miss_message</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">cache</span><span class="p">,</span> <span class="n">record_env</span><span class="p">,</span> <span class="n">hint</span><span class="o">=</span><span class="n">miss_hint</span><span class="p">)</span>
+                <span class="p">)</span>
             <span class="k">return</span> <span class="n">mode_now</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">hit</span><span class="p">,</span> <span class="n">value</span>
 
         <span class="k">if</span> <span class="n">inspect</span><span class="o">.</span><span class="n">iscoroutinefunction</span><span class="p">(</span><span class="n">f</span><span class="p">):</span>
