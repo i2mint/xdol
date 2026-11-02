@@ -1,21 +1,21 @@
 metric,value
 schema_version,1.0
-timestamp,2026-11-02T10:44:11.801860Z
+timestamp,2026-11-02T10:44:14.890834Z
 commit_sha,6c567da7c3fa011e2e4487c74c605b925d43eebc
 commit_message,test: compare the hinted miss message against the unhinted one
 python_version,3.10
-metrics.umpyre_stats.num_functions,7209
-metrics.umpyre_stats.num_classes,1694
-metrics.umpyre_stats.total_lines,267391
-metrics.umpyre_stats.empty_lines,34533
-metrics.umpyre_stats.comment_lines,14966
-metrics.umpyre_stats.docs_lines,39078
-metrics.umpyre_stats.function_lines,119444
-metrics.umpyre_stats.empty_lines_ratio,0.1291479518757176
-metrics.umpyre_stats.comment_lines_ratio,0.0559704702102913
-metrics.umpyre_stats.function_lines_ratio,0.44670164665228074
-metrics.umpyre_stats.mean_lines_per_function,16.568733527535027
-metrics.umpyre_stats.files_analyzed,588
+metrics.umpyre_stats.num_functions,7301
+metrics.umpyre_stats.num_classes,1706
+metrics.umpyre_stats.total_lines,269475
+metrics.umpyre_stats.empty_lines,34850
+metrics.umpyre_stats.comment_lines,15078
+metrics.umpyre_stats.docs_lines,39115
+metrics.umpyre_stats.function_lines,120959
+metrics.umpyre_stats.empty_lines_ratio,0.12932554040263475
+metrics.umpyre_stats.comment_lines_ratio,0.05595324241580852
+metrics.umpyre_stats.function_lines_ratio,0.44886909731886077
+metrics.umpyre_stats.mean_lines_per_function,16.567456512806466
+metrics.umpyre_stats.files_analyzed,598
 metrics.umpyre_stats.pypi_version,0.1.38
 metrics.workflow_status.last_run_status,failure
 metrics.workflow_status.last_success_timestamp,2026-10-27T15:05:13Z
@@ -36,4 +36,4 @@ metrics.coverage.branch_coverage,0.0
 metrics.coverage.statements_covered,0
 metrics.coverage.statements_total,0
 metrics.coverage.error,No coverage file found
-collection_duration_seconds,4.201763391494751
+collection_duration_seconds,4.143905878067017
