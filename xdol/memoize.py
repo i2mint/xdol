@@ -254,9 +254,11 @@ def _resolve_mode(mode, default_mode: str, record_env: str) -> str:
     return mode
 
 
-def _miss_message(func: Callable, key: str, store: MutableMapping, env: str) -> str:
+def _miss_message(
+    func: Callable, key: str, store: MutableMapping, env: str, *, hint: str = ""
+) -> str:
     where = getattr(store, "rootdir", None) or type(store).__name__
-    return (
+    message = (
         f"No cached result for {_name(func)!r} at key {key!r} "
         f"in {where}. Nothing was called: this run is replay-only, so a miss fails "
         f"instead of spending.\n"
@@ -266,6 +268,7 @@ def _miss_message(func: Callable, key: str, store: MutableMapping, env: str) -> 
         f"To record it, re-run with {env}=1 (or pass mode='record') where the function "
         "can really run, and commit the new entries."
     )
+    return f"{message}\n{hint}" if hint else message
 
 
 def memoize_calls(
@@ -282,6 +285,7 @@ def memoize_calls(
     on_write_error: Literal["raise", "warn"] = "raise",
     copy_results: bool | None = None,
     reread_after_write: bool = True,
+    miss_hint: str = "",
 ) -> Callable:
     """Persistently memoize ``func`` into ``store`` (record/replay).
 
@@ -321,6 +325,9 @@ def memoize_calls(
             large asset.
         on_write_error: what to do if a fresh result cannot be stored: ``"raise"``
             :class:`CacheWriteError` (carrying the result) or ``"warn"`` and return it.
+        miss_hint: text appended, on its own line, to the :class:`CacheMiss` message:
+            how *your* suite records (``"Record with: pytest --record-cassettes"``) and
+            what recording costs, which the generic advice cannot know.
 
     The returned wrapper has attributes ``cache_store``, ``key_func``, ``cache_key(*args,
     **kwargs)`` and ``cache_mode()`` (the mode that would apply now).
@@ -403,7 +410,9 @@ def memoize_calls(
                 return mode_now, key, False, None
             hit, value = lookup(key, mode_now)
             if not hit and mode_now == "replay":
-                raise CacheMiss(_miss_message(f, key, cache, record_env))
+                raise CacheMiss(
+                    _miss_message(f, key, cache, record_env, hint=miss_hint)
+                )
             return mode_now, key, hit, value
 
         if inspect.iscoroutinefunction(f):
