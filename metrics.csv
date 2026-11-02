@@ -1,8 +1,12 @@
 metric,value
 schema_version,1.0
-timestamp,2026-11-02T10:44:44.293524Z
-commit_sha,42e027b665bfdd2f9e5c81adcabdce555b0befa7
-commit_message,Merge 6c567da7c3fa011e2e4487c74c605b925d43eebc into 6b3703cd454147186ffc10bf7876831461a5c4b9
+timestamp,2026-11-02T10:46:40.688246Z
+commit_sha,1a7990603fcafb7a0600d66bc42b51fe5c21f59e
+commit_message,"memoize_calls: miss_hint for a caller's line in the CacheMiss message (#55) (#56)
+
+* memoize_calls: miss_hint appends a caller's line to the CacheMiss message (#55)
+
+* test: compare the hinted miss message against the unhinted one"
 python_version,3.10
 metrics.umpyre_stats.num_functions,7301
 metrics.umpyre_stats.num_classes,1706
@@ -18,9 +22,9 @@ metrics.umpyre_stats.mean_lines_per_function,16.567456512806466
 metrics.umpyre_stats.files_analyzed,598
 metrics.umpyre_stats.pypi_version,0.1.38
 metrics.workflow_status.last_run_status,success
-metrics.workflow_status.last_success_timestamp,2026-11-02T10:44:20Z
+metrics.workflow_status.last_success_timestamp,2026-11-02T10:44:49Z
 metrics.workflow_status.recent_failure_count,1
-metrics.workflow_status.run_url,https://github.com/i2mint/xdol/actions/runs/41431030149
+metrics.workflow_status.run_url,https://github.com/i2mint/xdol/actions/runs/41431102138
 metrics.workflow_status.total_runs_analyzed,10
 metrics.wily.cyclomatic_avg,0.0
 metrics.wily.maintainability_index,0.0
@@ -36,4 +40,4 @@ metrics.coverage.branch_coverage,0.0
 metrics.coverage.statements_covered,0
 metrics.coverage.statements_total,0
 metrics.coverage.error,No coverage file found
-collection_duration_seconds,4.247574090957642
+collection_duration_seconds,4.1222100257873535
