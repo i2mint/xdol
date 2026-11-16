@@ -4,13 +4,7 @@ import pytest
 from dol import Files
 
 from xdol.x_codecs import (
-    BYTES_CODEC,
-    CODECS,
-    JSON_CODEC,
-    Codec,
-    get_codec,
-    json_codec,
-    paired_store,
+    BYTES_CODEC, CODECS, JSON_CODEC, Codec, get_codec, json_codec, paired_store,
     with_codec,
 )
 
@@ -26,9 +20,7 @@ def test_get_codec_forms():
 def test_json_codec_is_strict_unless_told():
     with pytest.raises(TypeError):
         JSON_CODEC.encode({"x": object()})
-    assert json_codec(default=str).decode(
-        json_codec(default=str).encode({"x": 1j})
-    ) == {"x": "1j"}
+    assert json_codec(default=str).decode(json_codec(default=str).encode({"x": 1j})) == {"x": "1j"}
 
 
 def test_registered_codec_is_usable_by_name():

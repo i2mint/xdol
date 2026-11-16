@@ -8,13 +8,8 @@ import warnings
 import pytest
 
 from xdol.memoize import (
-    AtomicFiles,
-    CacheCorrupt,
-    CacheMiss,
-    CacheWriteError,
-    file_cache_store,
-    memoize_calls,
-    recording_enabled,
+    AtomicFiles, CacheCorrupt, CacheMiss, CacheWriteError, file_cache_store,
+    memoize_calls, recording_enabled,
 )
 
 
@@ -141,9 +136,7 @@ def test_none_and_falsy_results_are_cached(tmp_path):
 
 
 def test_binary_codec_and_paired_codec(tmp_path):
-    img = memoize_calls(
-        lambda s: s.encode(), store=tmp_path / "b", codec="bytes", mode="record"
-    )
+    img = memoize_calls(lambda s: s.encode(), store=tmp_path / "b", codec="bytes", mode="record")
     assert img("x") == b"x"
     assert img("x") == b"x"
 
@@ -177,9 +170,7 @@ def test_unserializable_result_raises_with_result_attached_or_warns(tmp_path):
     with pytest.raises(CacheWriteError) as ei:
         m()
     assert ei.value.result == {1, 2}
-    w = memoize_calls(
-        lambda: {1, 2}, store=tmp_path, mode="record", on_write_error="warn"
-    )
+    w = memoize_calls(lambda: {1, 2}, store=tmp_path, mode="record", on_write_error="warn")
     with pytest.warns(UserWarning, match="could not be stored"):
         assert w() == {1, 2}
     assert list(tmp_path.iterdir()) == []  # nothing half-written
@@ -313,9 +304,7 @@ def test_record_returns_what_replay_returns(tmp_path):
     rec = memoize_calls(f, store=tmp_path, mode="record")()
     rep = memoize_calls(f, store=tmp_path)()
     assert rec == rep == [1, {"1": "a"}]
-    raw = memoize_calls(
-        f, store=tmp_path / "x", mode="record", reread_after_write=False
-    )()
+    raw = memoize_calls(f, store=tmp_path / "x", mode="record", reread_after_write=False)()
     assert raw == (1, {1: "a"})
 
 
