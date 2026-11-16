@@ -1,22 +1,22 @@
 metric,value
 schema_version,1.0
-timestamp,2026-11-16T21:09:39.329791Z
-commit_sha,4a2c40b6a4d8628b563d1bee18e7bc130cd71178
-commit_message,"access: review fixes (docstring contract, unused imports, lock path in message, RuntimeError, flock assertion)"
+timestamp,2026-11-16T21:09:47.219811Z
+commit_sha,8543d3d06bcf1ba2effebb13797a581edfde24a8
+commit_message,Merge 4a2c40b6a4d8628b563d1bee18e7bc130cd71178 into 2f0666a6caaf6c8aa0ac399ab601d7747fc824a9
 python_version,3.10
-metrics.umpyre_stats.num_functions,7341
-metrics.umpyre_stats.num_classes,1709
-metrics.umpyre_stats.total_lines,270462
-metrics.umpyre_stats.empty_lines,34991
-metrics.umpyre_stats.comment_lines,15108
-metrics.umpyre_stats.docs_lines,39439
-metrics.umpyre_stats.function_lines,121708
-metrics.umpyre_stats.empty_lines_ratio,0.12937492143073703
-metrics.umpyre_stats.comment_lines_ratio,0.05585997293519977
-metrics.umpyre_stats.function_lines_ratio,0.4500003697377081
-metrics.umpyre_stats.mean_lines_per_function,16.57921264132952
-metrics.umpyre_stats.files_analyzed,600
-metrics.umpyre_stats.pypi_version,0.1.38
+metrics.umpyre_stats.num_functions,7254
+metrics.umpyre_stats.num_classes,1697
+metrics.umpyre_stats.total_lines,268536
+metrics.umpyre_stats.empty_lines,34692
+metrics.umpyre_stats.comment_lines,15038
+metrics.umpyre_stats.docs_lines,39424
+metrics.umpyre_stats.function_lines,120333
+metrics.umpyre_stats.empty_lines_ratio,0.1291893824291715
+metrics.umpyre_stats.comment_lines_ratio,0.05599994041767212
+metrics.umpyre_stats.function_lines_ratio,0.44810751631066226
+metrics.umpyre_stats.mean_lines_per_function,16.58850289495451
+metrics.umpyre_stats.files_analyzed,590
+metrics.umpyre_stats.pypi_version,0.1.39
 metrics.workflow_status.last_run_status,success
 metrics.workflow_status.last_success_timestamp,2026-11-16T21:05:37Z
 metrics.workflow_status.recent_failure_count,1
@@ -36,4 +36,4 @@ metrics.coverage.branch_coverage,0.0
 metrics.coverage.statements_covered,0
 metrics.coverage.statements_total,0
 metrics.coverage.error,No coverage file found
-collection_duration_seconds,4.179434061050415
+collection_duration_seconds,2.863175630569458
