@@ -1026,9 +1026,14 @@ def test_a_symlinked_log_shares_its_lock_with_the_real_file(tmp_path):
     link = tmp_path / "link.jsonl"
     link.symlink_to(real)
     log = AccessLog(link)
+    import fcntl
+
     with log._appender.lock, pytest.raises(RuntimeError):
         with dol.file_lock(real):  # same lock: this thread would wait on itself
             pass
+    with log._appender.lock, open(str(real) + ".lock", "rb") as other:
+        with pytest.raises(BlockingIOError):  # and other processes are excluded
+            fcntl.flock(other.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
     log.record("a", "read", 1)
     log.compact()
     assert AccessLog(real)["a"].reads == 1 and link.is_symlink()

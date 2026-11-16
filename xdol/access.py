@@ -54,12 +54,15 @@ Compaction runs by default once the file holds more than ``DFLT_COMPACT_ABOVE`` 
 
 Several processes may share one file. Every append, every replay and every compaction
 holds an exclusive advisory lock (``flock``; ``msvcrt.locking`` on Windows) on a sidecar
-``<path>.lock`` file, and an appender checks, under that lock, that its handle is still
-on the file at ``path`` (reopening it if not), so compaction (which re-folds the file
-from disk, then replaces it) never drops another writer's events. An external appender
-(e.g. a filesystem tracer that only knows paths) must do the same: take an exclusive
-``flock`` on ``<path>.lock`` around each append, opening ``path`` afresh each time; or
-else every log of that file must set ``compact_above=None``.
+of the real file (``<path>.lock``; beside the target of a symlink, a shortened hidden
+name for names near the 255-byte limit: see ``dol.FileLock``), and an appender checks,
+under that lock, that its handle is still on the file at ``path`` (reopening it if
+not), so compaction (which re-folds the file from disk, then replaces it) never drops
+another writer's events. An external appender (e.g. a filesystem tracer that only knows
+paths) must do the same: from Python, ``dol.LockedAppender(path, line_end=b"\n")``;
+otherwise hold ``dol.file_lock(path)``'s lock around each append, opening ``path``
+afresh each time and writing each record as one ``\n``-terminated write; or else every
+log of that file must set ``compact_above=None``.
 
 >>> log = AccessLog()
 >>> store = track_access({'a': b'xyz'}, tracker=log)
@@ -75,7 +78,6 @@ True
 
 from __future__ import annotations
 
-import errno
 import json
 import math
 import os
@@ -83,7 +85,6 @@ import platform
 import time
 import warnings
 from collections.abc import Callable, Iterator, Mapping, MutableMapping
-from contextlib import contextmanager
 from dataclasses import asdict, dataclass, replace
 from types import MappingProxyType
 from typing import Any, get_type_hints
@@ -510,7 +511,7 @@ class AccessLog(Mapping):
         }
         try:
             self._appender.append(_jsonl(event))
-        except OSError as e:
+        except (OSError, RuntimeError) as e:  # RuntimeError: this thread holds the lock
             self._warn_once(
                 "_warned_io",
                 f"AccessLog cannot write to {self.path!r} ({e}); "
@@ -546,7 +547,7 @@ class AccessLog(Mapping):
         if self.path is not None:
             with self._appender.lock as lock:
                 if not lock.held:  # unlocked, another writer's events could be lost
-                    raise OSError(f"cannot lock {self.path}.lock: not compacting")
+                    raise OSError(f"cannot lock {lock.path}: not compacting")
                 if os.path.exists(self.path):
                     stats_by_key, tombstones, _, _ = _fold_path(self.path)
                     tombstones = _live_tombstones(tombstones, not_before=horizon)
