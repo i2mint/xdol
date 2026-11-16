@@ -9,13 +9,13 @@ Stores for python objects
 
 ### Classes
 
-| [`PkgFilesReader`](#xdol.pystores.PkgFilesReader)                         |                                                                |
-|-----------------------------------------------------------------------------------------|----------------------------------------------------------------|
-| [`PkgReader`](#xdol.pystores.PkgReader)(rootdir[, subpath, ...])     | By store we mean key-value store.                              |
-| [`PyFilesBytes`](#xdol.pystores.PyFilesBytes)(rootdir[, subpath, ...])  | Mapping interface to .py files' bytes                          |
-| [`PyFilesReader`](#xdol.pystores.PyFilesReader)([store])                 | Mapping interface to .py files of a folder.                    |
-| [`PyprojectReader`](#xdol.pystores.PyprojectReader)(src, \*[, max_levels]) | Mapping interface to pyproject.toml files in a directory tree. |
-| [`SetupCfgReader`](#xdol.pystores.SetupCfgReader)(src, \*[, max_levels])  | Mapping interface to setup.cfg files in a directory tree.      |
+| [`PkgFilesReader`](#xdol.pystores.PkgFilesReader)                          |                                                                |
+|------------------------------------------------------------------------------------------|----------------------------------------------------------------|
+| [`PkgReader`](#xdol.pystores.PkgReader)(rootdir[, subpath, ...])      | By store we mean key-value store.                              |
+| [`PyFilesBytes`](#xdol.pystores.PyFilesBytes)(\*args[, read_retry, ...]) | Mapping interface to .py files' bytes                          |
+| [`PyFilesReader`](#xdol.pystores.PyFilesReader)([store])                  | Mapping interface to .py files of a folder.                    |
+| [`PyprojectReader`](#xdol.pystores.PyprojectReader)(src, \*[, max_levels])  | Mapping interface to pyproject.toml files in a directory tree. |
+| [`SetupCfgReader`](#xdol.pystores.SetupCfgReader)(src, \*[, max_levels])   | Mapping interface to setup.cfg files in a directory tree.      |
 
 ### xdol.pystores.PkgFilesReader
 
@@ -145,7 +145,7 @@ For more, see: [https://github.com/i2mint/dol/wiki/Mapping-Views](https://github
 
 `validate_key` on the inner key – see `mk_relative_path_store`.
 
-### *class* xdol.pystores.PyFilesBytes(rootdir, subpath='', pattern_for_field=None, max_levels=None, , include_hidden=False, assert_rootdir_existence=False, allow_escape=False)
+### *class* xdol.pystores.PyFilesBytes(\*args, read_retry=None, strict_key_errors=False, \*\*kwargs)
 
 Bases: `Store`
 

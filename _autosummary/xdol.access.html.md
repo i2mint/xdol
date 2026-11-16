@@ -58,12 +58,17 @@ Compaction runs by default once the file holds more than `DFLT_COMPACT_ABOVE` ev
 
 Several processes may share one file. Every append, every replay and every compaction
 holds an exclusive advisory lock (`flock`; `msvcrt.locking` on Windows) on a sidecar
-`<path>.lock` file, and an appender checks, under that lock, that its handle is still
-on the file at `path` (reopening it if not), so compaction (which re-folds the file
-from disk, then replaces it) never drops another writer’s events. An external appender
-(e.g. a filesystem tracer that only knows paths) must do the same: take an exclusive
-`flock` on `<path>.lock` around each append, opening `path` afresh each time; or
-else every log of that file must set `compact_above=None`.
+of the real file (`<path>.lock`; beside the target of a symlink, a shortened hidden
+name for names near the 255-byte limit: see `dol.FileLock`), and an appender checks,
+under that lock, that its handle is still on the file at `path` (reopening it if
+not), so compaction (which re-folds the file from disk, then replaces it) never drops
+another writer’s events. An external appender (e.g. a filesystem tracer that only knows
+paths) must do the same: from Python, `dol.LockedAppender(path, line_end=b"
+")`;
+otherwise hold `dol.file_lock(path)`’s lock around each append, opening `path`
+afresh each time and writing each record as one \`\`
+`-terminated write; or else every
+log of that file must set ``compact_above=None`.
 
 ```pycon
 >>> log = AccessLog()

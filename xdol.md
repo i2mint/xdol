@@ -1,4 +1,4 @@
-> built 2026-11-02 10:47 UTC from 1a79906 (master) · xdol 0.1.38. Details: build_info.json
+> built 2026-11-16 21:12 UTC from 41c8d49 (master) · xdol 0.1.39. Details: build_info.json
 
 # index.html.md
 
@@ -94,12 +94,17 @@ Compaction runs by default once the file holds more than `DFLT_COMPACT_ABOVE` ev
 
 Several processes may share one file. Every append, every replay and every compaction
 holds an exclusive advisory lock (`flock`; `msvcrt.locking` on Windows) on a sidecar
-`<path>.lock` file, and an appender checks, under that lock, that its handle is still
-on the file at `path` (reopening it if not), so compaction (which re-folds the file
-from disk, then replaces it) never drops another writer’s events. An external appender
-(e.g. a filesystem tracer that only knows paths) must do the same: take an exclusive
-`flock` on `<path>.lock` around each append, opening `path` afresh each time; or
-else every log of that file must set `compact_above=None`.
+of the real file (`<path>.lock`; beside the target of a symlink, a shortened hidden
+name for names near the 255-byte limit: see `dol.FileLock`), and an appender checks,
+under that lock, that its handle is still on the file at `path` (reopening it if
+not), so compaction (which re-folds the file from disk, then replaces it) never drops
+another writer’s events. An external appender (e.g. a filesystem tracer that only knows
+paths) must do the same: from Python, `dol.LockedAppender(path, line_end=b"
+")`;
+otherwise hold `dol.file_lock(path)`’s lock around each append, opening `path`
+afresh each time and writing each record as one \`\`
+`-terminated write; or else every
+log of that file must set ``compact_above=None`.
 
 ```pycon
 >>> log = AccessLog()
@@ -742,13 +747,13 @@ Stores for python objects
 
 ### Classes
 
-| [`PkgFilesReader`](_autosummary/xdol.pystores.html.md#xdol.pystores.PkgFilesReader)                         |                                                                |
-|-----------------------------------------------------------------------------------------|----------------------------------------------------------------|
-| [`PkgReader`](_autosummary/xdol.pystores.html.md#xdol.pystores.PkgReader)(rootdir[, subpath, ...])     | By store we mean key-value store.                              |
-| [`PyFilesBytes`](_autosummary/xdol.pystores.html.md#xdol.pystores.PyFilesBytes)(rootdir[, subpath, ...])  | Mapping interface to .py files' bytes                          |
-| [`PyFilesReader`](_autosummary/xdol.pystores.html.md#xdol.pystores.PyFilesReader)([store])                 | Mapping interface to .py files of a folder.                    |
-| [`PyprojectReader`](_autosummary/xdol.pystores.html.md#xdol.pystores.PyprojectReader)(src, \*[, max_levels]) | Mapping interface to pyproject.toml files in a directory tree. |
-| [`SetupCfgReader`](_autosummary/xdol.pystores.html.md#xdol.pystores.SetupCfgReader)(src, \*[, max_levels])  | Mapping interface to setup.cfg files in a directory tree.      |
+| [`PkgFilesReader`](_autosummary/xdol.pystores.html.md#xdol.pystores.PkgFilesReader)                          |                                                                |
+|------------------------------------------------------------------------------------------|----------------------------------------------------------------|
+| [`PkgReader`](_autosummary/xdol.pystores.html.md#xdol.pystores.PkgReader)(rootdir[, subpath, ...])      | By store we mean key-value store.                              |
+| [`PyFilesBytes`](_autosummary/xdol.pystores.html.md#xdol.pystores.PyFilesBytes)(\*args[, read_retry, ...]) | Mapping interface to .py files' bytes                          |
+| [`PyFilesReader`](_autosummary/xdol.pystores.html.md#xdol.pystores.PyFilesReader)([store])                  | Mapping interface to .py files of a folder.                    |
+| [`PyprojectReader`](_autosummary/xdol.pystores.html.md#xdol.pystores.PyprojectReader)(src, \*[, max_levels])  | Mapping interface to pyproject.toml files in a directory tree. |
+| [`SetupCfgReader`](_autosummary/xdol.pystores.html.md#xdol.pystores.SetupCfgReader)(src, \*[, max_levels])   | Mapping interface to setup.cfg files in a directory tree.      |
 
 ### xdol.pystores.PkgFilesReader
 
@@ -878,7 +883,7 @@ For more, see: [https://github.com/i2mint/dol/wiki/Mapping-Views](https://github
 
 `validate_key` on the inner key – see `mk_relative_path_store`.
 
-### *class* xdol.pystores.PyFilesBytes(rootdir, subpath='', pattern_for_field=None, max_levels=None, , include_hidden=False, assert_rootdir_existence=False, allow_escape=False)
+### *class* xdol.pystores.PyFilesBytes(\*args, read_retry=None, strict_key_errors=False, \*\*kwargs)
 
 Bases: `Store`
 
@@ -2156,16 +2161,18 @@ A value that fails to decode raises [`CodecDecodeError`](_autosummary/xdol.x_cod
 
 # About this build
 
-This documentation was built on **2026-11-02 10:47 UTC** from commit <a href="https://github.com/i2mint/xdol/commit/1a7990603fcafb7a0600d66bc42b51fe5c21f59e"><code>1a79906</code></a> on branch <code>master</code>, for **xdol 0.1.38** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-11-16 21:12 UTC** from commit <a href="https://github.com/i2mint/xdol/commit/41c8d490071bed243c50f4334d53783451814ed8"><code>41c8d49</code></a> on branch <code>master</code>, for **xdol 0.1.39** (from <code>pyproject.toml</code>).
 
-#### NOTE
-Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
+#### WARNING
+The documentation and the package may be misaligned:
+
+- The documented version (0.1.39) is behind the latest release on PyPI (0.1.40): `pip install xdol` gives newer code than these docs describe.
 
 ## Source
 
 |                     |                                                                                                                                                    |
 |---------------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/i2mint/xdol/commit/1a7990603fcafb7a0600d66bc42b51fe5c21f59e"><code>1a7990603fcafb7a0600d66bc42b51fe5c21f59e</code></a> |
+| Commit              | <a href="https://github.com/i2mint/xdol/commit/41c8d490071bed243c50f4334d53783451814ed8"><code>41c8d490071bed243c50f4334d53783451814ed8</code></a> |
 | Branch              | <code>master</code>                                                                                                                                |
 | Tags at this commit | none                                                                                                                                               |
 | Working tree        | clean                                                                                                                                              |
@@ -2176,9 +2183,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>i2mint/xdol</code>                                                                   |
-| Run          | <a href="https://github.com/i2mint/xdol/actions/runs/41431357835">41431357835</a>          |
+| Run          | <a href="https://github.com/i2mint/xdol/actions/runs/43957472680">43957472680</a>          |
 | Ref          | <code>refs/heads/master</code>                                                             |
-| Event commit | <code>1a7990603fcafb7a0600d66bc42b51fe5c21f59e</code> (in the history of the built commit) |
+| Event commit | <code>41c8d490071bed243c50f4334d53783451814ed8</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -2187,7 +2194,7 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 | epythet  | 0.2.22  |
 | Sphinx   | 9.1.1   |
 | docutils | 0.22.4  |
-| Python   | 3.12.15 |
+| Python   | 3.12.16 |
 
 ## Configuration as resolved
 
@@ -2203,13 +2210,13 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/xdol/0.1.38/">0.1.38</a>, the same as the documented version.
+Latest release: <a href="https://pypi.org/project/xdol/0.1.40/">0.1.40</a>, newer than the documented version (0.1.39).
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/i2mint/xdol && cd xdol
-git checkout 1a7990603fcafb7a0600d66bc42b51fe5c21f59e
+git checkout 41c8d490071bed243c50f4334d53783451814ed8
 pip install "epythet==0.2.22"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```
