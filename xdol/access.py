@@ -88,49 +88,12 @@ from dataclasses import asdict, dataclass, replace
 from types import MappingProxyType
 from typing import Any, get_type_hints
 
-from dol import atomic_write
+from dol import LockedAppender, atomic_write
 
 OPS = ("read", "write", "delete", "admit", "release", "pin", "unpin")
 _CREATING_OPS = ("read", "write", "pin")  # other ops on an unknown key are no-ops
 _BASELINE_OPS = ("snapshot", "tombstone")  # a compacted file's lines, not events
 DFLT_COMPACT_ABOVE = 100_000  # events (~10 MB): replaying that many takes well under 1s
-
-_LOCK_UNSUPPORTED = {  # e.g. Lustre without its flock option, some FUSE/SMB mounts
-    getattr(errno, name)
-    for name in ("ENOLCK", "ENOTSUP", "EOPNOTSUPP", "ENOSYS")
-    if hasattr(errno, name)
-}
-
-if os.name == "nt":
-    import msvcrt
-
-    _LOCK_RETRY_INTERVAL = 0.001  # seconds between attempts on a contended lock
-
-    def _lock(fh) -> None:
-        # not LK_LOCK: it sleeps 1s per retry and gives up after ~10s. No timeout:
-        # Windows releases a dead process's locks.
-        fh.seek(0)
-        while True:
-            try:
-                msvcrt.locking(fh.fileno(), msvcrt.LK_NBLCK, 1)
-                return
-            except OSError as e:
-                if e.errno not in (errno.EACCES, errno.EDEADLOCK):
-                    raise
-            time.sleep(_LOCK_RETRY_INTERVAL)
-
-    def _unlock(fh) -> None:
-        fh.seek(0)
-        msvcrt.locking(fh.fileno(), msvcrt.LK_UNLCK, 1)
-
-else:
-    import fcntl
-
-    def _lock(fh) -> None:  # flock: two descriptors exclude each other, even in-process
-        fcntl.flock(fh.fileno(), fcntl.LOCK_EX)
-
-    def _unlock(fh) -> None:
-        fcntl.flock(fh.fileno(), fcntl.LOCK_UN)
 
 
 @dataclass(frozen=True)
@@ -352,106 +315,6 @@ def _jsonl(obj) -> bytes:
     return (json.dumps(obj, default=str) + "\n").encode("utf-8")
 
 
-# POSIX: an appender keeps its handle, and reopens it when compaction replaced the file.
-# Windows cannot replace a file another handle holds open: there, open per append.
-_KEEP_APPEND_HANDLE = os.name != "nt"
-
-
-def _open_for_append(path: str):
-    fh = open(path, "a+b")
-    if fh.tell():  # a torn last line (crash mid-write) must not eat our event
-        fh.seek(-1, os.SEEK_END)
-        if fh.read(1) != b"\n":
-            fh.write(b"\n")  # append mode: lands at the end whatever the position
-    return fh
-
-
-def _open_lock_file(path: str):
-    """``path`` opened for locking, read-only if it cannot be written (``flock`` and
-    ``msvcrt.locking`` work on either); ``None`` if it cannot be opened at all."""
-    try:
-        return open(path, "a+b")
-    except PermissionError:
-        try:
-            return open(path, "rb")
-        except OSError:
-            return None
-    except OSError:
-        return None
-
-
-class _LockedAppender:
-    """Appends lines to ``path`` under an exclusive lock on ``<path>.lock``, following
-    the file when compaction (under the same lock) replaces it."""
-
-    def __init__(self, path: str):
-        self.path = path
-        self._fh = None
-        self._lock_fh = None
-        self._pid = None  # the process the handles belong to
-
-    @contextmanager
-    def locked(self):
-        """Hold the exclusive lock on ``<path>.lock``; yields whether it is held.
-
-        Not held (the body still runs) when the lock file cannot be opened, e.g. in a
-        read-only folder, or the filesystem does not support locking."""
-        # handles inherited over a fork share the parent's lock: reopen our own
-        if self._pid != os.getpid():
-            self.close()
-            self._pid = os.getpid()
-        if self._lock_fh is None:
-            self._lock_fh = _open_lock_file(self.path + ".lock")
-        if self._lock_fh is None:
-            yield False
-            return
-        try:
-            _lock(self._lock_fh)
-        except OSError as e:
-            if e.errno not in _LOCK_UNSUPPORTED:
-                raise
-            yield False
-            return
-        try:
-            yield True
-        finally:
-            _unlock(self._lock_fh)
-
-    def append(self, line: bytes) -> None:
-        """Append ``line`` under the lock, to the file now at ``path``."""
-        with self.locked():
-            if self._fh is not None and not self._is_on_path():
-                self._close_fh()  # compaction replaced the file
-            if self._fh is None:
-                self._fh = _open_for_append(self.path)
-            try:
-                self._fh.write(line)
-                self._fh.flush()
-            finally:
-                if not _KEEP_APPEND_HANDLE:
-                    self._close_fh()
-
-    def _is_on_path(self) -> bool:
-        try:
-            st = os.stat(self.path)
-        except FileNotFoundError:
-            return False
-        fst = os.fstat(self._fh.fileno())
-        return (st.st_ino, st.st_dev) == (fst.st_ino, fst.st_dev)
-
-    def _close_fh(self) -> None:
-        if self._fh is not None:
-            self._fh.close()
-            self._fh = None
-
-    def close(self) -> None:
-        """Close the files (the appender stays usable: it reopens them when needed)."""
-        self._close_fh()
-        if self._lock_fh is not None:
-            self._lock_fh.close()
-            self._lock_fh = None
-
-
 def _apply(stats_by_key: dict, tombstones: dict, key, op, nbytes, ts) -> None:
     """Fold one event into ``stats_by_key`` (shared by live recording and replay).
 
@@ -572,14 +435,16 @@ class AccessLog(Mapping):
         self.keep_tombstones_for = keep_tombstones_for
         self._stats: dict[Any, AccessStats] = {}
         self._tombstones: dict[Any, float] = {}
-        self._appender = None if self.path is None else _LockedAppender(self.path)
+        self._appender = (
+            None if self.path is None else LockedAppender(self.path, line_end=b"\n")
+        )
         self._warned_io = False
         self._warned_key = False
         self._warned_compact = False
         self._last_ts = 0.0  # the clock may step back: events never go back in time
         self._nevents = 0  # events in the file, as far as this log knows
         if self.path is not None and os.path.exists(self.path):
-            with self._appender.locked():
+            with self._appender.lock:
                 self._stats, self._tombstones, self._last_ts, self._nevents = (
                     _fold_path(self.path)
                 )
@@ -679,8 +544,8 @@ class AccessLog(Mapping):
         """
         horizon = self._tombstone_horizon()
         if self.path is not None:
-            with self._appender.locked() as held:
-                if not held:  # unlocked, another writer's events could be lost
+            with self._appender.lock as lock:
+                if not lock.held:  # unlocked, another writer's events could be lost
                     raise OSError(f"cannot lock {self.path}.lock: not compacting")
                 if os.path.exists(self.path):
                     stats_by_key, tombstones, _, _ = _fold_path(self.path)

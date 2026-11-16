@@ -53,8 +53,13 @@ class Point:
 
 def test_long_tail_types_are_stable_and_distinct():
     values = [
-        b"abc", {1, 2}, frozenset({"a"}), pathlib.Path("/a/b"), Color.RED,
-        Point(1, 2), len,
+        b"abc",
+        {1, 2},
+        frozenset({"a"}),
+        pathlib.Path("/a/b"),
+        Color.RED,
+        Point(1, 2),
+        len,
     ]
     keys = [robust_key(v) for v in values]
     assert len(set(keys)) == len(values)
@@ -72,7 +77,9 @@ def test_keys_are_stable_across_processes():
         subprocess.run(
             [sys.executable, "-c", code],
             env={"PYTHONHASHSEED": str(seed), "PATH": ""},
-            capture_output=True, text=True, check=True,
+            capture_output=True,
+            text=True,
+            check=True,
         ).stdout
         for seed in (0, 1, 2)
     }
@@ -102,8 +109,7 @@ def test_cache_key_protocol():
 
 
 def test_make_key_func_binds_signature_and_drops():
-    def f(a, b=1, *, log=None):
-        ...
+    def f(a, b=1, *, log=None): ...
 
     key = make_key_func(f, drop=["log"])
     assert key(1, 2) == key(1, b=2) == key(a=1, b=2, log=print)
@@ -135,8 +141,11 @@ def test_dict_keys_of_any_type_are_stable_or_loud():
     )
     for seed in (1, 2, 3):
         out = subprocess.run(
-            [sys.executable, "-c", code], env={"PYTHONHASHSEED": str(seed), "PATH": ""},
-            capture_output=True, text=True, check=True,
+            [sys.executable, "-c", code],
+            env={"PYTHONHASHSEED": str(seed), "PATH": ""},
+            capture_output=True,
+            text=True,
+            check=True,
         ).stdout.strip()
         assert out == k
 
@@ -172,8 +181,7 @@ def test_lambdas_and_bound_methods_and_partials():
         def __init__(self, i):
             self.i = i
 
-        def m(self):
-            ...
+        def m(self): ...
 
         def __cache_key__(self):
             return self.i
@@ -184,8 +192,7 @@ def test_lambdas_and_bound_methods_and_partials():
     import functools
 
     class Plain:
-        def go(self):
-            ...
+        def go(self): ...
 
     with pytest.raises(UnstableKeyError):  # the address is inside partial's repr
         robust_key(functools.partial(Plain().go))
@@ -220,8 +227,7 @@ def test_pandas_content_is_fully_keyed():
 
 
 def test_drop_names_entries_of_var_keyword():
-    def h(a, **kw):
-        ...
+    def h(a, **kw): ...
 
     k = make_key_func(h, drop=["logger"])
     assert k(1, logger=print, x=2) == k(1, x=2) != k(1, x=3)
@@ -243,7 +249,9 @@ def test_pandas_is_lossless():
 
 def test_numpy_arrays_by_content_and_fast():
     np = pytest.importorskip("numpy")
-    assert robust_key(np.arange(6).reshape(2, 3)) != robust_key(np.arange(6).reshape(3, 2))
+    assert robust_key(np.arange(6).reshape(2, 3)) != robust_key(
+        np.arange(6).reshape(3, 2)
+    )
     assert robust_key(np.arange(3)) != robust_key(np.arange(3.0))
     assert robust_key(np.arange(3)) == robust_key(np.arange(3))
     assert robust_key(np.array(["a", None], dtype=object)) == robust_key(

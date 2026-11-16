@@ -46,4 +46,6 @@ def test_record_into_s3_paired_assets():
     m = memoize_calls(render, store=bucket, codec="paired", mode="record")
     assert m("cat") == ({"prompt": "cat"}, b"\x89PNG...")
     assert sorted(k.rsplit(".", 1)[1] for k in bucket) == ["bin", "json"]
-    assert memoize_calls(render, store=bucket, codec="paired")("cat")[1] == b"\x89PNG..."
+    assert (
+        memoize_calls(render, store=bucket, codec="paired")("cat")[1] == b"\x89PNG..."
+    )

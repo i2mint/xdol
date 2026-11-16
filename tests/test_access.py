@@ -796,8 +796,8 @@ def test_merge_stats_other_logs_tombstones_apply():
 def test_access_log_is_a_context_manager(tmp_path):
     with AccessLog(tmp_path / "log.jsonl") as log:
         log.record("a", "read", 1)
-        assert log._appender._fh is not None or os.name == "nt"
-    assert log._appender._fh is None and log._appender._lock_fh is None
+        assert log._appender._fd is not None or os.name == "nt"
+    assert log._appender._fd is None and log._appender.lock._fh is None
 
 
 @pytest.mark.skipif(not hasattr(os, "fork"), reason="needs os.fork")
@@ -836,7 +836,7 @@ def test_read_only_lock_file_still_locks(tmp_path):
     lock.touch()
     lock.chmod(0o444)
     log = AccessLog(p)
-    with log._appender.locked(), open(lock, "rb") as other:
+    with log._appender.lock, open(lock, "rb") as other:
         with pytest.raises(BlockingIOError):
             fcntl.flock(other.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
     log.record("a", "read", 1)
@@ -917,12 +917,12 @@ def test_pathological_line_never_raises_into_reads(tmp_path):
 def test_no_compaction_without_the_lock(tmp_path, monkeypatch):
     import errno
 
-    import xdol.access
+    import dol.atomic
 
-    def unsupported(fh):
+    def unsupported(fh, *args):
         raise OSError(errno.ENOTSUP, "flock not supported")
 
-    monkeypatch.setattr(xdol.access, "_lock", unsupported)
+    monkeypatch.setattr(dol.atomic, "_lock", unsupported)
     p = tmp_path / "log.jsonl"
     log = AccessLog(p, clock=Clock(), compact_above=2)
     with pytest.warns(UserWarning, match="could not compact"):
@@ -1016,3 +1016,29 @@ def test_tombstone_at_the_horizon_is_kept_and_compacts_on_open(tmp_path):
     log = AccessLog(p, clock=lambda: 151.0, keep_tombstones_for=50)
     log.compact()
     assert dict(log.tombstones) == {}
+
+
+@pytest.mark.skipif(os.name == "nt", reason="symlinks need privileges on Windows")
+def test_a_symlinked_log_shares_its_lock_with_the_real_file(tmp_path):
+    import dol
+
+    real = tmp_path / "real.jsonl"
+    link = tmp_path / "link.jsonl"
+    link.symlink_to(real)
+    log = AccessLog(link)
+    with log._appender.lock, pytest.raises(RuntimeError):
+        with dol.file_lock(real):  # same lock: this thread would wait on itself
+            pass
+    log.record("a", "read", 1)
+    log.compact()
+    assert AccessLog(real)["a"].reads == 1 and link.is_symlink()
+
+
+def test_a_torn_tail_left_by_another_writer_does_not_swallow_the_next_event(tmp_path):
+    p = tmp_path / "log.jsonl"
+    log = AccessLog(p, compact_above=None)
+    log.record("a", "read", 1)  # the handle is kept open from here on (POSIX)
+    with open(p, "ab") as other:
+        other.write(b'{"k": "torn')  # another writer died mid-record
+    log.record("b", "read", 1)
+    assert AccessLog(p, compact_above=None)["b"].reads == 1
