@@ -1,8 +1,8 @@
 metric,value
 schema_version,1.0
-timestamp,2026-11-21T12:54:08.040444Z
-commit_sha,ed831143ee3b4ff2d8095cb388e8ed4d63f2d634
-commit_message,"from_dol: public home for the 11 names leaving dol's top level (dol#145)
+timestamp,2026-11-21T13:20:23.579826Z
+commit_sha,7e7452c7a5a423d0099310ba017c931a28357d73
+commit_message,"from_dol: public home for the 11 names leaving dol's top level (dol#145) (#60)
 
 kvhead and ihead are defined here; the other nine are re-exported from the
 dol submodule that still defines them, so there is one definition of each.
@@ -22,9 +22,9 @@ metrics.umpyre_stats.mean_lines_per_function,16.577965409233283
 metrics.umpyre_stats.files_analyzed,601
 metrics.umpyre_stats.pypi_version,0.1.40
 metrics.workflow_status.last_run_status,success
-metrics.workflow_status.last_success_timestamp,2026-11-16T21:13:34Z
+metrics.workflow_status.last_success_timestamp,2026-11-21T12:54:07Z
 metrics.workflow_status.recent_failure_count,0
-metrics.workflow_status.run_url,https://github.com/i2mint/xdol/actions/runs/43957799000
+metrics.workflow_status.run_url,https://github.com/i2mint/xdol/actions/runs/44906098274
 metrics.workflow_status.total_runs_analyzed,10
 metrics.wily.cyclomatic_avg,0.0
 metrics.wily.maintainability_index,0.0
@@ -40,4 +40,4 @@ metrics.coverage.branch_coverage,0.0
 metrics.coverage.statements_covered,0
 metrics.coverage.statements_total,0
 metrics.coverage.error,No coverage file found
-collection_duration_seconds,3.9564709663391113
+collection_duration_seconds,3.083289861679077
