@@ -1,5 +1,5 @@
 {
-  "collection_duration_seconds": 3.083289861679077,
+  "collection_duration_seconds": 3.974093437194824,
   "commit_message": "from_dol: public home for the 11 names leaving dol's top level (dol#145) (#60)\n\nkvhead and ihead are defined here; the other nine are re-exported from the\ndol submodule that still defines them, so there is one definition of each.\nWhen dol removes them, their definitions move into xdol/from_dol.py.",
   "commit_sha": "7e7452c7a5a423d0099310ba017c931a28357d73",
   "metrics": {
@@ -11,19 +11,19 @@
       "statements_total": 0
     },
     "umpyre_stats": {
-      "comment_lines": 15110,
-      "comment_lines_ratio": 0.055852292679320605,
-      "docs_lines": 39451,
-      "empty_lines": 35002,
-      "empty_lines_ratio": 0.12938067163213632,
-      "files_analyzed": 601,
-      "function_lines": 121732,
-      "function_lines_ratio": 0.44996765668028166,
-      "mean_lines_per_function": 16.577965409233283,
-      "num_classes": 1709,
-      "num_functions": 7343,
+      "comment_lines": 15050,
+      "comment_lines_ratio": 0.05601980234873723,
+      "docs_lines": 39440,
+      "empty_lines": 34707,
+      "empty_lines_ratio": 0.12918799203439355,
+      "files_analyzed": 591,
+      "function_lines": 120392,
+      "function_lines_ratio": 0.4481286408218719,
+      "mean_lines_per_function": 16.592061742006614,
+      "num_classes": 1697,
+      "num_functions": 7256,
       "pypi_version": "0.1.40",
-      "total_lines": 270535
+      "total_lines": 268655
     },
     "wily": {
       "cyclomatic_avg": 0.0,
@@ -42,6 +42,6 @@
   },
   "python_version": "3.10",
   "schema_version": "1.0",
-  "timestamp": "2026-11-21T13:20:23.579826Z",
+  "timestamp": "2026-11-21T13:20:33.349774Z",
   "workflow_status": {}
 }
