@@ -1,7 +1,7 @@
 {
-  "collection_duration_seconds": 3.974093437194824,
-  "commit_message": "from_dol: public home for the 11 names leaving dol's top level (dol#145) (#60)\n\nkvhead and ihead are defined here; the other nine are re-exported from the\ndol submodule that still defines them, so there is one definition of each.\nWhen dol removes them, their definitions move into xdol/from_dol.py.",
-  "commit_sha": "7e7452c7a5a423d0099310ba017c931a28357d73",
+  "collection_duration_seconds": 2.809257745742798,
+  "commit_message": "Use the encoder/decoder keywords of wrap_kvs (dol 0.4 deprecates X_of_Y)",
+  "commit_sha": "0bcf10267169e36bb871b4635d09992c14e39d4d",
   "metrics": {
     "coverage": {
       "branch_coverage": 0.0,
@@ -11,19 +11,19 @@
       "statements_total": 0
     },
     "umpyre_stats": {
-      "comment_lines": 15050,
-      "comment_lines_ratio": 0.05601980234873723,
-      "docs_lines": 39440,
-      "empty_lines": 34707,
-      "empty_lines_ratio": 0.12918799203439355,
-      "files_analyzed": 591,
-      "function_lines": 120392,
-      "function_lines_ratio": 0.4481286408218719,
-      "mean_lines_per_function": 16.592061742006614,
-      "num_classes": 1697,
-      "num_functions": 7256,
-      "pypi_version": "0.1.40",
-      "total_lines": 268655
+      "comment_lines": 15120,
+      "comment_lines_ratio": 0.05586014275369815,
+      "docs_lines": 39491,
+      "empty_lines": 35031,
+      "empty_lines_ratio": 0.12942041407439153,
+      "files_analyzed": 602,
+      "function_lines": 121807,
+      "function_lines_ratio": 0.45001034447088034,
+      "mean_lines_per_function": 16.576891671203047,
+      "num_classes": 1709,
+      "num_functions": 7348,
+      "pypi_version": "0.1.41",
+      "total_lines": 270676
     },
     "wily": {
       "cyclomatic_avg": 0.0,
@@ -34,14 +34,14 @@
     },
     "workflow_status": {
       "last_run_status": "success",
-      "last_success_timestamp": "2026-11-21T12:54:07Z",
+      "last_success_timestamp": "2026-11-21T13:21:35Z",
       "recent_failure_count": 0,
-      "run_url": "https://github.com/i2mint/xdol/actions/runs/44906098274",
+      "run_url": "https://github.com/i2mint/xdol/actions/runs/44908422996",
       "total_runs_analyzed": 10
     }
   },
   "python_version": "3.10",
   "schema_version": "1.0",
-  "timestamp": "2026-11-21T13:20:33.349774Z",
+  "timestamp": "2026-11-21T18:36:26.693125Z",
   "workflow_status": {}
 }
