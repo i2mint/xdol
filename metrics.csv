@@ -1,8 +1,8 @@
 metric,value
 schema_version,1.0
-timestamp,2026-11-21T18:36:37.512991Z
-commit_sha,4432fa880e5c143d15812111da657fe5794797b3
-commit_message,Merge 0bcf10267169e36bb871b4635d09992c14e39d4d into 892a8dd06741adbd571e7a666a00ad9d344cff1e
+timestamp,2026-11-21T18:37:52.400554Z
+commit_sha,ca5a24344fc641eb6a7fe0014a76776411bbe3c6
+commit_message,Use the encoder/decoder keywords of wrap_kvs (dol 0.4 deprecates X_of_Y) (#61)
 python_version,3.10
 metrics.umpyre_stats.num_functions,7261
 metrics.umpyre_stats.num_classes,1697
@@ -18,9 +18,9 @@ metrics.umpyre_stats.mean_lines_per_function,16.59096543175871
 metrics.umpyre_stats.files_analyzed,592
 metrics.umpyre_stats.pypi_version,0.1.41
 metrics.workflow_status.last_run_status,success
-metrics.workflow_status.last_success_timestamp,2026-11-21T13:21:35Z
+metrics.workflow_status.last_success_timestamp,2026-11-21T18:36:43Z
 metrics.workflow_status.recent_failure_count,0
-metrics.workflow_status.run_url,https://github.com/i2mint/xdol/actions/runs/44908422996
+metrics.workflow_status.run_url,https://github.com/i2mint/xdol/actions/runs/44936373916
 metrics.workflow_status.total_runs_analyzed,10
 metrics.wily.cyclomatic_avg,0.0
 metrics.wily.maintainability_index,0.0
@@ -36,4 +36,4 @@ metrics.coverage.branch_coverage,0.0
 metrics.coverage.statements_covered,0
 metrics.coverage.statements_total,0
 metrics.coverage.error,No coverage file found
-collection_duration_seconds,4.332539796829224
+collection_duration_seconds,3.2814040184020996
