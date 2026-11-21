@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../../_static/documentation_options.js?v=967b4925"></script>
+    <script src="../../_static/documentation_options.js?v=3203cd3c"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -411,7 +411,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.40" />
+  <meta name="docsearch:version" content="0.1.41" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -721,7 +721,7 @@ window.runMermaid = runMermaid;</script>
 <span class="n">bytes_decoder</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>
 
 <span class="n">py_files_wrap</span> <span class="o">=</span> <span class="n">Pipe</span><span class="p">(</span>
-    <span class="n">wrap_kvs</span><span class="p">(</span><span class="n">obj_of_data</span><span class="o">=</span><span class="n">bytes_decoder</span><span class="p">),</span>
+    <span class="n">wrap_kvs</span><span class="p">(</span><span class="n">value_decoder</span><span class="o">=</span><span class="n">bytes_decoder</span><span class="p">),</span>
     <span class="n">filt_iter</span><span class="p">(</span><span class="n">filt</span><span class="o">=</span><span class="k">lambda</span> <span class="n">k</span><span class="p">:</span> <span class="n">k</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">".py"</span><span class="p">)</span> <span class="ow">and</span> <span class="s2">"__pycache__"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">k</span><span class="p">),</span>
     <span class="n">mk_relative_path_store</span><span class="p">(</span><span class="n">prefix_attr</span><span class="o">=</span><span class="s2">"rootdir"</span><span class="p">),</span>
 <span class="p">)</span>
@@ -729,7 +729,7 @@ window.runMermaid = runMermaid;</script>
 
 <span class="c1"># TODO: Extend PyFilesReader to take more kinds of src arguments.</span>
 <span class="c1">#   for example: single .py filepaths or iterables thereof (use cached_keys for that)</span>
-<span class="c1"># @wrap_kvs(obj_of_data=bytes_decoder)</span>
+<span class="c1"># @wrap_kvs(value_decoder=bytes_decoder)</span>
 <span class="c1"># @filt_iter(filt=lambda k: k.endswith('.py') and '__pycache__' not in k)</span>
 <span class="c1"># @mk_relative_path_store(prefix_attr='rootdir')</span>
 <div class="viewcode-block" id="PyFilesReader">
@@ -795,7 +795,7 @@ window.runMermaid = runMermaid;</script>
 <div class="viewcode-block" id="PkgReader">
 <a class="viewcode-back" href="../../_autosummary/xdol.pystores.html#xdol.pystores.PkgReader">[docs]</a>
 <span class="nd">@filt_iter</span><span class="p">(</span><span class="n">filt</span><span class="o">=</span><span class="k">lambda</span> <span class="n">k</span><span class="p">:</span> <span class="ow">not</span> <span class="n">k</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">"__pycache__"</span><span class="p">))</span>
-<span class="nd">@wrap_kvs</span><span class="p">(</span><span class="n">key_of_id</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">id_of_key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span> <span class="o">+</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">sep</span><span class="p">)</span>
+<span class="nd">@wrap_kvs</span><span class="p">(</span><span class="n">key_decoder</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">key_encoder</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span> <span class="o">+</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">sep</span><span class="p">)</span>
 <span class="nd">@mk_relative_path_store</span><span class="p">(</span><span class="n">prefix_attr</span><span class="o">=</span><span class="s2">"rootdir"</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">PkgReader</span><span class="p">(</span><span class="n">DirCollection</span><span class="p">,</span> <span class="n">KvReader</span><span class="p">):</span>
     <span class="nd">@wraps</span><span class="p">(</span><span class="n">DirCollection</span><span class="o">.</span><span class="fm">__init__</span><span class="p">)</span>

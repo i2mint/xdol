@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../../_static/documentation_options.js?v=967b4925"></script>
+    <script src="../../_static/documentation_options.js?v=3203cd3c"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -411,7 +411,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.40" />
+  <meta name="docsearch:version" content="0.1.41" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -746,7 +746,7 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">    Walks the ``.store`` chain, applying ``store.&lt;method&gt;`` at every layer that defines it.</span>
 
 <span class="sd">    &gt;&gt;&gt; from dol import wrap_kvs</span>
-<span class="sd">    &gt;&gt;&gt; s = wrap_kvs({'a.txt': 1}, id_of_key=lambda k: k + '.txt')</span>
+<span class="sd">    &gt;&gt;&gt; s = wrap_kvs({'a.txt': 1}, key_encoder=lambda k: k + '.txt')</span>
 <span class="sd">    &gt;&gt;&gt; list(store_trans_path(s, 'a', '_id_of_key'))</span>
 <span class="sd">    ['a.txt', 'a.txt']</span>
 
@@ -787,7 +787,7 @@ window.runMermaid = runMermaid;</script>
 <span class="w">    </span><span class="sd">"""The value of ``arg`` after every layer's ``method`` has been applied.</span>
 
 <span class="sd">    &gt;&gt;&gt; from dol import wrap_kvs</span>
-<span class="sd">    &gt;&gt;&gt; s = wrap_kvs({'a.txt': 1}, id_of_key=lambda k: k + '.txt')</span>
+<span class="sd">    &gt;&gt;&gt; s = wrap_kvs({'a.txt': 1}, key_encoder=lambda k: k + '.txt')</span>
 <span class="sd">    &gt;&gt;&gt; inner_most(s, 'a', '_id_of_key')</span>
 <span class="sd">    'a.txt'</span>
 
@@ -946,25 +946,25 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">    Say that we want the interface to not see the ``'.num'`` strings, and deal with numerical values, not strings.</span>
 
 <span class="sd">    &gt;&gt;&gt; s = wrap_kvs(d,</span>
-<span class="sd">    ...              key_of_id=lambda x: x[:-len('.num')],</span>
-<span class="sd">    ...              id_of_key=lambda x: x + '.num',</span>
-<span class="sd">    ...              obj_of_data=lambda x: int(x),</span>
-<span class="sd">    ...              data_of_obj=lambda x: str(x)</span>
+<span class="sd">    ...              key_decoder=lambda x: x[:-len('.num')],</span>
+<span class="sd">    ...              key_encoder=lambda x: x + '.num',</span>
+<span class="sd">    ...              value_decoder=lambda x: int(x),</span>
+<span class="sd">    ...              value_encoder=lambda x: str(x)</span>
 <span class="sd">    ...             )</span>
 <span class="sd">    &gt;&gt;&gt;</span>
 
 <span class="sd">    Oh, and we want the interface to display upper case keys.</span>
 
 <span class="sd">    &gt;&gt;&gt; ss = wrap_kvs(s,</span>
-<span class="sd">    ...              key_of_id=lambda x: x.upper(),</span>
-<span class="sd">    ...              id_of_key=lambda x: x.lower(),</span>
+<span class="sd">    ...              key_decoder=lambda x: x.upper(),</span>
+<span class="sd">    ...              key_encoder=lambda x: x.lower(),</span>
 <span class="sd">    ...             )</span>
 
 <span class="sd">    And we want the numerical unit to be the kilo (that's 1000):</span>
 
 <span class="sd">    &gt;&gt;&gt; sss = wrap_kvs(ss,</span>
-<span class="sd">    ...                obj_of_data=lambda x: x / 1000,</span>
-<span class="sd">    ...                data_of_obj=lambda x: x * 1000</span>
+<span class="sd">    ...                value_decoder=lambda x: x / 1000,</span>
+<span class="sd">    ...                value_encoder=lambda x: x * 1000</span>
 <span class="sd">    ...               )</span>
 <span class="sd">    &gt;&gt;&gt;</span>
 <span class="sd">    &gt;&gt;&gt; dict(sss.items())</span>

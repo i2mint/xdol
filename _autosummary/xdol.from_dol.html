@@ -44,7 +44,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../_static/documentation_options.js?v=967b4925"></script>
+    <script src="../_static/documentation_options.js?v=3203cd3c"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -58,7 +58,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.40" />
+  <meta name="docsearch:version" content="0.1.41" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -822,25 +822,25 @@ and release_remainding=True`` we have <code class="docutils literal notranslate"
 </div>
 <p>Say that we want the interface to not see the <code class="docutils literal notranslate"><span class="pre">'.num'</span></code> strings, and deal with numerical values, not strings.</p>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">s</span> <span class="o">=</span> <span class="n">wrap_kvs</span><span class="p">(</span><span class="n">d</span><span class="p">,</span>
-<span class="gp">... </span>             <span class="n">key_of_id</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[:</span><span class="o">-</span><span class="nb">len</span><span class="p">(</span><span class="s1">'.num'</span><span class="p">)],</span>
-<span class="gp">... </span>             <span class="n">id_of_key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span> <span class="o">+</span> <span class="s1">'.num'</span><span class="p">,</span>
-<span class="gp">... </span>             <span class="n">obj_of_data</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">x</span><span class="p">),</span>
-<span class="gp">... </span>             <span class="n">data_of_obj</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+<span class="gp">... </span>             <span class="n">key_decoder</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[:</span><span class="o">-</span><span class="nb">len</span><span class="p">(</span><span class="s1">'.num'</span><span class="p">)],</span>
+<span class="gp">... </span>             <span class="n">key_encoder</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span> <span class="o">+</span> <span class="s1">'.num'</span><span class="p">,</span>
+<span class="gp">... </span>             <span class="n">value_decoder</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">x</span><span class="p">),</span>
+<span class="gp">... </span>             <span class="n">value_encoder</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
 <span class="gp">... </span>            <span class="p">)</span>
 <span class="gp">&gt;&gt;&gt;</span>
 </pre></div>
 </div>
 <p>Oh, and we want the interface to display upper case keys.</p>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">ss</span> <span class="o">=</span> <span class="n">wrap_kvs</span><span class="p">(</span><span class="n">s</span><span class="p">,</span>
-<span class="gp">... </span>             <span class="n">key_of_id</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">upper</span><span class="p">(),</span>
-<span class="gp">... </span>             <span class="n">id_of_key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">lower</span><span class="p">(),</span>
+<span class="gp">... </span>             <span class="n">key_decoder</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">upper</span><span class="p">(),</span>
+<span class="gp">... </span>             <span class="n">key_encoder</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">lower</span><span class="p">(),</span>
 <span class="gp">... </span>            <span class="p">)</span>
 </pre></div>
 </div>
 <p>And we want the numerical unit to be the kilo (that’s 1000):</p>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">sss</span> <span class="o">=</span> <span class="n">wrap_kvs</span><span class="p">(</span><span class="n">ss</span><span class="p">,</span>
-<span class="gp">... </span>               <span class="n">obj_of_data</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span> <span class="o">/</span> <span class="mi">1000</span><span class="p">,</span>
-<span class="gp">... </span>               <span class="n">data_of_obj</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span> <span class="o">*</span> <span class="mi">1000</span>
+<span class="gp">... </span>               <span class="n">value_decoder</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span> <span class="o">/</span> <span class="mi">1000</span><span class="p">,</span>
+<span class="gp">... </span>               <span class="n">value_encoder</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span> <span class="o">*</span> <span class="mi">1000</span>
 <span class="gp">... </span>              <span class="p">)</span>
 <span class="gp">&gt;&gt;&gt;</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">dict</span><span class="p">(</span><span class="n">sss</span><span class="o">.</span><span class="n">items</span><span class="p">())</span>

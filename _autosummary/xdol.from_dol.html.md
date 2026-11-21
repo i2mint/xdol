@@ -415,10 +415,10 @@ Say that we want the interface to not see the `'.num'` strings, and deal with nu
 
 ```pycon
 >>> s = wrap_kvs(d,
-...              key_of_id=lambda x: x[:-len('.num')],
-...              id_of_key=lambda x: x + '.num',
-...              obj_of_data=lambda x: int(x),
-...              data_of_obj=lambda x: str(x)
+...              key_decoder=lambda x: x[:-len('.num')],
+...              key_encoder=lambda x: x + '.num',
+...              value_decoder=lambda x: int(x),
+...              value_encoder=lambda x: str(x)
 ...             )
 >>>
 ```
@@ -427,8 +427,8 @@ Oh, and we want the interface to display upper case keys.
 
 ```pycon
 >>> ss = wrap_kvs(s,
-...              key_of_id=lambda x: x.upper(),
-...              id_of_key=lambda x: x.lower(),
+...              key_decoder=lambda x: x.upper(),
+...              key_encoder=lambda x: x.lower(),
 ...             )
 ```
 
@@ -436,8 +436,8 @@ And we want the numerical unit to be the kilo (that’s 1000):
 
 ```pycon
 >>> sss = wrap_kvs(ss,
-...                obj_of_data=lambda x: x / 1000,
-...                data_of_obj=lambda x: x * 1000
+...                value_decoder=lambda x: x / 1000,
+...                value_encoder=lambda x: x * 1000
 ...               )
 >>>
 >>> dict(sss.items())
