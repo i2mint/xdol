@@ -6,6 +6,7 @@ Extended tools for dol (Data Object Layers)
 
 | [`access`](xdol.access.html.md#module-xdol.access)     | Persisted, mergeable per-key access statistics for any store.                         |
 |--------------------------------------------------------------------------------|---------------------------------------------------------------------------------------|
+| [`from_dol`](xdol.from_dol.html.md#module-xdol.from_dol) | Tools that left `dol`'s top-level namespace for xdol (dol issue #145).                |
 | [`keys`](xdol.keys.html.md#module-xdol.keys)         | Robust, stable cache keys: turn a call's inputs into a short, filesystem-safe string. |
 | [`memoize`](xdol.memoize.html.md#module-xdol.memoize)   | Persistent memoization with record/replay modes, for costly calls.                    |
 | [`paths`](xdol.paths.html.md#module-xdol.paths)       | Tools for manipulating paths.                                                         |

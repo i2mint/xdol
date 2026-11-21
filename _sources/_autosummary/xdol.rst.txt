@@ -11,6 +11,7 @@
    :recursive:
 
    access
+   from_dol
    keys
    memoize
    paths

@@ -1,0 +1,27 @@
+xdol.from\_dol
+==============
+
+.. automodule:: xdol.from_dol
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      igroupby
+      regroupby
+      ihead
+      kvhead
+      mk_store_from_path_format_store_cls
+      redirect_getattr_to_getitem
+      trace_getitem
+      to_zip_file
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      AttributeMutableMapping
+      ExplicitKeyMap
+      SequenceKvReader
+   
