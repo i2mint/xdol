@@ -18,7 +18,7 @@ class PyFilesBytes(FileBytesReader):
 bytes_decoder = lambda x: x.decode()
 
 py_files_wrap = Pipe(
-    wrap_kvs(obj_of_data=bytes_decoder),
+    wrap_kvs(value_decoder=bytes_decoder),
     filt_iter(filt=lambda k: k.endswith(".py") and "__pycache__" not in k),
     mk_relative_path_store(prefix_attr="rootdir"),
 )
@@ -26,7 +26,7 @@ py_files_wrap = Pipe(
 
 # TODO: Extend PyFilesReader to take more kinds of src arguments.
 #   for example: single .py filepaths or iterables thereof (use cached_keys for that)
-# @wrap_kvs(obj_of_data=bytes_decoder)
+# @wrap_kvs(value_decoder=bytes_decoder)
 # @filt_iter(filt=lambda k: k.endswith('.py') and '__pycache__' not in k)
 # @mk_relative_path_store(prefix_attr='rootdir')
 @py_files_wrap
@@ -87,7 +87,7 @@ sitepackages_py_files = cached_keys(PyFilesReader(sitepackages_rootdir))
 
 
 @filt_iter(filt=lambda k: not k.endswith("__pycache__"))
-@wrap_kvs(key_of_id=lambda x: x[:-1], id_of_key=lambda x: x + os.path.sep)
+@wrap_kvs(key_decoder=lambda x: x[:-1], key_encoder=lambda x: x + os.path.sep)
 @mk_relative_path_store(prefix_attr="rootdir")
 class PkgReader(DirCollection, KvReader):
     @wraps(DirCollection.__init__)
