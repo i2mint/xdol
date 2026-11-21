@@ -1,6 +1,6 @@
 metric,value
 schema_version,1.0
-timestamp,2026-11-21T12:54:01.855857Z
+timestamp,2026-11-21T12:54:08.040444Z
 commit_sha,ed831143ee3b4ff2d8095cb388e8ed4d63f2d634
 commit_message,"from_dol: public home for the 11 names leaving dol's top level (dol#145)
 
@@ -8,18 +8,18 @@ kvhead and ihead are defined here; the other nine are re-exported from the
 dol submodule that still defines them, so there is one definition of each.
 When dol removes them, their definitions move into xdol/from_dol.py."
 python_version,3.10
-metrics.umpyre_stats.num_functions,7256
-metrics.umpyre_stats.num_classes,1697
-metrics.umpyre_stats.total_lines,268655
-metrics.umpyre_stats.empty_lines,34707
-metrics.umpyre_stats.comment_lines,15050
-metrics.umpyre_stats.docs_lines,39440
-metrics.umpyre_stats.function_lines,120392
-metrics.umpyre_stats.empty_lines_ratio,0.12918799203439355
-metrics.umpyre_stats.comment_lines_ratio,0.05601980234873723
-metrics.umpyre_stats.function_lines_ratio,0.4481286408218719
-metrics.umpyre_stats.mean_lines_per_function,16.592061742006614
-metrics.umpyre_stats.files_analyzed,591
+metrics.umpyre_stats.num_functions,7343
+metrics.umpyre_stats.num_classes,1709
+metrics.umpyre_stats.total_lines,270535
+metrics.umpyre_stats.empty_lines,35002
+metrics.umpyre_stats.comment_lines,15110
+metrics.umpyre_stats.docs_lines,39451
+metrics.umpyre_stats.function_lines,121732
+metrics.umpyre_stats.empty_lines_ratio,0.12938067163213632
+metrics.umpyre_stats.comment_lines_ratio,0.055852292679320605
+metrics.umpyre_stats.function_lines_ratio,0.44996765668028166
+metrics.umpyre_stats.mean_lines_per_function,16.577965409233283
+metrics.umpyre_stats.files_analyzed,601
 metrics.umpyre_stats.pypi_version,0.1.40
 metrics.workflow_status.last_run_status,success
 metrics.workflow_status.last_success_timestamp,2026-11-16T21:13:34Z
@@ -40,4 +40,4 @@ metrics.coverage.branch_coverage,0.0
 metrics.coverage.statements_covered,0
 metrics.coverage.statements_total,0
 metrics.coverage.error,No coverage file found
-collection_duration_seconds,3.3157291412353516
+collection_duration_seconds,3.9564709663391113
