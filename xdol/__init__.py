@@ -42,3 +42,16 @@ from xdol.tiering import (
     TieringError,
     HotWriteError,
 )
+from xdol.from_dol import (  # moved out of dol's top level (dol#145)
+    AttributeMutableMapping,
+    ExplicitKeyMap,
+    SequenceKvReader,
+    igroupby,
+    regroupby,
+    ihead,
+    kvhead,
+    mk_store_from_path_format_store_cls,
+    redirect_getattr_to_getitem,
+    trace_getitem,
+    to_zip_file,
+)
