@@ -1,7 +1,7 @@
 {
-  "collection_duration_seconds": 2.3781163692474365,
-  "commit_message": "Merge 66d149c8d23d7cd8ef7d72cc0cf544ebbb618a48 into 4fd66da0780621bd41da0ba730ceebfcaea3ffe8",
-  "commit_sha": "2e264e22677715d566bdccd52c5b093c30d14c75",
+  "collection_duration_seconds": 3.3150479793548584,
+  "commit_message": "README: what xdol is, install, a first example and a module map\n\nThe README covered only the memoizer. It now opens with what xdol is and where it differs from lru_cache/joblib.Memory, a runnable example (memoize_calls, update_with_policy), and a table of the modules. The memoizer guide link pointed to docs/ instead of misc/docs/ (404); now absolute and correct.",
+  "commit_sha": "66d149c8d23d7cd8ef7d72cc0cf544ebbb618a48",
   "metrics": {
     "coverage": {
       "branch_coverage": 0.0,
@@ -42,6 +42,6 @@
   },
   "python_version": "3.10",
   "schema_version": "1.0",
-  "timestamp": "2026-11-22T23:19:09.710666Z",
+  "timestamp": "2026-11-22T23:19:12.583947Z",
   "workflow_status": {}
 }
