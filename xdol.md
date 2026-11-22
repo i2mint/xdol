@@ -1,4 +1,4 @@
-> built 2026-11-22 16:57 UTC from 77eaf1c (master) · xdol 0.1.42. Details: build_info.json
+> built 2026-11-22 23:22 UTC from 36b19e8 (master) · xdol 0.1.43. Details: build_info.json
 
 # index.html.md
 
@@ -6,11 +6,49 @@
 
 # xdol
 
-Extended Data Object Layers - dol-based tools
+A toolkit for working with key-value stores (Extended Data Object Layers), built on [`dol`](https://github.com/i2mint/dol). Record and replay costly calls, keep one mapping in sync with another, cap a fast store over a slow one, and register plugins in a typed dict.
 
-To install:	`pip install xdol`
+```default
+pip install xdol
+```
 
 [Documentation](https://i2mint.github.io/xdol/)
+
+Any `MutableMapping` works as a store: a dict, a folder of files, S3, a database, through `dol`. That is the difference from `functools.lru_cache` or `joblib.Memory` for memoization: the cache lives wherever your store does, and in replay mode a miss raises instead of quietly paying for the call.
+
+```python
+from xdol import memoize_calls, update_with_policy
+
+cache = {}
+
+@memoize_calls(store=cache, mode="record")
+def square(x):
+    return x * x
+
+assert square(3) == 9  # computed, and recorded in `cache`
+assert square(3) == 9  # replayed from `cache`
+assert len(cache) == 1
+
+target = {"a": 1}
+update_with_policy(target, {"a": 2, "b": 3})  # default: update keys whose values differ
+assert target == {"a": 2, "b": 3}
+```
+
+## What is in it
+
+| Module          | What it gives you                                                                                                           |
+|-----------------|-----------------------------------------------------------------------------------------------------------------------------|
+| `xdol.memoize`  | `memoize_calls`: persistent memoization with record and replay modes, spend-safe by default (a miss in replay mode raises). |
+| `xdol.keys`     | `robust_key`, `make_key_func`: stable, filesystem-safe cache keys from a call’s inputs.                                     |
+| `xdol.updating` | `update_with_policy`, `backfill`, `reconcile`, `verify`: controlled updates of one mapping from another.                    |
+| `xdol.tiering`  | `TieredStore`: a bounded hot store over a cold source of truth (write-through, GDSF or LRU release).                        |
+| `xdol.access`   | `AccessStats`, `track_access`: persisted, mergeable per-key access statistics for any store.                                |
+| `xdol.x_codecs` | `Codec`, `get_codec`, `paired_store`: object-to-bytes codecs, and stores that apply them.                                   |
+| `xdol.registry` | `Registry`: a typed, dict-backed plugin registry with conflict rules.                                                       |
+| `xdol.pystores` | `PyFilesReader`, `PkgReader`: mapping views of a folder’s or a package’s `.py` files.                                       |
+| `xdol.from_dol` | tools that left `dol`’s top level (`igroupby`, `ihead`, `trace_getitem`, `to_zip_file`, …).                                 |
+
+Everything listed is importable from `xdol` directly.
 
 ## Persistent memoizer (record/replay)
 
@@ -20,14 +58,13 @@ Wrap a costly function (a paid API, a slow render) so the first run records its 
 from xdol import memoize_calls
 
 
-@memoize_calls(
-    store="tests/cassettes", mode="record"
-)  # default mode is replay-only: a miss raises
+# A path string becomes a folder store. The default mode is replay-only: a miss raises.
+@memoize_calls(store="tests/cassettes", mode="record")
 def slow_square(x):
     return {"result": x * x}
 ```
 
-Stable keys (`xdol.keys`), text / JSON / binary / paired `.json`+`.bin` codecs, any `MutableMapping` as the store (a folder, S3), spend-safe replay by default. See [misc/docs/persistent_memoizer.md]().
+Stable keys (`xdol.keys`), text / JSON / binary / paired `.json`+`.bin` codecs, any `MutableMapping` as the store (a folder, S3), spend-safe replay by default. See [the persistent memoizer guide](https://github.com/i2mint/xdol/blob/master/misc/docs/persistent_memoizer.md).
 
 <p class="epythet-aggregates">This documentation as a single file: <a href="xdol.md">xdol.md</a> (Markdown, for agents).</p>
 
@@ -2613,7 +2650,7 @@ A value that fails to decode raises [`CodecDecodeError`](_autosummary/xdol.x_cod
 
 # About this build
 
-This documentation was built on **2026-11-22 16:57 UTC** from commit <a href="https://github.com/i2mint/xdol/commit/77eaf1cf249bdaf35590736469c1dcd6863efca6"><code>77eaf1c</code></a> on branch <code>master</code>, for **xdol 0.1.42** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-11-22 23:22 UTC** from commit <a href="https://github.com/i2mint/xdol/commit/36b19e858a449f41e79c57c7124a1635a5a35a41"><code>36b19e8</code></a> on branch <code>master</code>, for **xdol 0.1.43** (from <code>pyproject.toml</code>).
 
 #### NOTE
 Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
@@ -2622,7 +2659,7 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 |                     |                                                                                                                                                    |
 |---------------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/i2mint/xdol/commit/77eaf1cf249bdaf35590736469c1dcd6863efca6"><code>77eaf1cf249bdaf35590736469c1dcd6863efca6</code></a> |
+| Commit              | <a href="https://github.com/i2mint/xdol/commit/36b19e858a449f41e79c57c7124a1635a5a35a41"><code>36b19e858a449f41e79c57c7124a1635a5a35a41</code></a> |
 | Branch              | <code>master</code>                                                                                                                                |
 | Tags at this commit | none                                                                                                                                               |
 | Working tree        | clean                                                                                                                                              |
@@ -2633,9 +2670,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>i2mint/xdol</code>                                                                   |
-| Run          | <a href="https://github.com/i2mint/xdol/actions/runs/45046534873">45046534873</a>          |
+| Run          | <a href="https://github.com/i2mint/xdol/actions/runs/45082741612">45082741612</a>          |
 | Ref          | <code>refs/heads/master</code>                                                             |
-| Event commit | <code>77eaf1cf249bdaf35590736469c1dcd6863efca6</code> (in the history of the built commit) |
+| Event commit | <code>36b19e858a449f41e79c57c7124a1635a5a35a41</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -2660,13 +2697,13 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/xdol/0.1.42/">0.1.42</a>, the same as the documented version.
+Latest release: <a href="https://pypi.org/project/xdol/0.1.43/">0.1.43</a>, the same as the documented version.
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/i2mint/xdol && cd xdol
-git checkout 77eaf1cf249bdaf35590736469c1dcd6863efca6
+git checkout 36b19e858a449f41e79c57c7124a1635a5a35a41
 pip install "epythet==0.2.23"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```
