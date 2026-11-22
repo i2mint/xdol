@@ -1,0 +1,46 @@
+{
+  "collection_duration_seconds": 2.1919562816619873,
+  "commit_message": "Merge 651d1812b0dbcc97d65fc332f9736e17e32f6811 into 29d7eae8c7bfe7923283ee7701b3a9fc8b6b30cd",
+  "commit_sha": "0925888c8d890b35aea2bb877fe868234bb786e6",
+  "metrics": {
+    "coverage": {
+      "branch_coverage": 87.41,
+      "line_coverage": 95.53,
+      "statements_covered": 2350,
+      "statements_total": 2460
+    },
+    "umpyre_stats": {
+      "comment_lines": 15120,
+      "comment_lines_ratio": 0.055837450976047504,
+      "docs_lines": 39571,
+      "empty_lines": 35042,
+      "empty_lines_ratio": 0.12940846277133972,
+      "files_analyzed": 602,
+      "function_lines": 121902,
+      "function_lines_ratio": 0.45017836963506236,
+      "mean_lines_per_function": 16.58530612244898,
+      "num_classes": 1709,
+      "num_functions": 7350,
+      "pypi_version": "0.1.42",
+      "total_lines": 270786
+    },
+    "wily": {
+      "cyclomatic_avg": 0.0,
+      "error": "wily build failed: \u001b[31mFailed to setup archiver: 'Dirty repository, make sure you commit/stash files first'\u001b[0m\n",
+      "files_analyzed": 0,
+      "maintainability_index": 0.0,
+      "total_loc": 0
+    },
+    "workflow_status": {
+      "last_run_status": "success",
+      "last_success_timestamp": "2026-11-21T18:39:04Z",
+      "recent_failure_count": 0,
+      "run_url": "https://github.com/i2mint/xdol/actions/runs/44936647895",
+      "total_runs_analyzed": 10
+    }
+  },
+  "python_version": "3.10",
+  "schema_version": "1.0",
+  "timestamp": "2026-11-22T16:51:50.946723Z",
+  "workflow_status": {}
+}
