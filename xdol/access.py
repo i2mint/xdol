@@ -112,6 +112,7 @@ class AccessStats:
 
     @property
     def frequency(self) -> int:
+        """Total number of accesses: reads plus writes."""
         return self.reads + self.writes
 
 
@@ -414,6 +415,7 @@ class AccessLog(Mapping):
         compact_above: int | None = DFLT_COMPACT_ABOVE,
         keep_tombstones_for: float | None = None,
     ):
+        """Create a tracker, optionally persisted to ``path``; see the class docstring for the knobs."""
         if keep_tombstones_for is not None and not (
             _is_finite(keep_tombstones_for) and keep_tombstones_for >= 0
         ):
@@ -458,15 +460,19 @@ class AccessLog(Mapping):
 
     # -- reading -----------------------------------------------------------
     def __getitem__(self, key) -> AccessStats:
+        """The :class:`AccessStats` recorded for ``key`` (``KeyError`` if never accessed)."""
         return self._stats[key]
 
     def __contains__(self, key) -> bool:
+        """Whether ``key`` has recorded stats."""
         return key in self._stats
 
     def __iter__(self) -> Iterator:
+        """Iterate over the tracked keys."""
         return iter(self._stats)
 
     def __len__(self) -> int:
+        """Number of tracked keys."""
         return len(self._stats)
 
     def stats(self, key) -> AccessStats | None:
@@ -488,6 +494,7 @@ class AccessLog(Mapping):
             warnings.warn(message)
 
     def record(self, key, op: str, nbytes: int = 0, *, served_from=None) -> None:
+        """Record one ``op`` on ``key`` of ``nbytes`` bytes; raises ``ValueError`` on an unknown ``op``, never on bad sizes."""
         if op not in OPS:
             raise ValueError(f"Unknown op {op!r}; expected one of {OPS}")
         ts = self._last_ts = max(self.clock(), self._last_ts)
@@ -567,9 +574,11 @@ class AccessLog(Mapping):
             self._appender.close()
 
     def __enter__(self) -> AccessLog:
+        """Enter the context; returns the log itself."""
         return self
 
     def __exit__(self, *exc) -> None:
+        """Leave the context, releasing the log."""
         self.close()
 
 

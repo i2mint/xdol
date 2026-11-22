@@ -103,6 +103,7 @@ class CacheWriteError(RuntimeError):
     """
 
     def __init__(self, message: str, result: Any):
+        """Carry the ``message`` and the ``result`` computed before the failure."""
         super().__init__(message)
         self.result = result
 
@@ -137,6 +138,7 @@ class AtomicFiles(Files):
     _LEGACY_TMP_SUFFIX = ".xdol-tmp"  # temp files of xdol < 0.1.27, left by a crash
 
     def __init__(self, *args, delete_func=os.remove, **kwargs):
+        """Build the store; deletion defaults to ``os.remove`` (cached results are derived data, not trash-worthy)."""
         # Cached results are derived data: deleting one should not leave a copy in the trash.
         super().__init__(*args, delete_func=delete_func, **kwargs)
 
@@ -150,6 +152,7 @@ class AtomicFiles(Files):
     # Only a *missing file* is a KeyError (a miss). dol.Files turns every error into a
     # KeyError, which would make an unreadable-but-present entry look like a miss.
     def __getitem__(self, key):
+        """Read the bytes of the file for ``key``; only a missing file is a ``KeyError``."""
         if str(key).endswith(("/", os.sep)):  # a directory-style key never names a file
             raise KeyError(key)  # (consistent with ``in``)
         try:
@@ -158,23 +161,27 @@ class AtomicFiles(Files):
             raise KeyError(key) from None
 
     def __contains__(self, key) -> bool:
+        """Whether ``key`` names an existing regular file."""
         try:
             return stat.S_ISREG(os.stat(self._id_of_key(key)).st_mode)
         except (FileNotFoundError, NotADirectoryError, ValueError):
             return False  # anything else (e.g. EACCES) is a failure, not "absent"
 
     def __delitem__(self, key):
+        """Delete the file for ``key`` (``KeyError`` if absent)."""
         try:
             os.remove(self._id_of_key(key))
         except FileNotFoundError:
             raise KeyError(key) from None
 
     def __setitem__(self, key, value):
+        """Atomically write ``value`` to the file for ``key``, creating parent directories."""
         path = Path(self._id_of_key(key))
         path.parent.mkdir(parents=True, exist_ok=True)
         atomic_write(path, value)
 
     def __iter__(self) -> Iterator[str]:
+        """Iterate over keys, hiding legacy temporary files."""
         return (
             k for k in super().__iter__() if not k.endswith(self._LEGACY_TMP_SUFFIX)
         )

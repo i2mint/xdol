@@ -220,6 +220,7 @@ class PairedStore(MutableMapping):
         meta_suffix: str = ".json",
         asset_suffix: str = ".bin",
     ):
+        """Wrap ``store``, encoding metadata with ``meta_codec`` under ``meta_suffix`` and the asset under ``asset_suffix``."""
         if (
             not meta_suffix
             or not asset_suffix
@@ -236,6 +237,7 @@ class PairedStore(MutableMapping):
         self.asset_suffix = asset_suffix
 
     def __contains__(self, key) -> bool:
+        """Whether both halves (metadata and asset) of ``key`` are in the store."""
         return (
             isinstance(key, str)
             and (key + self.meta_suffix) in self.store
@@ -243,6 +245,7 @@ class PairedStore(MutableMapping):
         )
 
     def __getitem__(self, key):
+        """The ``(meta, asset_bytes)`` pair for ``key``; ``CodecDecodeError`` if the halves do not belong together."""
         # Read the halves directly: a failure of the store must surface as itself, not
         # as the plain KeyError that "absent" would be.
         try:
@@ -261,6 +264,7 @@ class PairedStore(MutableMapping):
         return envelope["meta"], asset
 
     def __setitem__(self, key, value):
+        """Store a ``(meta, asset_bytes)`` pair; anything else is a ``TypeError``."""
         try:
             meta, asset = value
             asset = _as_bytes(asset)
@@ -278,12 +282,14 @@ class PairedStore(MutableMapping):
         self.store[key + self.meta_suffix] = encoded_meta
 
     def __delitem__(self, key):
+        """Delete both halves of ``key``."""
         if key not in self:
             raise KeyError(key)
         del self.store[key + self.meta_suffix]  # un-commit first
         del self.store[key + self.asset_suffix]
 
     def __iter__(self) -> Iterator[str]:
+        """Iterate over keys that have both halves."""
         n = len(self.meta_suffix)
         for k in list(self.store):
             if (
@@ -293,6 +299,7 @@ class PairedStore(MutableMapping):
                 yield k[:-n]
 
     def __len__(self) -> int:
+        """Number of complete keys."""
         return sum(1 for _ in self)
 
 

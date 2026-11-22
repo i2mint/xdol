@@ -135,11 +135,13 @@ class Subscription:
     __slots__ = ("_registry", "_callback", "_active")
 
     def __init__(self, registry: "Registry", callback: Callable):
+        """Bind ``callback`` to ``registry``."""
         self._registry = registry
         self._callback = callback
         self._active = True
 
     def unsubscribe(self) -> None:
+        """Stop receiving notifications; safe to call more than once."""
         if self._active:
             self._registry._subscribers.discard(self._callback)
             self._active = False
@@ -180,6 +182,7 @@ class Registry(MutableMapping, Generic[V]):
         on_conflict: OnConflict = "error",
         strict_setitem: bool = False,
     ):
+        """Create an empty registry; see the class docstring for ``on_conflict`` and ``strict_setitem``."""
         self._name = name
         self._on_conflict: OnConflict = on_conflict
         self._strict_setitem = strict_setitem
@@ -192,6 +195,7 @@ class Registry(MutableMapping, Generic[V]):
     # -- core MutableMapping interface ---------------------------------------
 
     def __getitem__(self, key: str) -> V:
+        """The value registered under ``key`` (``KeyError`` if absent)."""
         canonical = self._aliases.get(key, key)
         if canonical in self._values:
             return self._values[canonical]
@@ -203,6 +207,7 @@ class Registry(MutableMapping, Generic[V]):
         raise RegistryMissing(f"{key!r} is not registered in {self!r}")
 
     def __setitem__(self, key: str, value: V) -> None:
+        """Register ``value`` under ``key``, applying the conflict policy."""
         # By default setitem bypasses on_conflict ("replace" semantics) — explicit
         # assignment; with ``strict_setitem=True`` it follows the policy like register().
         # Like __getitem__/__delitem__, it resolves aliases first, so writing
@@ -221,6 +226,7 @@ class Registry(MutableMapping, Generic[V]):
         self._notify(canonical, value)
 
     def __delitem__(self, key: str) -> None:
+        """Unregister ``key`` (``KeyError`` if absent)."""
         canonical = self._aliases.get(key, key)
         had_value = canonical in self._values or canonical in self._lazy
         self._values.pop(canonical, None)
@@ -234,21 +240,25 @@ class Registry(MutableMapping, Generic[V]):
             raise RegistryMissing(f"{key!r} is not registered in {self!r}")
 
     def __iter__(self) -> Iterator[str]:
+        """Iterate over registered names."""
         # Iterate over canonical keys only; aliases are visible via __contains__/__getitem__.
         seen = set(self._values)
         seen.update(self._lazy)
         return iter(seen)
 
     def __len__(self) -> int:
+        """Number of registered names."""
         return len(set(self._values) | set(self._lazy))
 
     def __contains__(self, key: object) -> bool:
+        """Whether ``key`` is registered."""
         if not isinstance(key, str):
             return False
         canonical = self._aliases.get(key, key)
         return canonical in self._values or canonical in self._lazy
 
     def __repr__(self) -> str:
+        """Show the registry name and its entries."""
         if self._name:
             return f"<Registry {self._name}>"
         return "<Registry>"
