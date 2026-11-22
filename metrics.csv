@@ -1,23 +1,21 @@
 metric,value
 schema_version,1.0
-timestamp,2026-11-22T23:19:07.700186Z
-commit_sha,66d149c8d23d7cd8ef7d72cc0cf544ebbb618a48
-commit_message,"README: what xdol is, install, a first example and a module map
-
-The README covered only the memoizer. It now opens with what xdol is and where it differs from lru_cache/joblib.Memory, a runnable example (memoize_calls, update_with_policy), and a table of the modules. The memoizer guide link pointed to docs/ instead of misc/docs/ (404); now absolute and correct."
+timestamp,2026-11-22T23:19:09.710666Z
+commit_sha,2e264e22677715d566bdccd52c5b093c30d14c75
+commit_message,Merge 66d149c8d23d7cd8ef7d72cc0cf544ebbb618a48 into 4fd66da0780621bd41da0ba730ceebfcaea3ffe8
 python_version,3.10
-metrics.umpyre_stats.num_functions,7351
-metrics.umpyre_stats.num_classes,1709
-metrics.umpyre_stats.total_lines,270825
-metrics.umpyre_stats.empty_lines,35044
-metrics.umpyre_stats.comment_lines,15123
-metrics.umpyre_stats.docs_lines,39592
-metrics.umpyre_stats.function_lines,121953
-metrics.umpyre_stats.empty_lines_ratio,0.12939721222191453
-metrics.umpyre_stats.comment_lines_ratio,0.055840487399612296
-metrics.umpyre_stats.function_lines_ratio,0.4503018554417059
-metrics.umpyre_stats.mean_lines_per_function,16.589987756767787
-metrics.umpyre_stats.files_analyzed,602
+metrics.umpyre_stats.num_functions,7264
+metrics.umpyre_stats.num_classes,1697
+metrics.umpyre_stats.total_lines,268945
+metrics.umpyre_stats.empty_lines,34749
+metrics.umpyre_stats.comment_lines,15063
+metrics.umpyre_stats.docs_lines,39581
+metrics.umpyre_stats.function_lines,120613
+metrics.umpyre_stats.empty_lines_ratio,0.12920485601145215
+metrics.umpyre_stats.comment_lines_ratio,0.05600773392329287
+metrics.umpyre_stats.function_lines_ratio,0.44846715871274795
+metrics.umpyre_stats.mean_lines_per_function,16.60421255506608
+metrics.umpyre_stats.files_analyzed,592
 metrics.umpyre_stats.pypi_version,0.1.43
 metrics.workflow_status.last_run_status,success
 metrics.workflow_status.last_success_timestamp,2026-11-22T16:57:55Z
@@ -35,4 +33,4 @@ metrics.coverage.branch_coverage,0.0
 metrics.coverage.statements_covered,0
 metrics.coverage.statements_total,0
 metrics.coverage.error,No coverage file found
-collection_duration_seconds,2.7780263423919678
+collection_duration_seconds,2.3781163692474365
