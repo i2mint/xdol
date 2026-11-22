@@ -10,6 +10,7 @@ from dol import atomic_write  # noqa: F401  (re-exported: lives in dol since 0.3
 def resolve_module_filepath(
     module_spec, assert_output_is_existing_filepath=True
 ) -> str:
+    """Resolve a module, callable or path to the ``.py`` file that defines it (a package dir gives its ``__init__.py``)."""
     if inspect.ismodule(module_spec):
         module_spec = inspect.getsourcefile(module_spec)
     elif not isinstance(module_spec, str):
@@ -30,6 +31,7 @@ def resolve_module_filepath(
 
 # Pattern: meshed
 def resolve_to_folder(obj, assert_output_is_existing_folder=True):
+    """Resolve a module, callable or path to the folder of its package (``__init__.py`` gives its directory)."""
     if inspect.ismodule(obj):
         obj = inspect.getsourcefile(obj)
     elif not isinstance(obj, str):

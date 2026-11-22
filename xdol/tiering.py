@@ -60,7 +60,8 @@ class PlacementPolicy(Protocol):
     high_watermark: float
     low_watermark: float
 
-    def admit(self, key, stats: AccessStats | None, *, now: float) -> bool: ...
+    def admit(self, key, stats: AccessStats | None, *, now: float) -> bool:
+        """Whether ``key`` (with its ``stats``, or ``None`` if unseen) may enter hot at time ``now``."""
 
     def on_hot_access(self, key, stats: AccessStats, *, admitted: bool) -> None:
         """``key`` was accessed in hot; ``admitted``: it was not there before."""
@@ -75,7 +76,8 @@ class PlacementPolicy(Protocol):
         hot_bytes: int,
         budget_bytes: int,
         now: float,
-    ) -> Iterable: ...
+    ) -> Iterable:
+        """Keys to release from hot, given hot usage versus ``budget_bytes``, at time ``now``."""
 
 
 @dataclass(kw_only=True)
@@ -177,6 +179,7 @@ class GdsfPolicy(_ResidencyPolicy):
     )  # k: (F, H)
 
     def __post_init__(self):
+        """Validate ``seed_half_life_s``: ``None`` or positive."""
         if self.seed_half_life_s is not None and not self.seed_half_life_s > 0:
             raise ValueError(
                 f"seed_half_life_s must be None or positive, not {self.seed_half_life_s!r}"
@@ -194,6 +197,7 @@ class GdsfPolicy(_ResidencyPolicy):
         return h
 
     def on_hot_access(self, key, stats: AccessStats, *, admitted: bool) -> None:
+        """Bump the key frequency (a first-seen key starts fresh) and record its size."""
         if admitted:
             f = 1
         elif key in self._entries:
@@ -203,6 +207,7 @@ class GdsfPolicy(_ResidencyPolicy):
         self._set(key, f, stats.size)
 
     def on_hot_drop(self, key) -> None:
+        """Forget the key."""
         self._entries.pop(key, None)
 
     def _seed_frequency(self, stats: AccessStats, *, now: float) -> float:
@@ -235,6 +240,7 @@ class GdsfPolicy(_ResidencyPolicy):
 
 @dataclass
 class SweepReport:
+    """What one sweep did: the keys released and the hot bytes before and after."""
     keys_released: list
     bytes_before: int
     bytes_after: int
@@ -291,6 +297,7 @@ class TieredStore(MutableMapping):
         tracker: AccessLog | None = None,
         max_item_fraction: float = 1.0,
     ):
+        """Tier ``hot`` over ``cold`` within ``budget_bytes``; ``cold`` is the source of truth."""
         if not 0 < max_item_fraction <= 1:
             raise ValueError(
                 f"max_item_fraction must be in (0, 1], not {max_item_fraction!r}"
@@ -365,6 +372,7 @@ class TieredStore(MutableMapping):
 
     # -- MutableMapping -----------------------------------------------------
     def __setitem__(self, k, v):
+        """Write to cold (the source of truth), then to hot when policy and budget allow."""
         size = _require_size(v)
         self._cold[k] = v
         try:
@@ -383,6 +391,7 @@ class TieredStore(MutableMapping):
         self._check_release()
 
     def __delitem__(self, k):
+        """Delete from hot first, then cold, so a failure never leaves a deleted record served from hot."""
         # Hot first: a failure then leaves the record in cold, never a deleted
         # record still served from hot.
         was_hot = self._drop_hot(k, record_release=False)
@@ -395,6 +404,7 @@ class TieredStore(MutableMapping):
         self._tracker.record(k, "delete", 0)
 
     def __getitem__(self, k):
+        """Read from hot when present, else from cold (possibly admitting the value to hot)."""
         now = self._now()
         served_from, admitted = None, False
         if k in self._hot:
@@ -433,12 +443,15 @@ class TieredStore(MutableMapping):
             return False
 
     def __contains__(self, k):
+        """Whether ``k`` is in cold, the source of truth."""
         return k in self._hot or k in self._cold
 
     def __iter__(self):
+        """Iterate over the keys of cold."""
         return iter(self._cold)
 
     def __len__(self):
+        """Number of keys in cold."""
         return len(self._cold)
 
 
@@ -503,6 +516,7 @@ def pin(store: TieredStore, key) -> None:
 
 
 def unpin(store: TieredStore, key) -> None:
+    """Clear the pin on ``key`` so it can be released from hot again."""
     store._tracker.record(key, "unpin", 0)
 
 
@@ -525,6 +539,7 @@ def prefetch(store: TieredStore, keys: Iterable) -> None:
 
 
 def status(store: TieredStore) -> dict:
+    """A snapshot of the store: hot and cold sizes, budget, pinned keys and the last sweep."""
     last = store._last_sweep
     return {
         "hot_bytes": store._hot_bytes,

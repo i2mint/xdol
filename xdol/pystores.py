@@ -56,6 +56,7 @@ class PyFilesReader(FileBytesReader, KvReader):
     """
 
     def __init__(self, src, *, max_levels=None):
+        """Initialize with source directory (anything resolvable to a folder) and an optional ``max_levels``."""
         super().__init__(rootdir=resolve_to_folder(src), max_levels=max_levels)
 
     def init_file_contents(self):
@@ -90,11 +91,14 @@ sitepackages_py_files = cached_keys(PyFilesReader(sitepackages_rootdir))
 @wrap_kvs(key_decoder=lambda x: x[:-1], key_encoder=lambda x: x + os.path.sep)
 @mk_relative_path_store(prefix_attr="rootdir")
 class PkgReader(DirCollection, KvReader):
+    """Mapping from the sub-package directories of a package to :class:`PyFilesReader` of their contents."""
     @wraps(DirCollection.__init__)
     def __init__(self, rootdir, *args, **kwargs):
+        """Resolve ``rootdir`` (a path, module or package) to a folder and initialize the reader."""
         super().__init__(rootdir=resolve_to_folder(rootdir), *args, **kwargs)
 
     def __getitem__(self, k):
+        """The :class:`PyFilesReader` for the sub-directory ``k``."""
         k = os.path.join(self.rootdir, k)
         return PyFilesReader(k)
 
