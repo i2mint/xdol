@@ -1,7 +1,7 @@
 {
-  "collection_duration_seconds": 2.6612963676452637,
-  "commit_message": "xdol: coverage and docstring pass (util, pystores; 54 docstrings) [skip publish]",
-  "commit_sha": "651d1812b0dbcc97d65fc332f9736e17e32f6811",
+  "collection_duration_seconds": 2.41770339012146,
+  "commit_message": "Merge 651d1812b0dbcc97d65fc332f9736e17e32f6811 into 29d7eae8c7bfe7923283ee7701b3a9fc8b6b30cd",
+  "commit_sha": "0925888c8d890b35aea2bb877fe868234bb786e6",
   "metrics": {
     "coverage": {
       "branch_coverage": 87.41,
@@ -41,6 +41,6 @@
   },
   "python_version": "3.10",
   "schema_version": "1.0",
-  "timestamp": "2026-11-22T16:51:56.692726Z",
+  "timestamp": "2026-11-22T16:51:58.241812Z",
   "workflow_status": {}
 }
