@@ -9,8 +9,8 @@ A bounded hot store over a cold source of truth (write-through, GDSF release).
 aging, Cherkasova 1998) from the statistics of an [`xdol.access.AccessLog`](xdol.access.html.md#xdol.access.AccessLog), whose
 clock is the store’s clock.
 
-Verbs are free functions, store first: [`sweep()`](#xdol.tiering.sweep), [`pin()`](#xdol.tiering.pin), `unpin()`,
-`status()`, [`prefetch()`](#xdol.tiering.prefetch), [`local_paths()`](#xdol.tiering.local_paths).
+Verbs are free functions, store first: [`sweep()`](#xdol.tiering.sweep), [`pin()`](#xdol.tiering.pin), [`unpin()`](#xdol.tiering.unpin),
+[`status()`](#xdol.tiering.status), [`prefetch()`](#xdol.tiering.prefetch), [`local_paths()`](#xdol.tiering.local_paths).
 
 Values must support `len` (their size in bytes): `__setitem__` raises `TypeError`
 before writing anything otherwise. A value read from `cold` without `len` counts
@@ -28,13 +28,13 @@ as size 0. Single-threaded: there is no locking.
 
 ### Functions
 
-| [`local_paths`](#xdol.tiering.local_paths)(store, \*[, path_of])   | Read-only `{key: real file path}`; materialises each key into `hot`.   |
-|--------------------------------------------------------------------------------------|------------------------------------------------------------------------|
-| [`pin`](#xdol.tiering.pin)(store, key)                     | Protect `key`'s hot copy from release (persisted in the tracker).      |
-| [`prefetch`](#xdol.tiering.prefetch)(store, keys)               | Admit `keys` to hot regardless of policy, as reads served from cold.   |
-| `status`(store)                                                                      |                                                                        |
-| [`sweep`](#xdol.tiering.sweep)(store, \*[, exclude])         | Release hot copies, lowest priority first, down to the low watermark.  |
-| `unpin`(store, key)                                                                  |                                                                        |
+| [`local_paths`](#xdol.tiering.local_paths)(store, \*[, path_of])   | Read-only `{key: real file path}`; materialises each key into `hot`.                 |
+|--------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------|
+| [`pin`](#xdol.tiering.pin)(store, key)                     | Protect `key`'s hot copy from release (persisted in the tracker).                    |
+| [`prefetch`](#xdol.tiering.prefetch)(store, keys)               | Admit `keys` to hot regardless of policy, as reads served from cold.                 |
+| [`status`](#xdol.tiering.status)(store)                       | A snapshot of the store: hot and cold sizes, budget, pinned keys and the last sweep. |
+| [`sweep`](#xdol.tiering.sweep)(store, \*[, exclude])         | Release hot copies, lowest priority first, down to the low watermark.                |
+| [`unpin`](#xdol.tiering.unpin)(store, key)                   | Clear the pin on `key` so it can be released from hot again.                         |
 
 ### Classes
 
@@ -42,7 +42,7 @@ as size 0. Single-threaded: there is no locking.
 |--------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------|
 | [`LruPolicy`](#xdol.tiering.LruPolicy)(\*[, high_watermark, ...])            | Least-recently-used release: the simple alternative to [`GdsfPolicy`](#xdol.tiering.GdsfPolicy). |
 | [`PlacementPolicy`](#xdol.tiering.PlacementPolicy)(\*args, \*\*kwargs)             | Decides what enters and leaves the hot tier.                                                                        |
-| [`SweepReport`](#xdol.tiering.SweepReport)(keys_released, bytes_before, ...)   |                                                                                                                     |
+| [`SweepReport`](#xdol.tiering.SweepReport)(keys_released, bytes_before, ...)   | What one sweep did: the keys released and the hot bytes before and after.                                           |
 | [`TieredStore`](#xdol.tiering.TieredStore)(hot, cold, \*, budget_bytes[, ...]) | Bounded hot store over a cold source of truth.                                                                      |
 
 ### Exceptions
@@ -69,6 +69,20 @@ would otherwise keep it favoured after every restart. A key not accessed during
 this process (a cron `sweep`) is ranked on its recency instead: `F` is
 `0.5 ** (age / seed_half_life_s)`, `age` being the time since its
 `last_access`, so among such keys of equal size the least recently used goes first (a key seeded this way and then accessed continues from `F + 1`).
+
+#### on_hot_access(key, stats, , admitted)
+
+Bump the key frequency (a first-seen key starts fresh) and record its size.
+
+* **Return type:**
+  [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
+#### on_hot_drop(key)
+
+Forget the key.
+
+* **Return type:**
+  [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
 #### priority(frequency, size)
 
@@ -100,6 +114,13 @@ Bases: [`Protocol`](https://docs.python.org/3/library/typing.html#typing.Protoco
 
 Decides what enters and leaves the hot tier.
 
+#### admit(key, stats, , now)
+
+Whether `key` (with its `stats`, or `None` if unseen) may enter hot at time `now`.
+
+* **Return type:**
+  [`bool`](https://docs.python.org/3/builtins/functions.html#bool)
+
 #### on_hot_access(key, stats, , admitted)
 
 `key` was accessed in hot; `admitted`: it was not there before.
@@ -114,9 +135,18 @@ Decides what enters and leaves the hot tier.
 * **Return type:**
   [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
+#### to_release(hot_stats, , hot_bytes, budget_bytes, now)
+
+Keys to release from hot, given hot usage versus `budget_bytes`, at time `now`.
+
+* **Return type:**
+  [`Iterable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterable)
+
 ### *class* xdol.tiering.SweepReport(keys_released, bytes_before, bytes_after)
 
 Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
+
+What one sweep did: the keys released and the hot bytes before and after.
 
 ### *class* xdol.tiering.TieredStore(hot, cold, , budget_bytes, policy=None, tracker=None, max_item_fraction=1.0)
 
@@ -186,6 +216,13 @@ The release this may trigger never releases `keys`.
 * **Return type:**
   [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
+### xdol.tiering.status(store)
+
+A snapshot of the store: hot and cold sizes, budget, pinned keys and the last sweep.
+
+* **Return type:**
+  [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)
+
 ### xdol.tiering.sweep(store, , exclude=())
 
 Release hot copies, lowest priority first, down to the low watermark.
@@ -196,3 +233,10 @@ protected or not.
 
 * **Return type:**
   [`SweepReport`](#xdol.tiering.SweepReport)
+
+### xdol.tiering.unpin(store, key)
+
+Clear the pin on `key` so it can be released from hot again.
+
+* **Return type:**
+  [`None`](https://docs.python.org/3/builtins/constants.html#None)

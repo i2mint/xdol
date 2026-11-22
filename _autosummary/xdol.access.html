@@ -44,7 +44,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../_static/documentation_options.js?v=3203cd3c"></script>
+    <script src="../_static/documentation_options.js?v=05fb4756"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -58,7 +58,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.41" />
+  <meta name="docsearch:version" content="0.1.42" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -554,6 +554,17 @@ dropped, as from the file.</p>
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="xdol.access.AccessLog.record">
+<span class="sig-name descname"><span class="pre">record</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">op</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nbytes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">served_from</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xdol/access.html#AccessLog.record"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xdol.access.AccessLog.record" title="Link to this definition">#</a></dt>
+<dd><p>Record one <code class="docutils literal notranslate"><span class="pre">op</span></code> on <code class="docutils literal notranslate"><span class="pre">key</span></code> of <code class="docutils literal notranslate"><span class="pre">nbytes</span></code> bytes; raises <code class="docutils literal notranslate"><span class="pre">ValueError</span></code> on an unknown <code class="docutils literal notranslate"><span class="pre">op</span></code>, never on bad sizes.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><span class="highlight sphinx_autodoc_typehints-value"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></a></span></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="xdol.access.AccessLog.stats">
 <span class="sig-name descname"><span class="pre">stats</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xdol/access.html#AccessLog.stats"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xdol.access.AccessLog.stats" title="Link to this definition">#</a></dt>
 <dd><p>Alias of <code class="docutils literal notranslate"><span class="pre">self.get(key)</span></code>.</p>
@@ -580,6 +591,17 @@ dropped, as from the file.</p>
 <p>Access statistics of one key (immutable: update with <code class="docutils literal notranslate"><span class="pre">dataclasses.replace</span></code>).</p>
 <dl class="field-list simple">
 </dl>
+<dl class="py property">
+<dt class="sig sig-object py" id="xdol.access.AccessStats.frequency">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">frequency</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><span class="pre">int</span></a></span><a class="headerlink" href="#xdol.access.AccessStats.frequency" title="Link to this definition">#</a></dt>
+<dd><p>reads plus writes.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Total number of accesses</p>
+</dd>
+</dl>
+</dd></dl>
+
 </dd></dl>
 
 <dl class="py function">
@@ -701,11 +723,15 @@ available as <code class="docutils literal notranslate"><span class="pre">.store
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#xdol.access.AccessLog"><code class="docutils literal notranslate"><span class="pre">AccessLog</span></code></a><ul class="nav section-nav flex-column">
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xdol.access.AccessLog.close"><code class="docutils literal notranslate"><span class="pre">AccessLog.close()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xdol.access.AccessLog.compact"><code class="docutils literal notranslate"><span class="pre">AccessLog.compact()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xdol.access.AccessLog.record"><code class="docutils literal notranslate"><span class="pre">AccessLog.record()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xdol.access.AccessLog.stats"><code class="docutils literal notranslate"><span class="pre">AccessLog.stats()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xdol.access.AccessLog.tombstones"><code class="docutils literal notranslate"><span class="pre">AccessLog.tombstones</span></code></a></li>
 </ul>
 </li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#xdol.access.AccessStats"><code class="docutils literal notranslate"><span class="pre">AccessStats</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#xdol.access.AccessStats"><code class="docutils literal notranslate"><span class="pre">AccessStats</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xdol.access.AccessStats.frequency"><code class="docutils literal notranslate"><span class="pre">AccessStats.frequency</span></code></a></li>
+</ul>
+</li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#xdol.access.default_access_log_for"><code class="docutils literal notranslate"><span class="pre">default_access_log_for()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#xdol.access.merge_stats"><code class="docutils literal notranslate"><span class="pre">merge_stats()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#xdol.access.track_access"><code class="docutils literal notranslate"><span class="pre">track_access()</span></code></a></li>

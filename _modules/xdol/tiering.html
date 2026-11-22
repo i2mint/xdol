@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../../_static/documentation_options.js?v=3203cd3c"></script>
+    <script src="../../_static/documentation_options.js?v=05fb4756"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -411,7 +411,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.41" />
+  <meta name="docsearch:version" content="0.1.42" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -768,7 +768,11 @@ window.runMermaid = runMermaid;</script>
     <span class="n">high_watermark</span><span class="p">:</span> <span class="nb">float</span>
     <span class="n">low_watermark</span><span class="p">:</span> <span class="nb">float</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">admit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">stats</span><span class="p">:</span> <span class="n">AccessStats</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">now</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span> <span class="o">...</span>
+<div class="viewcode-block" id="PlacementPolicy.admit">
+<a class="viewcode-back" href="../../_autosummary/xdol.tiering.html#xdol.tiering.PlacementPolicy.admit">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">admit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">stats</span><span class="p">:</span> <span class="n">AccessStats</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">now</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Whether ``key`` (with its ``stats``, or ``None`` if unseen) may enter hot at time ``now``."""</span></div>
+
 
 <div class="viewcode-block" id="PlacementPolicy.on_hot_access">
 <a class="viewcode-back" href="../../_autosummary/xdol.tiering.html#xdol.tiering.PlacementPolicy.on_hot_access">[docs]</a>
@@ -782,6 +786,8 @@ window.runMermaid = runMermaid;</script>
 <span class="w">        </span><span class="sd">"""``key`` left hot (released, deleted or overwritten with no hot copy)."""</span></div>
 
 
+<div class="viewcode-block" id="PlacementPolicy.to_release">
+<a class="viewcode-back" href="../../_autosummary/xdol.tiering.html#xdol.tiering.PlacementPolicy.to_release">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">to_release</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">hot_stats</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">AccessStats</span><span class="p">],</span>
@@ -789,7 +795,9 @@ window.runMermaid = runMermaid;</script>
         <span class="n">hot_bytes</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
         <span class="n">budget_bytes</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
         <span class="n">now</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterable</span><span class="p">:</span> <span class="o">...</span></div>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterable</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Keys to release from hot, given hot usage versus ``budget_bytes``, at time ``now``."""</span></div>
+</div>
 
 
 
@@ -897,6 +905,7 @@ window.runMermaid = runMermaid;</script>
     <span class="p">)</span>  <span class="c1"># k: (F, H)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Validate ``seed_half_life_s``: ``None`` or positive."""</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">seed_half_life_s</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">seed_half_life_s</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
                 <span class="sa">f</span><span class="s2">"seed_half_life_s must be None or positive, not </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">seed_half_life_s</span><span class="si">!r}</span><span class="s2">"</span>
@@ -916,17 +925,25 @@ window.runMermaid = runMermaid;</script>
         <span class="bp">self</span><span class="o">.</span><span class="n">_entries</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">frequency</span><span class="p">,</span> <span class="n">h</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">h</span>
 
+<div class="viewcode-block" id="GdsfPolicy.on_hot_access">
+<a class="viewcode-back" href="../../_autosummary/xdol.tiering.html#xdol.tiering.GdsfPolicy.on_hot_access">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">on_hot_access</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">stats</span><span class="p">:</span> <span class="n">AccessStats</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">admitted</span><span class="p">:</span> <span class="nb">bool</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Bump the key frequency (a first-seen key starts fresh) and record its size."""</span>
         <span class="k">if</span> <span class="n">admitted</span><span class="p">:</span>
             <span class="n">f</span> <span class="o">=</span> <span class="mi">1</span>
         <span class="k">elif</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_entries</span><span class="p">:</span>
             <span class="n">f</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_entries</span><span class="p">[</span><span class="n">key</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">f</span> <span class="o">=</span> <span class="mi">1</span>  <span class="c1"># first seen by this process: fresh, as if just admitted</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_set</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">stats</span><span class="o">.</span><span class="n">size</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_set</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">stats</span><span class="o">.</span><span class="n">size</span><span class="p">)</span></div>
 
+
+<div class="viewcode-block" id="GdsfPolicy.on_hot_drop">
+<a class="viewcode-back" href="../../_autosummary/xdol.tiering.html#xdol.tiering.GdsfPolicy.on_hot_drop">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">on_hot_drop</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_entries</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+<span class="w">        </span><span class="sd">"""Forget the key."""</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_entries</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span></div>
+
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_seed_frequency</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">stats</span><span class="p">:</span> <span class="n">AccessStats</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">now</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""``F`` of a hot key this process has not seen accessed: decays with its age."""</span>
@@ -961,6 +978,7 @@ window.runMermaid = runMermaid;</script>
 <a class="viewcode-back" href="../../_autosummary/xdol.tiering.html#xdol.tiering.SweepReport">[docs]</a>
 <span class="nd">@dataclass</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">SweepReport</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""What one sweep did: the keys released and the hot bytes before and after."""</span>
     <span class="n">keys_released</span><span class="p">:</span> <span class="nb">list</span>
     <span class="n">bytes_before</span><span class="p">:</span> <span class="nb">int</span>
     <span class="n">bytes_after</span><span class="p">:</span> <span class="nb">int</span></div>
@@ -1020,6 +1038,7 @@ window.runMermaid = runMermaid;</script>
         <span class="n">tracker</span><span class="p">:</span> <span class="n">AccessLog</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">max_item_fraction</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
     <span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Tier ``hot`` over ``cold`` within ``budget_bytes``; ``cold`` is the source of truth."""</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="mi">0</span> <span class="o">&lt;</span> <span class="n">max_item_fraction</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
                 <span class="sa">f</span><span class="s2">"max_item_fraction must be in (0, 1], not </span><span class="si">{</span><span class="n">max_item_fraction</span><span class="si">!r}</span><span class="s2">"</span>
@@ -1094,6 +1113,7 @@ window.runMermaid = runMermaid;</script>
 
     <span class="c1"># -- MutableMapping -----------------------------------------------------</span>
     <span class="k">def</span><span class="w"> </span><span class="fm">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Write to cold (the source of truth), then to hot when policy and budget allow."""</span>
         <span class="n">size</span> <span class="o">=</span> <span class="n">_require_size</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_cold</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
         <span class="k">try</span><span class="p">:</span>
@@ -1112,6 +1132,7 @@ window.runMermaid = runMermaid;</script>
         <span class="bp">self</span><span class="o">.</span><span class="n">_check_release</span><span class="p">()</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__delitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Delete from hot first, then cold, so a failure never leaves a deleted record served from hot."""</span>
         <span class="c1"># Hot first: a failure then leaves the record in cold, never a deleted</span>
         <span class="c1"># record still served from hot.</span>
         <span class="n">was_hot</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_drop_hot</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">record_release</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
@@ -1124,6 +1145,7 @@ window.runMermaid = runMermaid;</script>
         <span class="bp">self</span><span class="o">.</span><span class="n">_tracker</span><span class="o">.</span><span class="n">record</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="s2">"delete"</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Read from hot when present, else from cold (possibly admitting the value to hot)."""</span>
         <span class="n">now</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_now</span><span class="p">()</span>
         <span class="n">served_from</span><span class="p">,</span> <span class="n">admitted</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">False</span>
         <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_hot</span><span class="p">:</span>
@@ -1162,12 +1184,15 @@ window.runMermaid = runMermaid;</script>
             <span class="k">return</span> <span class="kc">False</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__contains__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Whether ``k`` is in cold, the source of truth."""</span>
         <span class="k">return</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_hot</span> <span class="ow">or</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cold</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Iterate over the keys of cold."""</span>
         <span class="k">return</span> <span class="nb">iter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_cold</span><span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Number of keys in cold."""</span>
         <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_cold</span><span class="p">)</span></div>
 
 
@@ -1238,8 +1263,12 @@ window.runMermaid = runMermaid;</script>
 
 
 
+<div class="viewcode-block" id="unpin">
+<a class="viewcode-back" href="../../_autosummary/xdol.tiering.html#xdol.tiering.unpin">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">unpin</span><span class="p">(</span><span class="n">store</span><span class="p">:</span> <span class="n">TieredStore</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-    <span class="n">store</span><span class="o">.</span><span class="n">_tracker</span><span class="o">.</span><span class="n">record</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="s2">"unpin"</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+<span class="w">    </span><span class="sd">"""Clear the pin on ``key`` so it can be released from hot again."""</span>
+    <span class="n">store</span><span class="o">.</span><span class="n">_tracker</span><span class="o">.</span><span class="n">record</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="s2">"unpin"</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span></div>
+
 
 
 <div class="viewcode-block" id="prefetch">
@@ -1263,7 +1292,10 @@ window.runMermaid = runMermaid;</script>
 
 
 
+<div class="viewcode-block" id="status">
+<a class="viewcode-back" href="../../_autosummary/xdol.tiering.html#xdol.tiering.status">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">status</span><span class="p">(</span><span class="n">store</span><span class="p">:</span> <span class="n">TieredStore</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""A snapshot of the store: hot and cold sizes, budget, pinned keys and the last sweep."""</span>
     <span class="n">last</span> <span class="o">=</span> <span class="n">store</span><span class="o">.</span><span class="n">_last_sweep</span>
     <span class="k">return</span> <span class="p">{</span>
         <span class="s2">"hot_bytes"</span><span class="p">:</span> <span class="n">store</span><span class="o">.</span><span class="n">_hot_bytes</span><span class="p">,</span>
@@ -1272,7 +1304,8 @@ window.runMermaid = runMermaid;</script>
         <span class="s2">"cold_keys"</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">store</span><span class="o">.</span><span class="n">_cold</span><span class="p">),</span>
         <span class="s2">"pinned"</span><span class="p">:</span> <span class="nb">sorted</span><span class="p">((</span><span class="n">k</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">st</span> <span class="ow">in</span> <span class="n">store</span><span class="o">.</span><span class="n">_tracker</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">st</span><span class="o">.</span><span class="n">pinned</span><span class="p">),</span> <span class="n">key</span><span class="o">=</span><span class="nb">str</span><span class="p">),</span>
         <span class="s2">"last_sweep"</span><span class="p">:</span> <span class="kc">None</span> <span class="k">if</span> <span class="n">last</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="nb">vars</span><span class="p">(</span><span class="n">last</span><span class="p">)</span><span class="o">.</span><span class="n">copy</span><span class="p">(),</span>
-    <span class="p">}</span>
+    <span class="p">}</span></div>
+
 
 
 <span class="k">class</span><span class="w"> </span><span class="nc">_LocalPaths</span><span class="p">(</span><span class="n">Mapping</span><span class="p">):</span>

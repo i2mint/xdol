@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../../_static/documentation_options.js?v=3203cd3c"></script>
+    <script src="../../_static/documentation_options.js?v=05fb4756"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -411,7 +411,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.41" />
+  <meta name="docsearch:version" content="0.1.42" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -761,6 +761,7 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">    """</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">src</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">max_levels</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Initialize with source directory (anything resolvable to a folder) and an optional ``max_levels``."""</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">rootdir</span><span class="o">=</span><span class="n">resolve_to_folder</span><span class="p">(</span><span class="n">src</span><span class="p">),</span> <span class="n">max_levels</span><span class="o">=</span><span class="n">max_levels</span><span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">init_file_contents</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -798,11 +799,14 @@ window.runMermaid = runMermaid;</script>
 <span class="nd">@wrap_kvs</span><span class="p">(</span><span class="n">key_decoder</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">key_encoder</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span> <span class="o">+</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">sep</span><span class="p">)</span>
 <span class="nd">@mk_relative_path_store</span><span class="p">(</span><span class="n">prefix_attr</span><span class="o">=</span><span class="s2">"rootdir"</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">PkgReader</span><span class="p">(</span><span class="n">DirCollection</span><span class="p">,</span> <span class="n">KvReader</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Mapping from the sub-package directories of a package to :class:`PyFilesReader` of their contents."""</span>
     <span class="nd">@wraps</span><span class="p">(</span><span class="n">DirCollection</span><span class="o">.</span><span class="fm">__init__</span><span class="p">)</span>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rootdir</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Resolve ``rootdir`` (a path, module or package) to a folder and initialize the reader."""</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">rootdir</span><span class="o">=</span><span class="n">resolve_to_folder</span><span class="p">(</span><span class="n">rootdir</span><span class="p">),</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""The :class:`PyFilesReader` for the sub-directory ``k``."""</span>
         <span class="n">k</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rootdir</span><span class="p">,</span> <span class="n">k</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">PyFilesReader</span><span class="p">(</span><span class="n">k</span><span class="p">)</span></div>
 

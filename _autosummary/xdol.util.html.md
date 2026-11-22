@@ -4,10 +4,21 @@ Utility functions for xdol.
 
 ### Functions
 
-| `resolve_module_filepath`(module_spec[, ...])                                          |                                                                            |
-|----------------------------------------------------------------------------------------|----------------------------------------------------------------------------|
-| `resolve_to_folder`(obj[, ...])                                                        |                                                                            |
-| [`save_obj`](#xdol.util.save_obj)(obj, \*[, encode, key, ...]) | Serialize and save a Python object with customizable encoding and storage. |
+| [`resolve_module_filepath`](#xdol.util.resolve_module_filepath)(module_spec[, ...])   | Resolve a module, callable or path to the `.py` file that defines it (a package dir gives its `__init__.py`).   |
+|------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------|
+| [`resolve_to_folder`](#xdol.util.resolve_to_folder)(obj[, ...])                 | Resolve a module, callable or path to the folder of its package (`__init__.py` gives its directory).            |
+| [`save_obj`](#xdol.util.save_obj)(obj, \*[, encode, key, ...])         | Serialize and save a Python object with customizable encoding and storage.                                      |
+
+### xdol.util.resolve_module_filepath(module_spec, assert_output_is_existing_filepath=True)
+
+Resolve a module, callable or path to the `.py` file that defines it (a package dir gives its `__init__.py`).
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
+
+### xdol.util.resolve_to_folder(obj, assert_output_is_existing_folder=True)
+
+Resolve a module, callable or path to the folder of its package (`__init__.py` gives its directory).
 
 ### xdol.util.save_obj(obj, \*, encode=<built-in function dumps>, key=None, save_under_key=None, return_func=None)
 

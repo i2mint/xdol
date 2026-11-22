@@ -44,7 +44,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../_static/documentation_options.js?v=3203cd3c"></script>
+    <script src="../_static/documentation_options.js?v=05fb4756"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -58,7 +58,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.41" />
+  <meta name="docsearch:version" content="0.1.42" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -675,9 +675,20 @@ keeps subscribers free of partially-built state.</p>
 <dt class="sig sig-object py" id="xdol.registry.Subscription">
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">xdol.registry.</span></span><span class="sig-name descname"><span class="pre">Subscription</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">registry</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">callback</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xdol/registry.html#Subscription"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xdol.registry.Subscription" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/builtins/functions.html#object" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
-<p>Handle returned by <a class="reference internal" href="#xdol.registry.Registry.subscribe" title="xdol.registry.Registry.subscribe"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Registry.subscribe()</span></code></a>. Call <code class="xref py py-meth docutils literal notranslate"><span class="pre">unsubscribe()</span></code> to detach.</p>
+<p>Handle returned by <a class="reference internal" href="#xdol.registry.Registry.subscribe" title="xdol.registry.Registry.subscribe"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Registry.subscribe()</span></code></a>. Call <a class="reference internal" href="#xdol.registry.Subscription.unsubscribe" title="xdol.registry.Subscription.unsubscribe"><code class="xref py py-meth docutils literal notranslate"><span class="pre">unsubscribe()</span></code></a> to detach.</p>
 <dl class="field-list simple">
 </dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="xdol.registry.Subscription.unsubscribe">
+<span class="sig-name descname"><span class="pre">unsubscribe</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xdol/registry.html#Subscription.unsubscribe"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xdol.registry.Subscription.unsubscribe" title="Link to this definition">#</a></dt>
+<dd><p>Stop receiving notifications; safe to call more than once.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><span class="highlight sphinx_autodoc_typehints-value"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></a></span></span></p>
+</dd>
+</dl>
+</dd></dl>
+
 </dd></dl>
 
 </section>
@@ -743,7 +754,10 @@ keeps subscribers free of partially-built state.</p>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#xdol.registry.RegistryConflict"><code class="docutils literal notranslate"><span class="pre">RegistryConflict</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#xdol.registry.RegistryError"><code class="docutils literal notranslate"><span class="pre">RegistryError</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#xdol.registry.RegistryMissing"><code class="docutils literal notranslate"><span class="pre">RegistryMissing</span></code></a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#xdol.registry.Subscription"><code class="docutils literal notranslate"><span class="pre">Subscription</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#xdol.registry.Subscription"><code class="docutils literal notranslate"><span class="pre">Subscription</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xdol.registry.Subscription.unsubscribe"><code class="docutils literal notranslate"><span class="pre">Subscription.unsubscribe()</span></code></a></li>
+</ul>
+</li>
 </ul>
   </nav></div>
 

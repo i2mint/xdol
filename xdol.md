@@ -1,4 +1,4 @@
-> built 2026-11-21 18:38 UTC from ca5a243 (master) · xdol 0.1.41. Details: build_info.json
+> built 2026-11-22 16:57 UTC from 77eaf1c (master) · xdol 0.1.42. Details: build_info.json
 
 # index.html.md
 
@@ -193,6 +193,13 @@ dropped, as from the file.
 * **Return type:**
   [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
+#### record(key, op, nbytes=0, , served_from=None)
+
+Record one `op` on `key` of `nbytes` bytes; raises `ValueError` on an unknown `op`, never on bad sizes.
+
+* **Return type:**
+  [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
 #### stats(key)
 
 Alias of `self.get(key)`.
@@ -211,6 +218,13 @@ Kept (and compacted) for every key ever deleted, re-created or not.
 Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
 Access statistics of one key (immutable: update with `dataclasses.replace`).
+
+#### *property* frequency *: [int](https://docs.python.org/3/builtins/functions.html#int)*
+
+reads plus writes.
+
+* **Type:**
+  Total number of accesses
 
 ### xdol.access.default_access_log_for(store, \*\*kwargs)
 
@@ -1231,13 +1245,13 @@ Stores for python objects
 
 ### Classes
 
-| [`PkgFilesReader`](_autosummary/xdol.pystores.html.md#xdol.pystores.PkgFilesReader)                          |                                                                |
-|------------------------------------------------------------------------------------------|----------------------------------------------------------------|
-| [`PkgReader`](_autosummary/xdol.pystores.html.md#xdol.pystores.PkgReader)(rootdir[, subpath, ...])      | By store we mean key-value store.                              |
-| [`PyFilesBytes`](_autosummary/xdol.pystores.html.md#xdol.pystores.PyFilesBytes)(\*args[, read_retry, ...]) | Mapping interface to .py files' bytes                          |
-| [`PyFilesReader`](_autosummary/xdol.pystores.html.md#xdol.pystores.PyFilesReader)([store])                  | Mapping interface to .py files of a folder.                    |
-| [`PyprojectReader`](_autosummary/xdol.pystores.html.md#xdol.pystores.PyprojectReader)(src, \*[, max_levels])  | Mapping interface to pyproject.toml files in a directory tree. |
-| [`SetupCfgReader`](_autosummary/xdol.pystores.html.md#xdol.pystores.SetupCfgReader)(src, \*[, max_levels])   | Mapping interface to setup.cfg files in a directory tree.      |
+| [`PkgFilesReader`](_autosummary/xdol.pystores.html.md#xdol.pystores.PkgFilesReader)                          |                                                                                                                                            |
+|------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------|
+| [`PkgReader`](_autosummary/xdol.pystores.html.md#xdol.pystores.PkgReader)(rootdir[, subpath, ...])      | Mapping from the sub-package directories of a package to [`PyFilesReader`](_autosummary/xdol.pystores.html.md#xdol.pystores.PyFilesReader) of their contents. |
+| [`PyFilesBytes`](_autosummary/xdol.pystores.html.md#xdol.pystores.PyFilesBytes)(\*args[, read_retry, ...]) | Mapping interface to .py files' bytes                                                                                                      |
+| [`PyFilesReader`](_autosummary/xdol.pystores.html.md#xdol.pystores.PyFilesReader)([store])                  | Mapping interface to .py files of a folder.                                                                                                |
+| [`PyprojectReader`](_autosummary/xdol.pystores.html.md#xdol.pystores.PyprojectReader)(src, \*[, max_levels])  | Mapping interface to pyproject.toml files in a directory tree.                                                                             |
+| [`SetupCfgReader`](_autosummary/xdol.pystores.html.md#xdol.pystores.SetupCfgReader)(src, \*[, max_levels])   | Mapping interface to setup.cfg files in a directory tree.                                                                                  |
 
 ### xdol.pystores.PkgFilesReader
 
@@ -1247,115 +1261,7 @@ alias of [`PyFilesReader`](_autosummary/xdol.pystores.html.md#xdol.pystores.PyFi
 
 Bases: `Store`
 
-By store we mean key-value store. This could be files in a filesystem, objects in s3, or a database. Where and
-how the content is stored should be specified, but StoreInterface offers a dict-like interface to this.
-
-```default
-__getitem__ calls: _id_of_key                                       _obj_of_data
-__setitem__ calls: _id_of_key                   _data_of_obj
-__delitem__ calls: _id_of_key
-__iter__    calls:                  _key_of_id
-```
-
-```pycon
->>> # Default store: no key or value conversion #####################################
->>> from dol import Store
->>> s = Store()
->>> s['foo'] = 33
->>> s['bar'] = 65
->>> assert list(s.items()) == [('foo', 33), ('bar', 65)]
->>> assert list(s.store.items()) == [('foo', 33), ('bar', 65)]  # see that the store contains the same thing
->>>
->>> #################################################################################
->>> # Now let's make stores that have a key and value conversion layer ##############
->>> # input keys will be upper cased, and output keys lower cased ###################
->>> # input values (assumed int) will be converted to ascii string, and visa versa ##
->>> #################################################################################
->>>
->>> def test_store(s):
-...     s['foo'] = 33  # write 33 to 'foo'
-...     assert 'foo' in s  # __contains__ works
-...     assert 'no_such_key' not in s  # __nin__ works
-...     s['bar'] = 65  # write 65 to 'bar'
-...     assert len(s) == 2  # there are indeed two elements
-...     assert list(s) == ['foo', 'bar']  # these are the keys
-...     assert list(s.keys()) == ['foo', 'bar']  # the keys() method works!
-...     assert list(s.values()) == [33, 65]  # the values() method works!
-...     assert list(s.items()) == [('foo', 33), ('bar', 65)]  # these are the items
-...     assert list(s.store.items()) == [('FOO', '!'), ('BAR', 'A')]  # but note the internal representation
-...     assert s.get('foo') == 33  # the get method works
-...     assert s.get('no_such_key', 'something') == 'something'  # return a default value
-...     del(s['foo'])  # you can delete an item given its key
-...     assert len(s) == 1  # see, only one item left!
-...     assert list(s.items()) == [('bar', 65)]  # here it is
->>>
->>> # We can introduce this conversion layer in several ways. Here's a few... ######################
->>> # by subclassing ###############################################################################
->>> class MyStore(Store):
-...     def _id_of_key(self, k):
-...         return k.upper()
-...     def _key_of_id(self, _id):
-...         return _id.lower()
-...     def _data_of_obj(self, obj):
-...         return chr(obj)
-...     def _obj_of_data(self, data):
-...         return ord(data)
->>> s = MyStore(store=dict())  # note that you don't need to specify dict(), since it's the default
->>> test_store(s)
->>>
->>> # by assigning functions to converters ##########################################################
->>> class MyStore(Store):
-...     def __init__(self, store, _id_of_key, _key_of_id, _data_of_obj, _obj_of_data):
-...         super().__init__(store)
-...         self._id_of_key = _id_of_key
-...         self._key_of_id = _key_of_id
-...         self._data_of_obj = _data_of_obj
-...         self._obj_of_data = _obj_of_data
-...
->>> s = MyStore(dict(),
-...             _id_of_key=lambda k: k.upper(),
-...             _key_of_id=lambda _id: _id.lower(),
-...             _data_of_obj=lambda obj: chr(obj),
-...             _obj_of_data=lambda data: ord(data))
->>> test_store(s)
->>>
->>> # using a Mixin class #############################################################################
->>> class Mixin:
-...     def _id_of_key(self, k):
-...         return k.upper()
-...     def _key_of_id(self, _id):
-...         return _id.lower()
-...     def _data_of_obj(self, obj):
-...         return chr(obj)
-...     def _obj_of_data(self, data):
-...         return ord(data)
-...
->>> class MyStore(Mixin, Store):  # note that the Mixin must come before Store in the mro
-...     pass
-...
->>> s = MyStore()  # no dict()? No, because default anyway
->>> test_store(s)
->>>
->>> # adding wrapper methods to an already made Store instance #########################################
->>> s = Store(dict())
->>> s._id_of_key=lambda k: k.upper()
->>> s._key_of_id=lambda _id: _id.lower()
->>> s._data_of_obj=lambda obj: chr(obj)
->>> s._obj_of_data=lambda data: ord(data)
->>> test_store(s)
-```
-
-Note on defining your own “Mapping Views”.
-
-When you do a `.keys()`, a `.values()` or `.items()` you’re getting a `MappingView`
-instance; an iterable and sized container that provides some methods to access
-particular aspects of the wrapped mapping.
-
-If you need to customize the behavior of these instances, you should avoid
-overriding the `keys`, `values` or `items` methods directly, but instead
-override the `KeysView`, `ValuesView` or `ItemsView` classes that they use.
-
-For more, see: [https://github.com/i2mint/dol/wiki/Mapping-Views](https://github.com/i2mint/dol/wiki/Mapping-Views)
+Mapping from the sub-package directories of a package to [`PyFilesReader`](_autosummary/xdol.pystores.html.md#xdol.pystores.PyFilesReader) of their contents.
 
 #### get(k) → D[k] if k in D, else d.  d defaults to None.
 
@@ -1755,7 +1661,14 @@ Raised by [`Registry.get()`](_autosummary/xdol.registry.html.md#xdol.registry.Re
 
 Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
-Handle returned by [`Registry.subscribe()`](_autosummary/xdol.registry.html.md#xdol.registry.Registry.subscribe). Call `unsubscribe()` to detach.
+Handle returned by [`Registry.subscribe()`](_autosummary/xdol.registry.html.md#xdol.registry.Registry.subscribe). Call [`unsubscribe()`](_autosummary/xdol.registry.html.md#xdol.registry.Subscription.unsubscribe) to detach.
+
+#### unsubscribe()
+
+Stop receiving notifications; safe to call more than once.
+
+* **Return type:**
+  [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
 
 # _autosummary/xdol.tiering.html.md
@@ -1771,8 +1684,8 @@ A bounded hot store over a cold source of truth (write-through, GDSF release).
 aging, Cherkasova 1998) from the statistics of an [`xdol.access.AccessLog`](_autosummary/xdol.access.html.md#xdol.access.AccessLog), whose
 clock is the store’s clock.
 
-Verbs are free functions, store first: [`sweep()`](_autosummary/xdol.tiering.html.md#xdol.tiering.sweep), [`pin()`](_autosummary/xdol.tiering.html.md#xdol.tiering.pin), `unpin()`,
-`status()`, [`prefetch()`](_autosummary/xdol.tiering.html.md#xdol.tiering.prefetch), [`local_paths()`](_autosummary/xdol.tiering.html.md#xdol.tiering.local_paths).
+Verbs are free functions, store first: [`sweep()`](_autosummary/xdol.tiering.html.md#xdol.tiering.sweep), [`pin()`](_autosummary/xdol.tiering.html.md#xdol.tiering.pin), [`unpin()`](_autosummary/xdol.tiering.html.md#xdol.tiering.unpin),
+[`status()`](_autosummary/xdol.tiering.html.md#xdol.tiering.status), [`prefetch()`](_autosummary/xdol.tiering.html.md#xdol.tiering.prefetch), [`local_paths()`](_autosummary/xdol.tiering.html.md#xdol.tiering.local_paths).
 
 Values must support `len` (their size in bytes): `__setitem__` raises `TypeError`
 before writing anything otherwise. A value read from `cold` without `len` counts
@@ -1790,13 +1703,13 @@ as size 0. Single-threaded: there is no locking.
 
 ### Functions
 
-| [`local_paths`](_autosummary/xdol.tiering.html.md#xdol.tiering.local_paths)(store, \*[, path_of])   | Read-only `{key: real file path}`; materialises each key into `hot`.   |
-|--------------------------------------------------------------------------------------|------------------------------------------------------------------------|
-| [`pin`](_autosummary/xdol.tiering.html.md#xdol.tiering.pin)(store, key)                     | Protect `key`'s hot copy from release (persisted in the tracker).      |
-| [`prefetch`](_autosummary/xdol.tiering.html.md#xdol.tiering.prefetch)(store, keys)               | Admit `keys` to hot regardless of policy, as reads served from cold.   |
-| `status`(store)                                                                      |                                                                        |
-| [`sweep`](_autosummary/xdol.tiering.html.md#xdol.tiering.sweep)(store, \*[, exclude])         | Release hot copies, lowest priority first, down to the low watermark.  |
-| `unpin`(store, key)                                                                  |                                                                        |
+| [`local_paths`](_autosummary/xdol.tiering.html.md#xdol.tiering.local_paths)(store, \*[, path_of])   | Read-only `{key: real file path}`; materialises each key into `hot`.                 |
+|--------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------|
+| [`pin`](_autosummary/xdol.tiering.html.md#xdol.tiering.pin)(store, key)                     | Protect `key`'s hot copy from release (persisted in the tracker).                    |
+| [`prefetch`](_autosummary/xdol.tiering.html.md#xdol.tiering.prefetch)(store, keys)               | Admit `keys` to hot regardless of policy, as reads served from cold.                 |
+| [`status`](_autosummary/xdol.tiering.html.md#xdol.tiering.status)(store)                       | A snapshot of the store: hot and cold sizes, budget, pinned keys and the last sweep. |
+| [`sweep`](_autosummary/xdol.tiering.html.md#xdol.tiering.sweep)(store, \*[, exclude])         | Release hot copies, lowest priority first, down to the low watermark.                |
+| [`unpin`](_autosummary/xdol.tiering.html.md#xdol.tiering.unpin)(store, key)                   | Clear the pin on `key` so it can be released from hot again.                         |
 
 ### Classes
 
@@ -1804,7 +1717,7 @@ as size 0. Single-threaded: there is no locking.
 |--------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------|
 | [`LruPolicy`](_autosummary/xdol.tiering.html.md#xdol.tiering.LruPolicy)(\*[, high_watermark, ...])            | Least-recently-used release: the simple alternative to [`GdsfPolicy`](_autosummary/xdol.tiering.html.md#xdol.tiering.GdsfPolicy). |
 | [`PlacementPolicy`](_autosummary/xdol.tiering.html.md#xdol.tiering.PlacementPolicy)(\*args, \*\*kwargs)             | Decides what enters and leaves the hot tier.                                                                        |
-| [`SweepReport`](_autosummary/xdol.tiering.html.md#xdol.tiering.SweepReport)(keys_released, bytes_before, ...)   |                                                                                                                     |
+| [`SweepReport`](_autosummary/xdol.tiering.html.md#xdol.tiering.SweepReport)(keys_released, bytes_before, ...)   | What one sweep did: the keys released and the hot bytes before and after.                                           |
 | [`TieredStore`](_autosummary/xdol.tiering.html.md#xdol.tiering.TieredStore)(hot, cold, \*, budget_bytes[, ...]) | Bounded hot store over a cold source of truth.                                                                      |
 
 ### Exceptions
@@ -1831,6 +1744,20 @@ would otherwise keep it favoured after every restart. A key not accessed during
 this process (a cron `sweep`) is ranked on its recency instead: `F` is
 `0.5 ** (age / seed_half_life_s)`, `age` being the time since its
 `last_access`, so among such keys of equal size the least recently used goes first (a key seeded this way and then accessed continues from `F + 1`).
+
+#### on_hot_access(key, stats, , admitted)
+
+Bump the key frequency (a first-seen key starts fresh) and record its size.
+
+* **Return type:**
+  [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
+#### on_hot_drop(key)
+
+Forget the key.
+
+* **Return type:**
+  [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
 #### priority(frequency, size)
 
@@ -1862,6 +1789,13 @@ Bases: [`Protocol`](https://docs.python.org/3/library/typing.html#typing.Protoco
 
 Decides what enters and leaves the hot tier.
 
+#### admit(key, stats, , now)
+
+Whether `key` (with its `stats`, or `None` if unseen) may enter hot at time `now`.
+
+* **Return type:**
+  [`bool`](https://docs.python.org/3/builtins/functions.html#bool)
+
 #### on_hot_access(key, stats, , admitted)
 
 `key` was accessed in hot; `admitted`: it was not there before.
@@ -1876,9 +1810,18 @@ Decides what enters and leaves the hot tier.
 * **Return type:**
   [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
+#### to_release(hot_stats, , hot_bytes, budget_bytes, now)
+
+Keys to release from hot, given hot usage versus `budget_bytes`, at time `now`.
+
+* **Return type:**
+  [`Iterable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterable)
+
 ### *class* xdol.tiering.SweepReport(keys_released, bytes_before, bytes_after)
 
 Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
+
+What one sweep did: the keys released and the hot bytes before and after.
 
 ### *class* xdol.tiering.TieredStore(hot, cold, , budget_bytes, policy=None, tracker=None, max_item_fraction=1.0)
 
@@ -1948,6 +1891,13 @@ The release this may trigger never releases `keys`.
 * **Return type:**
   [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
+### xdol.tiering.status(store)
+
+A snapshot of the store: hot and cold sizes, budget, pinned keys and the last sweep.
+
+* **Return type:**
+  [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)
+
 ### xdol.tiering.sweep(store, , exclude=())
 
 Release hot copies, lowest priority first, down to the low watermark.
@@ -1958,6 +1908,13 @@ protected or not.
 
 * **Return type:**
   [`SweepReport`](_autosummary/xdol.tiering.html.md#xdol.tiering.SweepReport)
+
+### xdol.tiering.unpin(store, key)
+
+Clear the pin on `key` so it can be released from hot again.
+
+* **Return type:**
+  [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
 
 # _autosummary/xdol.updating.html.md
@@ -2429,10 +2386,21 @@ Utility functions for xdol.
 
 ### Functions
 
-| `resolve_module_filepath`(module_spec[, ...])                                          |                                                                            |
-|----------------------------------------------------------------------------------------|----------------------------------------------------------------------------|
-| `resolve_to_folder`(obj[, ...])                                                        |                                                                            |
-| [`save_obj`](_autosummary/xdol.util.html.md#xdol.util.save_obj)(obj, \*[, encode, key, ...]) | Serialize and save a Python object with customizable encoding and storage. |
+| [`resolve_module_filepath`](_autosummary/xdol.util.html.md#xdol.util.resolve_module_filepath)(module_spec[, ...])   | Resolve a module, callable or path to the `.py` file that defines it (a package dir gives its `__init__.py`).   |
+|------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------|
+| [`resolve_to_folder`](_autosummary/xdol.util.html.md#xdol.util.resolve_to_folder)(obj[, ...])                 | Resolve a module, callable or path to the folder of its package (`__init__.py` gives its directory).            |
+| [`save_obj`](_autosummary/xdol.util.html.md#xdol.util.save_obj)(obj, \*[, encode, key, ...])         | Serialize and save a Python object with customizable encoding and storage.                                      |
+
+### xdol.util.resolve_module_filepath(module_spec, assert_output_is_existing_filepath=True)
+
+Resolve a module, callable or path to the `.py` file that defines it (a package dir gives its `__init__.py`).
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
+
+### xdol.util.resolve_to_folder(obj, assert_output_is_existing_folder=True)
+
+Resolve a module, callable or path to the folder of its package (`__init__.py` gives its directory).
 
 ### xdol.util.save_obj(obj, \*, encode=<built-in function dumps>, key=None, save_under_key=None, return_func=None)
 
@@ -2645,7 +2613,7 @@ A value that fails to decode raises [`CodecDecodeError`](_autosummary/xdol.x_cod
 
 # About this build
 
-This documentation was built on **2026-11-21 18:38 UTC** from commit <a href="https://github.com/i2mint/xdol/commit/ca5a24344fc641eb6a7fe0014a76776411bbe3c6"><code>ca5a243</code></a> on branch <code>master</code>, for **xdol 0.1.41** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-11-22 16:57 UTC** from commit <a href="https://github.com/i2mint/xdol/commit/77eaf1cf249bdaf35590736469c1dcd6863efca6"><code>77eaf1c</code></a> on branch <code>master</code>, for **xdol 0.1.42** (from <code>pyproject.toml</code>).
 
 #### NOTE
 Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
@@ -2654,7 +2622,7 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 |                     |                                                                                                                                                    |
 |---------------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/i2mint/xdol/commit/ca5a24344fc641eb6a7fe0014a76776411bbe3c6"><code>ca5a24344fc641eb6a7fe0014a76776411bbe3c6</code></a> |
+| Commit              | <a href="https://github.com/i2mint/xdol/commit/77eaf1cf249bdaf35590736469c1dcd6863efca6"><code>77eaf1cf249bdaf35590736469c1dcd6863efca6</code></a> |
 | Branch              | <code>master</code>                                                                                                                                |
 | Tags at this commit | none                                                                                                                                               |
 | Working tree        | clean                                                                                                                                              |
@@ -2665,9 +2633,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>i2mint/xdol</code>                                                                   |
-| Run          | <a href="https://github.com/i2mint/xdol/actions/runs/44936501485">44936501485</a>          |
+| Run          | <a href="https://github.com/i2mint/xdol/actions/runs/45046534873">45046534873</a>          |
 | Ref          | <code>refs/heads/master</code>                                                             |
-| Event commit | <code>ca5a24344fc641eb6a7fe0014a76776411bbe3c6</code> (in the history of the built commit) |
+| Event commit | <code>77eaf1cf249bdaf35590736469c1dcd6863efca6</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -2692,13 +2660,13 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/xdol/0.1.41/">0.1.41</a>, the same as the documented version.
+Latest release: <a href="https://pypi.org/project/xdol/0.1.42/">0.1.42</a>, the same as the documented version.
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/i2mint/xdol && cd xdol
-git checkout ca5a24344fc641eb6a7fe0014a76776411bbe3c6
+git checkout 77eaf1cf249bdaf35590736469c1dcd6863efca6
 pip install "epythet==0.2.23"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```

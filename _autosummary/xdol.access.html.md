@@ -157,6 +157,13 @@ dropped, as from the file.
 * **Return type:**
   [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
+#### record(key, op, nbytes=0, , served_from=None)
+
+Record one `op` on `key` of `nbytes` bytes; raises `ValueError` on an unknown `op`, never on bad sizes.
+
+* **Return type:**
+  [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
 #### stats(key)
 
 Alias of `self.get(key)`.
@@ -175,6 +182,13 @@ Kept (and compacted) for every key ever deleted, re-created or not.
 Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
 Access statistics of one key (immutable: update with `dataclasses.replace`).
+
+#### *property* frequency *: [int](https://docs.python.org/3/builtins/functions.html#int)*
+
+reads plus writes.
+
+* **Type:**
+  Total number of accesses
 
 ### xdol.access.default_access_log_for(store, \*\*kwargs)
 

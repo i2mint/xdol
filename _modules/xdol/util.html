@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../../_static/documentation_options.js?v=3203cd3c"></script>
+    <script src="../../_static/documentation_options.js?v=05fb4756"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -411,7 +411,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.41" />
+  <meta name="docsearch:version" content="0.1.42" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -707,9 +707,12 @@ window.runMermaid = runMermaid;</script>
 
 
 <span class="c1"># Pattern: meshed</span>
+<div class="viewcode-block" id="resolve_module_filepath">
+<a class="viewcode-back" href="../../_autosummary/xdol.util.html#xdol.util.resolve_module_filepath">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">resolve_module_filepath</span><span class="p">(</span>
     <span class="n">module_spec</span><span class="p">,</span> <span class="n">assert_output_is_existing_filepath</span><span class="o">=</span><span class="kc">True</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Resolve a module, callable or path to the ``.py`` file that defines it (a package dir gives its ``__init__.py``)."""</span>
     <span class="k">if</span> <span class="n">inspect</span><span class="o">.</span><span class="n">ismodule</span><span class="p">(</span><span class="n">module_spec</span><span class="p">):</span>
         <span class="n">module_spec</span> <span class="o">=</span> <span class="n">inspect</span><span class="o">.</span><span class="n">getsourcefile</span><span class="p">(</span><span class="n">module_spec</span><span class="p">)</span>
     <span class="k">elif</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">module_spec</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
@@ -725,11 +728,15 @@ window.runMermaid = runMermaid;</script>
         <span class="p">)</span>
     <span class="k">if</span> <span class="n">assert_output_is_existing_filepath</span><span class="p">:</span>
         <span class="k">assert</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">module_spec</span><span class="p">),</span> <span class="s2">"module_spec should be a file at this point"</span>
-    <span class="k">return</span> <span class="n">module_spec</span>
+    <span class="k">return</span> <span class="n">module_spec</span></div>
+
 
 
 <span class="c1"># Pattern: meshed</span>
+<div class="viewcode-block" id="resolve_to_folder">
+<a class="viewcode-back" href="../../_autosummary/xdol.util.html#xdol.util.resolve_to_folder">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">resolve_to_folder</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">assert_output_is_existing_folder</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Resolve a module, callable or path to the folder of its package (``__init__.py`` gives its directory)."""</span>
     <span class="k">if</span> <span class="n">inspect</span><span class="o">.</span><span class="n">ismodule</span><span class="p">(</span><span class="n">obj</span><span class="p">):</span>
         <span class="n">obj</span> <span class="o">=</span> <span class="n">inspect</span><span class="o">.</span><span class="n">getsourcefile</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
     <span class="k">elif</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
@@ -742,7 +749,8 @@ window.runMermaid = runMermaid;</script>
             <span class="n">obj</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">assert_output_is_existing_folder</span><span class="p">:</span>
         <span class="k">assert</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">obj</span><span class="p">),</span> <span class="s2">"obj should be a folder at this point"</span>
-    <span class="k">return</span> <span class="n">obj</span>
+    <span class="k">return</span> <span class="n">obj</span></div>
+
 
 
 <span class="c1"># ------------------------------------------------------------------------------</span>

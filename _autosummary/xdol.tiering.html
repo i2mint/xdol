@@ -44,7 +44,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="../_static/documentation_options.js?v=3203cd3c"></script>
+    <script src="../_static/documentation_options.js?v=05fb4756"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -58,7 +58,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.41" />
+  <meta name="docsearch:version" content="0.1.42" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -391,8 +391,8 @@
 <a class="reference internal" href="#xdol.tiering.PlacementPolicy" title="xdol.tiering.PlacementPolicy"><code class="xref py py-class docutils literal notranslate"><span class="pre">PlacementPolicy</span></code></a> (default <a class="reference internal" href="#xdol.tiering.GdsfPolicy" title="xdol.tiering.GdsfPolicy"><code class="xref py py-class docutils literal notranslate"><span class="pre">GdsfPolicy</span></code></a>: Greedy-Dual-Size-Frequency with
 aging, Cherkasova 1998) from the statistics of an <a class="reference internal" href="xdol.access.html#xdol.access.AccessLog" title="xdol.access.AccessLog"><code class="xref py py-class docutils literal notranslate"><span class="pre">xdol.access.AccessLog</span></code></a>, whose
 clock is the store’s clock.</p>
-<p>Verbs are free functions, store first: <a class="reference internal" href="#xdol.tiering.sweep" title="xdol.tiering.sweep"><code class="xref py py-func docutils literal notranslate"><span class="pre">sweep()</span></code></a>, <a class="reference internal" href="#xdol.tiering.pin" title="xdol.tiering.pin"><code class="xref py py-func docutils literal notranslate"><span class="pre">pin()</span></code></a>, <code class="xref py py-func docutils literal notranslate"><span class="pre">unpin()</span></code>,
-<code class="xref py py-func docutils literal notranslate"><span class="pre">status()</span></code>, <a class="reference internal" href="#xdol.tiering.prefetch" title="xdol.tiering.prefetch"><code class="xref py py-func docutils literal notranslate"><span class="pre">prefetch()</span></code></a>, <a class="reference internal" href="#xdol.tiering.local_paths" title="xdol.tiering.local_paths"><code class="xref py py-func docutils literal notranslate"><span class="pre">local_paths()</span></code></a>.</p>
+<p>Verbs are free functions, store first: <a class="reference internal" href="#xdol.tiering.sweep" title="xdol.tiering.sweep"><code class="xref py py-func docutils literal notranslate"><span class="pre">sweep()</span></code></a>, <a class="reference internal" href="#xdol.tiering.pin" title="xdol.tiering.pin"><code class="xref py py-func docutils literal notranslate"><span class="pre">pin()</span></code></a>, <a class="reference internal" href="#xdol.tiering.unpin" title="xdol.tiering.unpin"><code class="xref py py-func docutils literal notranslate"><span class="pre">unpin()</span></code></a>,
+<a class="reference internal" href="#xdol.tiering.status" title="xdol.tiering.status"><code class="xref py py-func docutils literal notranslate"><span class="pre">status()</span></code></a>, <a class="reference internal" href="#xdol.tiering.prefetch" title="xdol.tiering.prefetch"><code class="xref py py-func docutils literal notranslate"><span class="pre">prefetch()</span></code></a>, <a class="reference internal" href="#xdol.tiering.local_paths" title="xdol.tiering.local_paths"><code class="xref py py-func docutils literal notranslate"><span class="pre">local_paths()</span></code></a>.</p>
 <p>Values must support <code class="docutils literal notranslate"><span class="pre">len</span></code> (their size in bytes): <code class="docutils literal notranslate"><span class="pre">__setitem__</span></code> raises <code class="docutils literal notranslate"><span class="pre">TypeError</span></code>
 before writing anything otherwise. A value read from <code class="docutils literal notranslate"><span class="pre">cold</span></code> without <code class="docutils literal notranslate"><span class="pre">len</span></code> counts
 as size 0. Single-threaded: there is no locking.</p>
@@ -417,14 +417,14 @@ as size 0. Single-threaded: there is no locking.</p>
 <tr class="row-odd"><td><p><a class="reference internal" href="#xdol.tiering.prefetch" title="xdol.tiering.prefetch"><code class="xref py py-obj docutils literal notranslate"><span class="pre">prefetch</span></code></a>(store, keys)</p></td>
 <td><p>Admit <code class="docutils literal notranslate"><span class="pre">keys</span></code> to hot regardless of policy, as reads served from cold.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">status</span></code>(store)</p></td>
-<td><p></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#xdol.tiering.status" title="xdol.tiering.status"><code class="xref py py-obj docutils literal notranslate"><span class="pre">status</span></code></a>(store)</p></td>
+<td><p>A snapshot of the store: hot and cold sizes, budget, pinned keys and the last sweep.</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#xdol.tiering.sweep" title="xdol.tiering.sweep"><code class="xref py py-obj docutils literal notranslate"><span class="pre">sweep</span></code></a>(store, *[, exclude])</p></td>
 <td><p>Release hot copies, lowest priority first, down to the low watermark.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">unpin</span></code>(store, key)</p></td>
-<td><p></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#xdol.tiering.unpin" title="xdol.tiering.unpin"><code class="xref py py-obj docutils literal notranslate"><span class="pre">unpin</span></code></a>(store, key)</p></td>
+<td><p>Clear the pin on <code class="docutils literal notranslate"><span class="pre">key</span></code> so it can be released from hot again.</p></td>
 </tr>
 </tbody>
 </table>
@@ -442,7 +442,7 @@ as size 0. Single-threaded: there is no locking.</p>
 <td><p>Decides what enters and leaves the hot tier.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#xdol.tiering.SweepReport" title="xdol.tiering.SweepReport"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SweepReport</span></code></a>(keys_released, bytes_before, ...)</p></td>
-<td><p></p></td>
+<td><p>What one sweep did: the keys released and the hot bytes before and after.</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#xdol.tiering.TieredStore" title="xdol.tiering.TieredStore"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TieredStore</span></code></a>(hot, cold, *, budget_bytes[, ...])</p></td>
 <td><p>Bounded hot store over a cold source of truth.</p></td>
@@ -482,6 +482,28 @@ this process (a cron <code class="docutils literal notranslate"><span class="pre
 <dl class="field-list simple">
 </dl>
 <dl class="py method">
+<dt class="sig sig-object py" id="xdol.tiering.GdsfPolicy.on_hot_access">
+<span class="sig-name descname"><span class="pre">on_hot_access</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stats</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">admitted</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xdol/tiering.html#GdsfPolicy.on_hot_access"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xdol.tiering.GdsfPolicy.on_hot_access" title="Link to this definition">#</a></dt>
+<dd><p>Bump the key frequency (a first-seen key starts fresh) and record its size.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><span class="highlight sphinx_autodoc_typehints-value"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></a></span></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="xdol.tiering.GdsfPolicy.on_hot_drop">
+<span class="sig-name descname"><span class="pre">on_hot_drop</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xdol/tiering.html#GdsfPolicy.on_hot_drop"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xdol.tiering.GdsfPolicy.on_hot_drop" title="Link to this definition">#</a></dt>
+<dd><p>Forget the key.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><span class="highlight sphinx_autodoc_typehints-value"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></a></span></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="xdol.tiering.GdsfPolicy.priority">
 <span class="sig-name descname"><span class="pre">priority</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">frequency</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">size</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xdol/tiering.html#GdsfPolicy.priority"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xdol.tiering.GdsfPolicy.priority" title="Link to this definition">#</a></dt>
 <dd><p>H of a key accessed now with this frequency and size.</p>
@@ -519,6 +541,17 @@ oldest-<code class="docutils literal notranslate"><span class="pre">last_access<
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Protocol" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Protocol</span></code></a></p>
 <p>Decides what enters and leaves the hot tier.</p>
 <dl class="py method">
+<dt class="sig sig-object py" id="xdol.tiering.PlacementPolicy.admit">
+<span class="sig-name descname"><span class="pre">admit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stats</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">now</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xdol/tiering.html#PlacementPolicy.admit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xdol.tiering.PlacementPolicy.admit" title="Link to this definition">#</a></dt>
+<dd><p>Whether <code class="docutils literal notranslate"><span class="pre">key</span></code> (with its <code class="docutils literal notranslate"><span class="pre">stats</span></code>, or <code class="docutils literal notranslate"><span class="pre">None</span></code> if unseen) may enter hot at time <code class="docutils literal notranslate"><span class="pre">now</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="xdol.tiering.PlacementPolicy.on_hot_access">
 <span class="sig-name descname"><span class="pre">on_hot_access</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stats</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">admitted</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xdol/tiering.html#PlacementPolicy.on_hot_access"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xdol.tiering.PlacementPolicy.on_hot_access" title="Link to this definition">#</a></dt>
 <dd><p><code class="docutils literal notranslate"><span class="pre">key</span></code> was accessed in hot; <code class="docutils literal notranslate"><span class="pre">admitted</span></code>: it was not there before.</p>
@@ -540,12 +573,24 @@ oldest-<code class="docutils literal notranslate"><span class="pre">last_access<
 </dl>
 </dd></dl>
 
+<dl class="py method">
+<dt class="sig sig-object py" id="xdol.tiering.PlacementPolicy.to_release">
+<span class="sig-name descname"><span class="pre">to_release</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">hot_stats</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">hot_bytes</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">budget_bytes</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">now</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xdol/tiering.html#PlacementPolicy.to_release"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xdol.tiering.PlacementPolicy.to_release" title="Link to this definition">#</a></dt>
+<dd><p>Keys to release from hot, given hot usage versus <code class="docutils literal notranslate"><span class="pre">budget_bytes</span></code>, at time <code class="docutils literal notranslate"><span class="pre">now</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterable" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Iterable</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
 </dd></dl>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="xdol.tiering.SweepReport">
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">xdol.tiering.</span></span><span class="sig-name descname"><span class="pre">SweepReport</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">keys_released</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bytes_before</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bytes_after</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xdol/tiering.html#SweepReport"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xdol.tiering.SweepReport" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/builtins/functions.html#object" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>What one sweep did: the keys released and the hot bytes before and after.</p>
 <dl class="field-list simple">
 </dl>
 </dd></dl>
@@ -633,6 +678,17 @@ file-backed, before anything is fetched; <code class="docutils literal notransla
 </dd></dl>
 
 <dl class="py function">
+<dt class="sig sig-object py" id="xdol.tiering.status">
+<span class="sig-prename descclassname"><span class="pre">xdol.tiering.</span></span><span class="sig-name descname"><span class="pre">status</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">store</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xdol/tiering.html#status"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xdol.tiering.status" title="Link to this definition">#</a></dt>
+<dd><p>A snapshot of the store: hot and cold sizes, budget, pinned keys and the last sweep.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="xdol.tiering.sweep">
 <span class="sig-prename descclassname"><span class="pre">xdol.tiering.</span></span><span class="sig-name descname"><span class="pre">sweep</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">store</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">exclude</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">()</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xdol/tiering.html#sweep"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xdol.tiering.sweep" title="Link to this definition">#</a></dt>
 <dd><p>Release hot copies, lowest priority first, down to the low watermark.</p>
@@ -642,6 +698,17 @@ protected or not.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#xdol.tiering.SweepReport" title="xdol.tiering.SweepReport"><code class="xref py py-class docutils literal notranslate"><span class="pre">SweepReport</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="xdol.tiering.unpin">
+<span class="sig-prename descclassname"><span class="pre">xdol.tiering.</span></span><span class="sig-name descname"><span class="pre">unpin</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">store</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">key</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/xdol/tiering.html#unpin"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#xdol.tiering.unpin" title="Link to this definition">#</a></dt>
+<dd><p>Clear the pin on <code class="docutils literal notranslate"><span class="pre">key</span></code> so it can be released from hot again.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><span class="highlight sphinx_autodoc_typehints-value"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></a></span></span></p>
 </dd>
 </dl>
 </dd></dl>
@@ -696,14 +763,18 @@ protected or not.</p>
   <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
     <ul class="pst-show_toc_level nav section-nav flex-column">
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#xdol.tiering.GdsfPolicy"><code class="docutils literal notranslate"><span class="pre">GdsfPolicy</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xdol.tiering.GdsfPolicy.on_hot_access"><code class="docutils literal notranslate"><span class="pre">GdsfPolicy.on_hot_access()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xdol.tiering.GdsfPolicy.on_hot_drop"><code class="docutils literal notranslate"><span class="pre">GdsfPolicy.on_hot_drop()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xdol.tiering.GdsfPolicy.priority"><code class="docutils literal notranslate"><span class="pre">GdsfPolicy.priority()</span></code></a></li>
 </ul>
 </li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#xdol.tiering.HotWriteError"><code class="docutils literal notranslate"><span class="pre">HotWriteError</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#xdol.tiering.LruPolicy"><code class="docutils literal notranslate"><span class="pre">LruPolicy</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#xdol.tiering.PlacementPolicy"><code class="docutils literal notranslate"><span class="pre">PlacementPolicy</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xdol.tiering.PlacementPolicy.admit"><code class="docutils literal notranslate"><span class="pre">PlacementPolicy.admit()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xdol.tiering.PlacementPolicy.on_hot_access"><code class="docutils literal notranslate"><span class="pre">PlacementPolicy.on_hot_access()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xdol.tiering.PlacementPolicy.on_hot_drop"><code class="docutils literal notranslate"><span class="pre">PlacementPolicy.on_hot_drop()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#xdol.tiering.PlacementPolicy.to_release"><code class="docutils literal notranslate"><span class="pre">PlacementPolicy.to_release()</span></code></a></li>
 </ul>
 </li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#xdol.tiering.SweepReport"><code class="docutils literal notranslate"><span class="pre">SweepReport</span></code></a></li>
@@ -712,7 +783,9 @@ protected or not.</p>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#xdol.tiering.local_paths"><code class="docutils literal notranslate"><span class="pre">local_paths()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#xdol.tiering.pin"><code class="docutils literal notranslate"><span class="pre">pin()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#xdol.tiering.prefetch"><code class="docutils literal notranslate"><span class="pre">prefetch()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#xdol.tiering.status"><code class="docutils literal notranslate"><span class="pre">status()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#xdol.tiering.sweep"><code class="docutils literal notranslate"><span class="pre">sweep()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#xdol.tiering.unpin"><code class="docutils literal notranslate"><span class="pre">unpin()</span></code></a></li>
 </ul>
   </nav></div>
 

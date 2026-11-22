@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="_static/documentation_options.js?v=3203cd3c"></script>
+    <script src="_static/documentation_options.js?v=05fb4756"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -411,7 +411,7 @@ window.runMermaid = runMermaid;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.41" />
+  <meta name="docsearch:version" content="0.1.42" />
   
     
     <script src="_static/searchtools.js"></script>
@@ -708,6 +708,8 @@ window.runMermaid = runMermaid;</script>
 </li>
       <li><a href="_autosummary/xdol.updating.html#xdol.updating.add_as_attribute_of">add_as_attribute_of() (in module xdol.updating)</a>
 </li>
+      <li><a href="_autosummary/xdol.tiering.html#xdol.tiering.PlacementPolicy.admit">admit() (xdol.tiering.PlacementPolicy method)</a>
+</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="_autosummary/xdol.registry.html#xdol.registry.Registry.alias">alias() (xdol.registry.Registry method)</a>
@@ -793,6 +795,10 @@ window.runMermaid = runMermaid;</script>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="_autosummary/xdol.memoize.html#xdol.memoize.file_cache_store">file_cache_store() (in module xdol.memoize)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="_autosummary/xdol.access.html#xdol.access.AccessStats.frequency">frequency (xdol.access.AccessStats property)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -959,12 +965,20 @@ window.runMermaid = runMermaid;</script>
 <h2 id="O">O</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="_autosummary/xdol.tiering.html#xdol.tiering.PlacementPolicy.on_hot_access">on_hot_access() (xdol.tiering.PlacementPolicy method)</a>
+      <li><a href="_autosummary/xdol.tiering.html#xdol.tiering.GdsfPolicy.on_hot_access">on_hot_access() (xdol.tiering.GdsfPolicy method)</a>
+
+      <ul>
+        <li><a href="_autosummary/xdol.tiering.html#xdol.tiering.PlacementPolicy.on_hot_access">(xdol.tiering.PlacementPolicy method)</a>
 </li>
+      </ul></li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="_autosummary/xdol.tiering.html#xdol.tiering.PlacementPolicy.on_hot_drop">on_hot_drop() (xdol.tiering.PlacementPolicy method)</a>
+      <li><a href="_autosummary/xdol.tiering.html#xdol.tiering.GdsfPolicy.on_hot_drop">on_hot_drop() (xdol.tiering.GdsfPolicy method)</a>
+
+      <ul>
+        <li><a href="_autosummary/xdol.tiering.html#xdol.tiering.PlacementPolicy.on_hot_drop">(xdol.tiering.PlacementPolicy method)</a>
 </li>
+      </ul></li>
   </ul></td>
 </tr></table>
 
@@ -1005,6 +1019,8 @@ window.runMermaid = runMermaid;</script>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="_autosummary/xdol.updating.html#xdol.updating.reconcile">reconcile() (in module xdol.updating)</a>
 </li>
+      <li><a href="_autosummary/xdol.access.html#xdol.access.AccessLog.record">record() (xdol.access.AccessLog method)</a>
+</li>
       <li><a href="_autosummary/xdol.memoize.html#xdol.memoize.RECORD_ENV">RECORD_ENV (in module xdol.memoize)</a>
 </li>
       <li><a href="_autosummary/xdol.memoize.html#xdol.memoize.recording_enabled">recording_enabled() (in module xdol.memoize)</a>
@@ -1015,10 +1031,10 @@ window.runMermaid = runMermaid;</script>
 </li>
       <li><a href="_autosummary/xdol.registry.html#xdol.registry.Registry.register_decorator">register_decorator() (xdol.registry.Registry method)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="_autosummary/xdol.registry.html#xdol.registry.Registry.register_lazy">register_lazy() (xdol.registry.Registry method)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="_autosummary/xdol.registry.html#xdol.registry.Registry">Registry (class in xdol.registry)</a>
 </li>
       <li><a href="_autosummary/xdol.registry.html#xdol.registry.RegistryConflict">RegistryConflict</a>
@@ -1028,6 +1044,10 @@ window.runMermaid = runMermaid;</script>
       <li><a href="_autosummary/xdol.registry.html#xdol.registry.RegistryMissing">RegistryMissing</a>
 </li>
       <li><a href="_autosummary/xdol.from_dol.html#xdol.from_dol.regroupby">regroupby() (in module xdol.from_dol)</a>
+</li>
+      <li><a href="_autosummary/xdol.util.html#xdol.util.resolve_module_filepath">resolve_module_filepath() (in module xdol.util)</a>
+</li>
+      <li><a href="_autosummary/xdol.util.html#xdol.util.resolve_to_folder">resolve_to_folder() (in module xdol.util)</a>
 </li>
       <li><a href="_autosummary/xdol.keys.html#xdol.keys.robust_key">robust_key() (in module xdol.keys)</a>
 </li>
@@ -1049,6 +1069,8 @@ window.runMermaid = runMermaid;</script>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="_autosummary/xdol.tiering.html#xdol.tiering.status">status() (in module xdol.tiering)</a>
+</li>
       <li><a href="_autosummary/xdol.updating.html#xdol.updating.StringEnum">StringEnum (class in xdol.updating)</a>
 </li>
       <li><a href="_autosummary/xdol.registry.html#xdol.registry.Registry.subscribe">subscribe() (xdol.registry.Registry method)</a>
@@ -1071,10 +1093,12 @@ window.runMermaid = runMermaid;</script>
 </li>
       <li><a href="_autosummary/xdol.tiering.html#xdol.tiering.TieringError">TieringError</a>
 </li>
-      <li><a href="_autosummary/xdol.from_dol.html#xdol.from_dol.to_zip_file">to_zip_file() (in module xdol.from_dol)</a>
+      <li><a href="_autosummary/xdol.tiering.html#xdol.tiering.PlacementPolicy.to_release">to_release() (xdol.tiering.PlacementPolicy method)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="_autosummary/xdol.from_dol.html#xdol.from_dol.to_zip_file">to_zip_file() (in module xdol.from_dol)</a>
+</li>
       <li><a href="_autosummary/xdol.access.html#xdol.access.AccessLog.tombstones">tombstones (xdol.access.AccessLog property)</a>
 </li>
       <li><a href="_autosummary/xdol.from_dol.html#xdol.from_dol.trace_getitem">trace_getitem() (in module xdol.from_dol)</a>
@@ -1091,16 +1115,20 @@ window.runMermaid = runMermaid;</script>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="_autosummary/xdol.updating.html#xdol.updating.union_iter">union_iter() (in module xdol.updating)</a>
 </li>
+      <li><a href="_autosummary/xdol.tiering.html#xdol.tiering.unpin">unpin() (in module xdol.tiering)</a>
+</li>
       <li><a href="_autosummary/xdol.keys.html#xdol.keys.UnstableKeyError">UnstableKeyError</a>
+</li>
+      <li><a href="_autosummary/xdol.registry.html#xdol.registry.Subscription.unsubscribe">unsubscribe() (xdol.registry.Subscription method)</a>
 </li>
       <li><a href="_autosummary/xdol.updating.html#xdol.updating.update_all">update_all() (in module xdol.updating)</a>
 </li>
       <li><a href="_autosummary/xdol.updating.html#xdol.updating.update_by_content_hash">update_by_content_hash() (in module xdol.updating)</a>
 </li>
-      <li><a href="_autosummary/xdol.updating.html#xdol.updating.update_files_by_timestamp">update_files_by_timestamp() (in module xdol.updating)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="_autosummary/xdol.updating.html#xdol.updating.update_files_by_timestamp">update_files_by_timestamp() (in module xdol.updating)</a>
+</li>
       <li><a href="_autosummary/xdol.updating.html#xdol.updating.update_if_different">update_if_different() (in module xdol.updating)</a>
 </li>
       <li><a href="_autosummary/xdol.updating.html#xdol.updating.update_missing_only">update_missing_only() (in module xdol.updating)</a>

@@ -259,4 +259,11 @@ Raised by [`Registry.get()`](#xdol.registry.Registry.get) when a key is missing.
 
 Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
-Handle returned by [`Registry.subscribe()`](#xdol.registry.Registry.subscribe). Call `unsubscribe()` to detach.
+Handle returned by [`Registry.subscribe()`](#xdol.registry.Registry.subscribe). Call [`unsubscribe()`](#xdol.registry.Subscription.unsubscribe) to detach.
+
+#### unsubscribe()
+
+Stop receiving notifications; safe to call more than once.
+
+* **Return type:**
+  [`None`](https://docs.python.org/3/builtins/constants.html#None)
