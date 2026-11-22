@@ -1,7 +1,7 @@
 {
-  "collection_duration_seconds": 2.7140467166900635,
-  "commit_message": "xdol: coverage and docstring pass [skip publish] (#63)\n\n* xdol: coverage and docstring pass (util, pystores; 54 docstrings) [skip publish]\n\n* xdol: drop coverage scratch [skip publish]",
-  "commit_sha": "77eaf1cf249bdaf35590736469c1dcd6863efca6",
+  "collection_duration_seconds": 2.212355613708496,
+  "commit_message": "Merge 66d149c8d23d7cd8ef7d72cc0cf544ebbb618a48 into 4fd66da0780621bd41da0ba730ceebfcaea3ffe8",
+  "commit_sha": "2e264e22677715d566bdccd52c5b093c30d14c75",
   "metrics": {
     "coverage": {
       "branch_coverage": 0.0,
@@ -11,19 +11,19 @@
       "statements_total": 0
     },
     "umpyre_stats": {
-      "comment_lines": 15060,
-      "comment_lines_ratio": 0.056004700527321816,
-      "docs_lines": 39560,
-      "empty_lines": 34747,
-      "empty_lines_ratio": 0.12921615731891442,
-      "files_analyzed": 592,
-      "function_lines": 120562,
-      "function_lines_ratio": 0.44834254349103403,
-      "mean_lines_per_function": 16.599476800220295,
-      "num_classes": 1697,
-      "num_functions": 7263,
-      "pypi_version": "0.1.42",
-      "total_lines": 268906
+      "comment_lines": 15123,
+      "comment_lines_ratio": 0.055840487399612296,
+      "docs_lines": 39592,
+      "empty_lines": 35044,
+      "empty_lines_ratio": 0.12939721222191453,
+      "files_analyzed": 602,
+      "function_lines": 121953,
+      "function_lines_ratio": 0.4503018554417059,
+      "mean_lines_per_function": 16.589987756767787,
+      "num_classes": 1709,
+      "num_functions": 7351,
+      "pypi_version": "0.1.43",
+      "total_lines": 270825
     },
     "wily": {
       "cyclomatic_avg": 0.0,
@@ -34,14 +34,14 @@
     },
     "workflow_status": {
       "last_run_status": "success",
-      "last_success_timestamp": "2026-11-22T16:52:25Z",
+      "last_success_timestamp": "2026-11-22T16:57:55Z",
       "recent_failure_count": 0,
-      "run_url": "https://github.com/i2mint/xdol/actions/runs/45046141441",
+      "run_url": "https://github.com/i2mint/xdol/actions/runs/45046696894",
       "total_runs_analyzed": 10
     }
   },
   "python_version": "3.10",
   "schema_version": "1.0",
-  "timestamp": "2026-11-22T16:56:49.993552Z",
+  "timestamp": "2026-11-22T23:19:05.053232Z",
   "workflow_status": {}
 }
