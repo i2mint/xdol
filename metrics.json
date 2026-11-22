@@ -1,7 +1,7 @@
 {
-  "collection_duration_seconds": 2.1919562816619873,
-  "commit_message": "Merge 651d1812b0dbcc97d65fc332f9736e17e32f6811 into 29d7eae8c7bfe7923283ee7701b3a9fc8b6b30cd",
-  "commit_sha": "0925888c8d890b35aea2bb877fe868234bb786e6",
+  "collection_duration_seconds": 2.6612963676452637,
+  "commit_message": "xdol: coverage and docstring pass (util, pystores; 54 docstrings) [skip publish]",
+  "commit_sha": "651d1812b0dbcc97d65fc332f9736e17e32f6811",
   "metrics": {
     "coverage": {
       "branch_coverage": 87.41,
@@ -10,19 +10,19 @@
       "statements_total": 2460
     },
     "umpyre_stats": {
-      "comment_lines": 15120,
-      "comment_lines_ratio": 0.055837450976047504,
-      "docs_lines": 39571,
-      "empty_lines": 35042,
-      "empty_lines_ratio": 0.12940846277133972,
-      "files_analyzed": 602,
-      "function_lines": 121902,
-      "function_lines_ratio": 0.45017836963506236,
-      "mean_lines_per_function": 16.58530612244898,
-      "num_classes": 1709,
-      "num_functions": 7350,
+      "comment_lines": 15060,
+      "comment_lines_ratio": 0.056004700527321816,
+      "docs_lines": 39560,
+      "empty_lines": 34747,
+      "empty_lines_ratio": 0.12921615731891442,
+      "files_analyzed": 592,
+      "function_lines": 120562,
+      "function_lines_ratio": 0.44834254349103403,
+      "mean_lines_per_function": 16.599476800220295,
+      "num_classes": 1697,
+      "num_functions": 7263,
       "pypi_version": "0.1.42",
-      "total_lines": 270786
+      "total_lines": 268906
     },
     "wily": {
       "cyclomatic_avg": 0.0,
@@ -41,6 +41,6 @@
   },
   "python_version": "3.10",
   "schema_version": "1.0",
-  "timestamp": "2026-11-22T16:51:50.946723Z",
+  "timestamp": "2026-11-22T16:51:56.692726Z",
   "workflow_status": {}
 }
