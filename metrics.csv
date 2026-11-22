@@ -1,8 +1,10 @@
 metric,value
 schema_version,1.0
-timestamp,2026-11-22T23:19:05.053232Z
-commit_sha,2e264e22677715d566bdccd52c5b093c30d14c75
-commit_message,Merge 66d149c8d23d7cd8ef7d72cc0cf544ebbb618a48 into 4fd66da0780621bd41da0ba730ceebfcaea3ffe8
+timestamp,2026-11-22T23:19:07.700186Z
+commit_sha,66d149c8d23d7cd8ef7d72cc0cf544ebbb618a48
+commit_message,"README: what xdol is, install, a first example and a module map
+
+The README covered only the memoizer. It now opens with what xdol is and where it differs from lru_cache/joblib.Memory, a runnable example (memoize_calls, update_with_policy), and a table of the modules. The memoizer guide link pointed to docs/ instead of misc/docs/ (404); now absolute and correct."
 python_version,3.10
 metrics.umpyre_stats.num_functions,7351
 metrics.umpyre_stats.num_classes,1709
@@ -33,4 +35,4 @@ metrics.coverage.branch_coverage,0.0
 metrics.coverage.statements_covered,0
 metrics.coverage.statements_total,0
 metrics.coverage.error,No coverage file found
-collection_duration_seconds,2.212355613708496
+collection_duration_seconds,2.7780263423919678
