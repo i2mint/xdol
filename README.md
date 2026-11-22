@@ -15,9 +15,11 @@ from xdol import memoize_calls, update_with_policy
 
 cache = {}
 
+
 @memoize_calls(store=cache, mode="record")
 def square(x):
     return x * x
+
 
 assert square(3) == 9  # computed, and recorded in `cache`
 assert square(3) == 9  # replayed from `cache`
