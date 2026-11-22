@@ -92,6 +92,7 @@ sitepackages_py_files = cached_keys(PyFilesReader(sitepackages_rootdir))
 @mk_relative_path_store(prefix_attr="rootdir")
 class PkgReader(DirCollection, KvReader):
     """Mapping from the sub-package directories of a package to :class:`PyFilesReader` of their contents."""
+
     @wraps(DirCollection.__init__)
     def __init__(self, rootdir, *args, **kwargs):
         """Resolve ``rootdir`` (a path, module or package) to a folder and initialize the reader."""

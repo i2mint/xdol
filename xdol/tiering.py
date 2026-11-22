@@ -241,6 +241,7 @@ class GdsfPolicy(_ResidencyPolicy):
 @dataclass
 class SweepReport:
     """What one sweep did: the keys released and the hot bytes before and after."""
+
     keys_released: list
     bytes_before: int
     bytes_after: int
