@@ -1,38 +1,41 @@
 metric,value
 schema_version,1.0
-timestamp,2026-11-22T23:21:41.878052Z
-commit_sha,36b19e858a449f41e79c57c7124a1635a5a35a41
-commit_message,"README: what xdol is, install, a first example and a module map (#64)
+timestamp,2026-11-23T11:00:03.463559Z
+commit_sha,f80c75eb1ab0503e8fd92b7c1b8246594d5df5d0
+commit_message,"kvhead/ihead: stop after n items (islice) (#65)
 
-The README covered only the memoizer. It now opens with what xdol is and where it differs from lru_cache/joblib.Memory, a runnable example (memoize_calls, update_with_policy), and a table of the modules. The memoizer guide link pointed to docs/ instead of misc/docs/ (404); now absolute and correct."
+Closes #65"
 python_version,3.10
-metrics.umpyre_stats.num_functions,7264
-metrics.umpyre_stats.num_classes,1697
-metrics.umpyre_stats.total_lines,268945
-metrics.umpyre_stats.empty_lines,34749
-metrics.umpyre_stats.comment_lines,15063
-metrics.umpyre_stats.docs_lines,39581
-metrics.umpyre_stats.function_lines,120613
-metrics.umpyre_stats.empty_lines_ratio,0.12920485601145215
-metrics.umpyre_stats.comment_lines_ratio,0.05600773392329287
-metrics.umpyre_stats.function_lines_ratio,0.44846715871274795
-metrics.umpyre_stats.mean_lines_per_function,16.60421255506608
+metrics.umpyre_stats.num_functions,7266
+metrics.umpyre_stats.num_classes,1698
+metrics.umpyre_stats.total_lines,269080
+metrics.umpyre_stats.empty_lines,34764
+metrics.umpyre_stats.comment_lines,15066
+metrics.umpyre_stats.docs_lines,39612
+metrics.umpyre_stats.function_lines,120704
+metrics.umpyre_stats.empty_lines_ratio,0.1291957782072246
+metrics.umpyre_stats.comment_lines_ratio,0.05599078341013825
+metrics.umpyre_stats.function_lines_ratio,0.44858034785193995
+metrics.umpyre_stats.mean_lines_per_function,16.61216625378475
 metrics.umpyre_stats.files_analyzed,592
-metrics.umpyre_stats.pypi_version,0.1.43
+metrics.umpyre_stats.pypi_version,0.1.44
 metrics.workflow_status.last_run_status,success
-metrics.workflow_status.last_success_timestamp,2026-11-22T23:19:16Z
+metrics.workflow_status.last_success_timestamp,2026-11-22T23:22:42Z
 metrics.workflow_status.recent_failure_count,0
-metrics.workflow_status.run_url,https://github.com/i2mint/xdol/actions/runs/45082512780
+metrics.workflow_status.run_url,https://github.com/i2mint/xdol/actions/runs/45082891697
 metrics.workflow_status.total_runs_analyzed,10
 metrics.wily.cyclomatic_avg,0.0
 metrics.wily.maintainability_index,0.0
 metrics.wily.total_loc,0
 metrics.wily.files_analyzed,0
-metrics.wily.error,"wily build failed: [31mFailed to setup archiver: 'Dirty repository, make sure you commit/stash files first'[0m
+metrics.wily.error,"wily report failed: Usage: wily report [OPTIONS] FILE [METRICS]...
+Try 'wily report --help' for help.
+
+Error: Invalid value for '-f' / '--format': 'json' is not one of 'CONSOLE', 'HTML'.
 "
 metrics.coverage.line_coverage,0.0
 metrics.coverage.branch_coverage,0.0
 metrics.coverage.statements_covered,0
 metrics.coverage.statements_total,0
 metrics.coverage.error,No coverage file found
-collection_duration_seconds,3.1633176803588867
+collection_duration_seconds,2.8713393211364746
