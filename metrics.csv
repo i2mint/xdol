@@ -1,26 +1,28 @@
 metric,value
 schema_version,1.0
-timestamp,2026-11-23T11:00:18.502958Z
-commit_sha,9bb51b4ac5c9db9598ecfa399448345ef76d78e4
-commit_message,Merge f80c75eb1ab0503e8fd92b7c1b8246594d5df5d0 into 5bfff3c91b03ab6ca5771c598d63b27d0ac97cb3
+timestamp,2026-11-23T11:03:47.330590Z
+commit_sha,e8a01c855dce740f65cedd13c4339d9283eb9c56
+commit_message,"kvhead/ihead: stop after n items (islice) (#65) (#66)
+
+Closes #65"
 python_version,3.10
-metrics.umpyre_stats.num_functions,7353
-metrics.umpyre_stats.num_classes,1710
-metrics.umpyre_stats.total_lines,270960
-metrics.umpyre_stats.empty_lines,35059
-metrics.umpyre_stats.comment_lines,15126
-metrics.umpyre_stats.docs_lines,39623
-metrics.umpyre_stats.function_lines,122044
-metrics.umpyre_stats.empty_lines_ratio,0.12938810156480662
-metrics.umpyre_stats.comment_lines_ratio,0.055823737821080605
-metrics.umpyre_stats.function_lines_ratio,0.4504133451431946
-metrics.umpyre_stats.mean_lines_per_function,16.59785121719026
-metrics.umpyre_stats.files_analyzed,602
+metrics.umpyre_stats.num_functions,7266
+metrics.umpyre_stats.num_classes,1698
+metrics.umpyre_stats.total_lines,269080
+metrics.umpyre_stats.empty_lines,34764
+metrics.umpyre_stats.comment_lines,15066
+metrics.umpyre_stats.docs_lines,39612
+metrics.umpyre_stats.function_lines,120704
+metrics.umpyre_stats.empty_lines_ratio,0.1291957782072246
+metrics.umpyre_stats.comment_lines_ratio,0.05599078341013825
+metrics.umpyre_stats.function_lines_ratio,0.44858034785193995
+metrics.umpyre_stats.mean_lines_per_function,16.61216625378475
+metrics.umpyre_stats.files_analyzed,592
 metrics.umpyre_stats.pypi_version,0.1.44
 metrics.workflow_status.last_run_status,success
-metrics.workflow_status.last_success_timestamp,2026-11-22T23:22:42Z
+metrics.workflow_status.last_success_timestamp,2026-11-23T11:00:23Z
 metrics.workflow_status.recent_failure_count,0
-metrics.workflow_status.run_url,https://github.com/i2mint/xdol/actions/runs/45082891697
+metrics.workflow_status.run_url,https://github.com/i2mint/xdol/actions/runs/45161003084
 metrics.workflow_status.total_runs_analyzed,10
 metrics.wily.cyclomatic_avg,0.0
 metrics.wily.maintainability_index,0.0
@@ -36,4 +38,4 @@ metrics.coverage.branch_coverage,0.0
 metrics.coverage.statements_covered,0
 metrics.coverage.statements_total,0
 metrics.coverage.error,No coverage file found
-collection_duration_seconds,4.039605140686035
+collection_duration_seconds,4.1752769947052
