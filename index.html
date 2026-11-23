@@ -44,7 +44,7 @@
   <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
 
-    <script src="_static/documentation_options.js?v=a183c34f"></script>
+    <script src="_static/documentation_options.js?v=6a0a5382"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -57,7 +57,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.43" />
+  <meta name="docsearch:version" content="0.1.44" />
   
     
     <script src="_static/searchtools.js"></script>
@@ -333,9 +333,11 @@
 
 <span class="n">cache</span> <span class="o">=</span> <span class="p">{}</span>
 
+
 <span class="nd">@memoize_calls</span><span class="p">(</span><span class="n">store</span><span class="o">=</span><span class="n">cache</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">"record"</span><span class="p">)</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">square</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
     <span class="k">return</span> <span class="n">x</span> <span class="o">*</span> <span class="n">x</span>
+
 
 <span class="k">assert</span> <span class="n">square</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span> <span class="o">==</span> <span class="mi">9</span>  <span class="c1"># computed, and recorded in `cache`</span>
 <span class="k">assert</span> <span class="n">square</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span> <span class="o">==</span> <span class="mi">9</span>  <span class="c1"># replayed from `cache`</span>
@@ -406,7 +408,7 @@
 </section>
 </section>
 
-<p class="epythet-provenance" style="font-size:.8em;opacity:.65;margin-top:2.5em;text-align:right">built 2026-11-22 23:22 UTC from <a href="https://github.com/i2mint/xdol/commit/36b19e858a449f41e79c57c7124a1635a5a35a41">36b19e8</a> (master) · xdol 0.1.43 · <a href="about-this-build.html">about this build</a></p>
+<p class="epythet-provenance" style="font-size:.8em;opacity:.65;margin-top:2.5em;text-align:right">built 2026-11-23 11:04 UTC from <a href="https://github.com/i2mint/xdol/commit/e8a01c855dce740f65cedd13c4339d9283eb9c56">e8a01c8</a> (master) · xdol 0.1.44 · <a href="about-this-build.html">about this build</a></p>
 
                 </article>
               

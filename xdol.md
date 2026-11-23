@@ -1,4 +1,4 @@
-> built 2026-11-22 23:22 UTC from 36b19e8 (master) · xdol 0.1.43. Details: build_info.json
+> built 2026-11-23 11:04 UTC from e8a01c8 (master) · xdol 0.1.44. Details: build_info.json
 
 # index.html.md
 
@@ -21,9 +21,11 @@ from xdol import memoize_calls, update_with_policy
 
 cache = {}
 
+
 @memoize_calls(store=cache, mode="record")
 def square(x):
     return x * x
+
 
 assert square(3) == 9  # computed, and recorded in `cache`
 assert square(3) == 9  # replayed from `cache`
@@ -2650,7 +2652,7 @@ A value that fails to decode raises [`CodecDecodeError`](_autosummary/xdol.x_cod
 
 # About this build
 
-This documentation was built on **2026-11-22 23:22 UTC** from commit <a href="https://github.com/i2mint/xdol/commit/36b19e858a449f41e79c57c7124a1635a5a35a41"><code>36b19e8</code></a> on branch <code>master</code>, for **xdol 0.1.43** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-11-23 11:04 UTC** from commit <a href="https://github.com/i2mint/xdol/commit/e8a01c855dce740f65cedd13c4339d9283eb9c56"><code>e8a01c8</code></a> on branch <code>master</code>, for **xdol 0.1.44** (from <code>pyproject.toml</code>).
 
 #### NOTE
 Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
@@ -2659,7 +2661,7 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 |                     |                                                                                                                                                    |
 |---------------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/i2mint/xdol/commit/36b19e858a449f41e79c57c7124a1635a5a35a41"><code>36b19e858a449f41e79c57c7124a1635a5a35a41</code></a> |
+| Commit              | <a href="https://github.com/i2mint/xdol/commit/e8a01c855dce740f65cedd13c4339d9283eb9c56"><code>e8a01c855dce740f65cedd13c4339d9283eb9c56</code></a> |
 | Branch              | <code>master</code>                                                                                                                                |
 | Tags at this commit | none                                                                                                                                               |
 | Working tree        | clean                                                                                                                                              |
@@ -2670,15 +2672,15 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>i2mint/xdol</code>                                                                   |
-| Run          | <a href="https://github.com/i2mint/xdol/actions/runs/45082741612">45082741612</a>          |
+| Run          | <a href="https://github.com/i2mint/xdol/actions/runs/45161550923">45161550923</a>          |
 | Ref          | <code>refs/heads/master</code>                                                             |
-| Event commit | <code>36b19e858a449f41e79c57c7124a1635a5a35a41</code> (in the history of the built commit) |
+| Event commit | <code>e8a01c855dce740f65cedd13c4339d9283eb9c56</code> (in the history of the built commit) |
 
 ## Tools
 
 |          |         |
 |----------|---------|
-| epythet  | 0.2.23  |
+| epythet  | 0.2.25  |
 | Sphinx   | 9.1.1   |
 | docutils | 0.22.4  |
 | Python   | 3.12.16 |
@@ -2697,14 +2699,14 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/xdol/0.1.43/">0.1.43</a>, the same as the documented version.
+Latest release: <a href="https://pypi.org/project/xdol/0.1.44/">0.1.44</a>, the same as the documented version.
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/i2mint/xdol && cd xdol
-git checkout 36b19e858a449f41e79c57c7124a1635a5a35a41
-pip install "epythet==0.2.23"
+git checkout e8a01c855dce740f65cedd13c4339d9283eb9c56
+pip install "epythet==0.2.25"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```
 
