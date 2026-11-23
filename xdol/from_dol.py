@@ -18,6 +18,7 @@ removes them, their definitions move into this module.
 {'a': ['apple', 'avocado'], 'b': ['banana']}
 """
 
+from itertools import islice
 from dol.util import AttributeMutableMapping, igroupby, regroupby
 from dol.explicit import ExplicitKeyMap
 from dol.sources import SequenceKvReader
@@ -53,7 +54,7 @@ def kvhead(store, n=1):
         for k in store:
             return k, store[k]
     else:
-        return [(k, store[k]) for i, k in enumerate(store) if i < n]
+        return [(k, store[k]) for k in islice(store, n)]
 
 
 def ihead(store, n=1):
@@ -68,4 +69,4 @@ def ihead(store, n=1):
         for item in iter(store):
             return item
     else:
-        return [item for i, item in enumerate(store) if i < n]
+        return list(islice(store, n))
